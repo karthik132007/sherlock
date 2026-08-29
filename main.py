@@ -232,7 +232,7 @@ def main() -> None:
         logger.warning("Token check exception", exc_info=True)
 
     # Semantic chunking
-    print(f"[Sherlock] Starting semantic chunking (chunk_size={args.chunk_size}, overlap={args.overlap})")
+    print("[Sherlock] STAGE: Chunking - Starting semantic chunking...")
     try:
         chunks = semantic_chunk_text(
             text=text,

@@ -91,7 +91,7 @@ PROVIDER_REGISTRY: Dict[str, Dict[str, Any]] = {
         "extra_headers": {"HTTP-Referer": "https://sherlock.local", "X-Title": "Sherlock Investigation"},
     },
     "deepseek": {
-        "base_url": "https://api.deepseek.com/v1",
+        "base_url": "https://api.deepseek.com",
         "env_keys": ["DEEPSEEK_API_KEY", "DEEPSEEK_KEY", "LLM_API"],
         "default_model": "deepseek-chat",
         "context_window": 64000,
@@ -301,6 +301,14 @@ def load_llm_config(
     model = _get_nested(raw, "model", "model_name", "llm_model", "deployment", "model_id", default=None)
     if not model:
         model = registry.get("default_model", DEFAULT_MODEL)
+    else:
+        model = str(model).strip()
+        # Auto-map deepseek model aliases
+        if provider == "deepseek":
+            if model.lower() in ("deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4", "deepseek-v3", "deepseek-flash", "deepseek-pro", "deepseek-chat-v3"):
+                model = "deepseek-chat"
+            elif model.lower() in ("deepseek-r1", "r1", "reasoner"):
+                model = "deepseek-reasoner"
 
     api_key = _get_nested(raw, "api_key", "apiKey", "apikey", "key", "token", "secret", default=None)
     if not api_key:
@@ -776,12 +784,15 @@ def get_client(cfg: Optional[LLMConfig] = None) -> Any:
     try:
         from openai import OpenAI  # type: ignore
 
-        kwargs: Dict[str, Any] = {"api_key": cfg.api_key or "sk-missing-key-for-testing"}
+        kwargs: Dict[str, Any] = {
+            "api_key": cfg.api_key or "sk-missing-key-for-testing",
+            "timeout": 300.0,
+            "max_retries": 2,
+        }
         if cfg.base_url:
             kwargs["base_url"] = cfg.base_url
         if cfg.extra_headers:
             kwargs["default_headers"] = cfg.extra_headers
-        # timeout handled per-call, not client
         client = OpenAI(**kwargs)
         _client_cache[key] = client
         logger.info("Created LLM client for provider=%s model=%s base_url=%s", cfg.provider, cfg.model, cfg.base_url)
@@ -804,7 +815,7 @@ def call_llm(
     project_path: Optional[str | Path] = None,
     temperature: Optional[float] = None,
     max_retries: int = DEFAULT_MAX_RETRIES,
-    timeout: int = 60,
+    timeout: int = 300,
 ) -> str:
     """
     Call LLM and return raw content string.
@@ -891,7 +902,7 @@ def call_llm(
 def parse_json_array(text: str) -> List[Any]:
     """
     Robustly parse JSON array from LLM output.
-    Handles markdown fences, leading/trailing text, object-wrapping.
+    Handles markdown fences, leading/trailing text, object-wrapping, and truncated outputs.
     """
     if not text or not text.strip():
         return []
@@ -933,6 +944,55 @@ def parse_json_array(text: str) -> List[Any]:
                         return data[key]
         except json.JSONDecodeError:
             pass
+
+    # Try recovering objects up to the last complete '}' in truncated JSON array
+    last_brace = text.rfind("}")
+    if last_brace != -1:
+        first_bracket = text.find("[")
+        if first_bracket != -1 and first_bracket < last_brace:
+            candidate = text[first_bracket:last_brace + 1] + "\n]"
+            try:
+                candidate_data = json.loads(candidate)
+                if isinstance(candidate_data, list) and candidate_data:
+                    return candidate_data
+            except json.JSONDecodeError:
+                pass
+
+    # Fallback: scan for all complete top-level JSON objects {...}
+    recovered: List[Dict[str, Any]] = []
+    stack = 0
+    start = -1
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            if stack == 0:
+                start = i
+            stack += 1
+        elif ch == "}":
+            stack -= 1
+            if stack == 0 and start != -1:
+                try:
+                    obj = json.loads(text[start:i + 1])
+                    if isinstance(obj, dict):
+                        recovered.append(obj)
+                except Exception:
+                    pass
+                start = -1
+
+    if recovered:
+        return recovered
 
     logger.warning("Failed to parse JSON array from LLM output (first 500 chars): %s", text[:500])
     return []

@@ -153,6 +153,7 @@ public class GraphCanvas extends StackPane {
 
     private HBox buildToolbar() {
         HBox toolbar = new HBox(6);
+        toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         toolbar.setAlignment(Pos.CENTER_RIGHT);
         toolbar.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
@@ -211,6 +212,7 @@ public class GraphCanvas extends StackPane {
 
     private VBox buildMinimap() {
         VBox box = new VBox(4);
+        box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
         Label title = new Label("Minimap");
@@ -225,19 +227,38 @@ public class GraphCanvas extends StackPane {
 
     private VBox buildLegend() {
         VBox box = new VBox(5);
-        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
+        HBox header = new HBox(6);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label title = new Label("Legend");
         title.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
 
-        box.getChildren().add(title);
-        box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
-        box.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
-        box.getChildren().add(legendItem(Color.web("#10B981"), "Document / Transcript"));
-        box.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
-        box.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
-        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Organization"));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        Button toggleBtn = new Button("▾");
+        toggleBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 2px; -fx-cursor: hand;");
+
+        header.getChildren().addAll(title, spacer, toggleBtn);
+
+        VBox itemsBox = new VBox(4);
+        itemsBox.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
+        itemsBox.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
+        itemsBox.getChildren().add(legendItem(Color.web("#10B981"), "Document / Transcript"));
+        itemsBox.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
+        itemsBox.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
+        itemsBox.getChildren().add(legendItem(Color.web("#8B5CF6"), "Organization"));
+
+        toggleBtn.setOnAction(e -> {
+            boolean isVisible = itemsBox.isVisible();
+            itemsBox.setVisible(!isVisible);
+            itemsBox.setManaged(!isVisible);
+            toggleBtn.setText(isVisible ? "▸" : "▾");
+        });
+
+        box.getChildren().addAll(header, itemsBox);
         return box;
     }
 

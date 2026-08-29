@@ -327,12 +327,15 @@ public class CaseService {
         if (Files.exists(entitiesFile)) {
             try {
                 JsonNode root = objectMapper.readTree(entitiesFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("entities") ? root.get("entities") : null);
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         GraphDataResponse.Node node = objectMapper.treeToValue(item, GraphDataResponse.Node.class);
                         if (node != null && node.getId() != null) {
                             nodeMap.put(node.getId(), node);
-                            nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            if (node.getName() != null) {
+                                nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            }
                             nodes.add(node);
                         }
                     }
@@ -352,8 +355,9 @@ public class CaseService {
         if (Files.exists(graphDataFile)) {
             try {
                 JsonNode root = objectMapper.readTree(graphDataFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("graph") ? root.get("graph") : (root.has("mappings") ? root.get("mappings") : null));
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         String relId = item.has("relation_id") ? item.get("relation_id").asText() : "";
                         String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
                         Double conf = item.has("confidence") ? item.get("confidence").asDouble() : 1.0;
@@ -389,8 +393,9 @@ public class CaseService {
         } else if (Files.exists(relationsFile)) {
             try {
                 JsonNode root = objectMapper.readTree(relationsFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("relations") ? root.get("relations") : (root.has("relationships") ? root.get("relationships") : null));
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         String source = item.has("source") ? item.get("source").asText() : "";
                         String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
                         String target = item.has("target") ? item.get("target").asText() : "";
