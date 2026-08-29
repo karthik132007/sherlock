@@ -70,7 +70,7 @@ public class InitialView extends BorderPane {
         ScrollPane mainScroll = new ScrollPane(mainLayout);
         mainScroll.setFitToWidth(true);
         mainScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        
+
         rootStack.getChildren().add(mainScroll);
 
         setCenter(rootStack);
@@ -179,12 +179,13 @@ public class InitialView extends BorderPane {
         header.setAlignment(Pos.CENTER_LEFT);
         Label logo = new Label("✨");
         logo.setStyle("-fx-font-size: 36px;");
-        
+
         VBox titleBox = new VBox(0);
         Label title = new Label("Sherlock");
         title.setStyle("-fx-font-size: 32px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         Label subTitle = new Label("AI INVESTIGATION INTELLIGENCE");
-        subTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
+        subTitle.setStyle(
+                "-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
         titleBox.getChildren().addAll(title, subTitle);
 
         header.getChildren().addAll(logo, titleBox);
@@ -242,7 +243,8 @@ public class InitialView extends BorderPane {
         VBox bulletPoints = new VBox(16);
         bulletPoints.setPadding(new Insets(16, 0, 0, 0));
 
-        Label description = new Label("Sherlock transforms unstructured case evidence into an interactive, explainable knowledge graph. It enables investigators to instantly uncover hidden connections, reconstruct timelines, and map out complex relationships.");
+        Label description = new Label(
+                "Sherlock transforms unstructured case evidence into an interactive, explainable knowledge graph. It enables investigators to instantly uncover hidden connections, reconstruct timelines, and map out complex relationships.");
         description.setWrapText(true);
         description.setStyle("-fx-font-size: 15px; -fx-text-fill: #334155; -fx-line-spacing: 6px;");
 
@@ -253,11 +255,14 @@ public class InitialView extends BorderPane {
         bulletPoints.getChildren().addAll(
                 description,
                 howItWorksTitle,
-                createBullet("📁", "1. Create a Case: Name your investigation and upload raw evidence (documents, reports, logs)."),
-                createBullet("🧠", "2. Connect an AI Model: Configure your preferred local or cloud LLM to power the engine."),
-                createBullet("⚡", "3. Automatic Extraction: Sherlock autonomously processes data to discover entities and relationships."),
-                createBullet("🕸️", "4. Explore the Graph: Visually navigate the knowledge graph, fully grounded with source citations.")
-        );
+                createBullet("📁",
+                        "1. Create a Case: Name your investigation and upload raw evidence (documents, reports, logs)."),
+                createBullet("🧠",
+                        "2. Connect an AI Model: Configure your preferred local or cloud LLM to power the engine."),
+                createBullet("⚡",
+                        "3. Automatic Extraction: Sherlock autonomously processes data to discover entities and relationships."),
+                createBullet("🕸️",
+                        "4. Explore the Graph: Visually navigate the knowledge graph, fully grounded with source citations."));
 
         card.getChildren().addAll(titleRow, subTitle, bulletPoints);
         return card;
@@ -286,7 +291,7 @@ public class InitialView extends BorderPane {
         headerRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("📁");
         icon.setStyle("-fx-font-size: 20px;");
-        
+
         Label title = new Label("New / Open Case");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         headerRow.getChildren().addAll(icon, title);
