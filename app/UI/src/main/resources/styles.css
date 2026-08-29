@@ -346,16 +346,14 @@
 }
 
 .scroll-bar:vertical, .scroll-bar:horizontal {
-    -fx-background-color: transparent;
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-padding: 0;
 }
 
 .scroll-bar .thumb {
-    -fx-background-color: #cbd5e1;
-    -fx-background-radius: 6px;
-}
-
-.scroll-bar .thumb:hover {
-    -fx-background-color: #94a3b8;
+    -fx-background-color: transparent;
 }
 
 .scroll-bar .track {
