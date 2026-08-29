@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 @Component
 @ConfigurationProperties(prefix = "sherlock")
 public class AppProperties {
-    private String baseDirectory = "../../data";
+    private String baseDirectory;
     private String pythonCommand = "python3";
     private String pythonScriptPath = "";
     private String processArgument = "--project";
@@ -38,27 +38,42 @@ public class AppProperties {
     }
 
     public String getBaseDirectory() {
-        if (baseDirectory == null || baseDirectory.isBlank()) {
-            baseDirectory = "../../data";
+        if (baseDirectory == null || baseDirectory.isBlank() || baseDirectory.equals("../../data")) {
+            baseDirectory = Paths.get(System.getProperty("user.home"), "Documents", "Sherlock").toString();
         }
         Path p = Paths.get(baseDirectory);
-        if (!p.isAbsolute()) {
-            Path cur = Paths.get("").toAbsolutePath();
-            Path c1 = cur.resolve(baseDirectory).normalize();
-            if (Files.exists(c1)) {
-                return c1.toString();
-            }
-            Path c2 = cur.resolve("../../data").normalize();
-            if (Files.exists(c2)) {
-                return c2.toString();
-            }
-            Path c3 = Paths.get("/Users/dark/MyStuff/Code/Projects/sherlock/data");
-            if (Files.exists(c3)) {
-                return c3.toString();
-            }
-            return c1.toString();
+        
+        p = ensureWritableDirectory(p);
+        if (p == null) {
+            // Fallback 1: user.home/Sherlock (avoids Windows Controlled Folder Access on Documents)
+            p = ensureWritableDirectory(Paths.get(System.getProperty("user.home"), "Sherlock"));
         }
-        return p.toAbsolutePath().normalize().toString();
+        if (p == null) {
+            // Fallback 2: current directory / sherlock_data
+            p = ensureWritableDirectory(Paths.get("sherlock_data").toAbsolutePath());
+        }
+        if (p == null) {
+            // Ultimate fallback (might still fail later, but we tried)
+            p = Paths.get(System.getProperty("user.home"), "Sherlock");
+        }
+        
+        baseDirectory = p.toAbsolutePath().normalize().toString();
+        return baseDirectory;
+    }
+    
+    private Path ensureWritableDirectory(Path dir) {
+        try {
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            // Check if we can actually write to it (e.g. by creating a temp file or just checking isWritable)
+            if (Files.isWritable(dir)) {
+                return dir;
+            }
+        } catch (Exception e) {
+            // Access denied or IO error
+        }
+        return null;
     }
 
     public void setBaseDirectory(String baseDirectory) { this.baseDirectory = baseDirectory; }

@@ -48,15 +48,29 @@ public class TimelineEventDto {
 
         private Double confidence;
 
+        private String event;
+
         public TimelineEventItem() {}
+
+        public String getEvent() { return event != null ? event : (title != null ? title : description); }
+        @JsonProperty("event")
+        public void setEvent(String event) {
+            this.event = event;
+            if (this.title == null || this.title.isBlank() || this.title.equals("Event")) {
+                this.title = event;
+            }
+            if (this.description == null || this.description.isBlank()) {
+                this.description = event;
+            }
+        }
 
         public String getTimestamp() { return timestamp; }
         public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
 
-        public String getTitle() { return title; }
+        public String getTitle() { return title != null ? title : (event != null ? event : description); }
         public void setTitle(String title) { this.title = title; }
 
-        public String getDescription() { return description; }
+        public String getDescription() { return description != null ? description : (event != null ? event : title); }
         public void setDescription(String description) { this.description = description; }
 
         public List<String> getEntitiesInvolved() { return entitiesInvolved; }

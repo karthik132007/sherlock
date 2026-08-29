@@ -2,8 +2,8 @@ package com.sherlock.app.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProcessingStatus {
@@ -12,7 +12,10 @@ public class ProcessingStatus {
     private String message;
     private String scriptPath;
     private String command;
-    private List<String> logs = new ArrayList<>();
+    // CopyOnWriteArrayList: the pipeline background thread appends log lines while
+    // status-poll requests serialize this list — a plain ArrayList can throw
+    // ConcurrentModificationException in that situation.
+    private List<String> logs = new CopyOnWriteArrayList<>();
     private Integer exitCode;
     private boolean completed;
     private boolean success;

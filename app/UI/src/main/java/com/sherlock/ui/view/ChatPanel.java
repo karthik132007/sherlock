@@ -21,6 +21,7 @@ public class ChatPanel extends VBox {
     private final SherlockBackendClient client;
     private String currentCaseId = "";
 
+    private final ComboBox<String> providerSelector = new ComboBox<>();
     private final ComboBox<String> modelSelector = new ComboBox<>();
     private final VBox messageContainer = new VBox(12);
     private final ScrollPane scrollPane = new ScrollPane();
@@ -52,6 +53,21 @@ public class ChatPanel extends VBox {
 
         header.getChildren().addAll(title, spacer, status);
 
+        // Provider Selector Bar
+        HBox providerRow = new HBox(6);
+        providerRow.setAlignment(Pos.CENTER_LEFT);
+        Label providerIcon = new Label("🔌 Provider:");
+        providerIcon.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #94a3b8;");
+
+        providerSelector.setStyle(
+                "-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #a78bfa; -fx-background-radius: 6px;");
+        providerSelector.setMaxWidth(120);
+        providerSelector.getItems().addAll("Ollama", "OpenAI", "DeepSeek", "OpenRouter", "Groq", "Mistral", "Custom");
+        providerSelector.setValue("Ollama");
+        providerSelector.setOnAction(e -> applyProviderDefaults(providerSelector.getValue()));
+
+        providerRow.getChildren().addAll(providerIcon, providerSelector);
+
         // Model Selector Bar
         HBox modelRow = new HBox(6);
         modelRow.setAlignment(Pos.CENTER_LEFT);
@@ -64,17 +80,8 @@ public class ChatPanel extends VBox {
         modelSelector.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(modelSelector, Priority.ALWAYS);
 
-        modelSelector.getItems().addAll("gemma4:e2b", "qwen3.5:2b", "gpt-oss:120b-cloud", "gemma4:e4b", "gpt-4o-mini");
-        modelSelector.setValue("gemma4:e2b");
-
-        client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
-            if (models != null && !models.isEmpty()) {
-                modelSelector.getItems().clear();
-                modelSelector.getItems().addAll(models);
-                modelSelector.getItems().addAll("gpt-4o-mini", "deepseek-chat");
-                modelSelector.setValue(models.get(0));
-            }
-        }));
+        // Populate models for the default provider (Ollama)
+        applyProviderDefaults(providerSelector.getValue());
 
         modelRow.getChildren().addAll(modelIcon, modelSelector);
 
@@ -114,7 +121,7 @@ public class ChatPanel extends VBox {
         HBox inputRow = new HBox(8, inputField, sendButton);
         inputRow.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(header, modelRow, suggestions, scrollPane, inputRow);
+        getChildren().addAll(header, providerRow, modelRow, suggestions, scrollPane, inputRow);
 
         // Initial greeting
         addSherlockMessage(
@@ -126,6 +133,58 @@ public class ChatPanel extends VBox {
         messageContainer.getChildren().clear();
         addSherlockMessage("Case **" + caseId
                 + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
+    }
+
+    /**
+     * Populates the model selector based on the chosen provider. When Ollama is
+     * selected, the available local models are fetched from the backend (the
+     * equivalent of `ollama list`); other providers get their conventional
+     * default model lists.
+     */
+    private void applyProviderDefaults(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return;
+        }
+
+        if ("Ollama".equalsIgnoreCase(provider)) {
+            modelSelector.getItems().clear();
+            modelSelector.setValue(null);
+            modelSelector.setPromptText("Loading Ollama models...");
+            client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
+                if (models != null && !models.isEmpty()) {
+                    modelSelector.getItems().setAll(models);
+                    modelSelector.setValue(models.get(0));
+                    modelSelector.setDisable(false);
+                    modelSelector.setPromptText(null);
+                } else {
+                    modelSelector.getItems().clear();
+                    modelSelector.setValue(null);
+                    modelSelector.setDisable(true);
+                    modelSelector.setPromptText("No Ollama models found (is Ollama running?)");
+                }
+            }));
+            return;
+        }
+
+        modelSelector.setDisable(false);
+        modelSelector.setPromptText(null);
+        if ("DeepSeek".equalsIgnoreCase(provider)) {
+            modelSelector.getItems().setAll("deepseek-chat", "deepseek-coder");
+            modelSelector.setValue("deepseek-chat");
+        } else if ("Groq".equalsIgnoreCase(provider)) {
+            modelSelector.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
+            modelSelector.setValue("llama-3.3-70b-versatile");
+        } else if ("OpenRouter".equalsIgnoreCase(provider)) {
+            modelSelector.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct");
+            modelSelector.setValue("openai/gpt-4o-mini");
+        } else if ("Mistral".equalsIgnoreCase(provider)) {
+            modelSelector.getItems().setAll("mistral-large-latest", "mistral-small-latest");
+            modelSelector.setValue("mistral-large-latest");
+        } else {
+            // OpenAI / Custom
+            modelSelector.getItems().setAll("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
+            modelSelector.setValue("gpt-4o-mini");
+        }
     }
 
     private FlowPane buildQuickSuggestions() {
@@ -170,7 +229,8 @@ public class ChatPanel extends VBox {
         }
 
         String selectedModel = modelSelector.getValue();
-        client.sendChatMessageAsync(currentCaseId, query, selectedModel)
+        String selectedProvider = providerSelector.getValue();
+        client.sendChatMessageAsync(currentCaseId, query, selectedModel, selectedProvider)
                 .thenAccept(resp -> Platform.runLater(() -> {
                     sendButton.setDisable(false);
                     typingIndicator.setVisible(false);

@@ -662,6 +662,20 @@ WAREHOUSE TEXT:
 {warehouse_text}
 
 TASK — same rules as batch mode:
+
+OUTPUT FORMAT:
+Provide a JSON array of objects like this:
+[
+  {{
+    "timestamp": "2026-04-14 18:30",
+    "event": "Rose Mathew was found dead at her flat",
+    "source_file": "fir.txt",
+    "chunk_id": "fir_chunk_001",
+    "confidence": 0.95,
+    "evidence_text": "Rose Mathew was found dead at 18:30"
+  }}
+]
+
 - Extract every timestamped/dated event (timestamp + event + source_file + chunk_id + confidence + evidence_text)
 - Normalize timestamps: "14 April 2026 18:30 IST" -> "2026-04-14 18:30"
 - Example: {{"timestamp":"2026-04-14 18:30","event":"Rose Mathew found dead in Flat 3B","source_file":"01_case_summary.txt","chunk_id":"01_case_summary_chunk_001","confidence":0.98,"evidence_text":"found dead at 18:30"}}
