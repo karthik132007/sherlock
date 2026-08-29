@@ -1275,7 +1275,7 @@ def _try_parse_timeline_timestamp(raw: str) -> Optional[_dt.datetime]:
 
         # dateutil handles many formats + IST (needs tzinfos)
         # Provide tzinfos for IST
-        tzinfos = {"IST": 5.5 * 3600}
+        tzinfos = {"IST": 19800}
         try:
             dt = _parser.parse(s, tzinfos=tzinfos, fuzzy=True, dayfirst=False)
             return dt
@@ -1407,6 +1407,8 @@ def sort_timeline_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if dt is not None:
             # Use aware->naive for comparison by timestamp()
             try:
+                if dt.tzinfo is not None:
+                    dt = dt.replace(tzinfo=None)
                 # For sorting, use tuple (0, dt); None second for parseable
                 # Put parseable first
                 return (0, dt, "")
@@ -1483,6 +1485,8 @@ def normalize_timeline_event(raw: Dict[str, Any], default_source: str = "", defa
     out: Dict[str, Any] = {
         "timestamp": ts,
         "event": event_text,
+        "title": event_text,
+        "description": event_text,
         "source_file": source_file,
         "chunk_id": chunk_id,
         "confidence": confidence,
