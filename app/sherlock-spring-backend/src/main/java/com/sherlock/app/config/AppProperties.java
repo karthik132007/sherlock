@@ -9,7 +9,7 @@ public class AppProperties {
     private String baseDirectory = System.getProperty("user.home") + "/Documents/Sherlock";
     private String pythonCommand = "python3";
     private String pythonScriptPath = "";
-    private String processArgument = "--case-id";
+    private String processArgument = "--project";
 
     public String getBaseDirectory() { return baseDirectory; }
     public void setBaseDirectory(String baseDirectory) { this.baseDirectory = baseDirectory; }

@@ -112,6 +112,11 @@ public class MainFrameView extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         // Action Buttons
+        Button investigateBtn = new Button("🚀 Start Investigation");
+        investigateBtn.getStyleClass().add("primary-button");
+        investigateBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 6px 14px;");
+        investigateBtn.setOnAction(e -> startInvestigation());
+
         Button historyBtn = new Button("📁 Case History");
         historyBtn.getStyleClass().add("secondary-button");
         historyBtn.setOnAction(e -> showCaseHistoryDialog());
@@ -127,8 +132,106 @@ public class MainFrameView extends BorderPane {
             if (onNewCaseRequested != null) onNewCaseRequested.run();
         });
 
-        bar.getChildren().addAll(brand, caseBadge, nodeCountBadge, edgeCountBadge, refreshIndicator, spacer, historyBtn, refreshBtn, newCaseBtn);
+        bar.getChildren().addAll(brand, caseBadge, nodeCountBadge, edgeCountBadge, refreshIndicator, spacer, investigateBtn, historyBtn, refreshBtn, newCaseBtn);
         return bar;
+    }
+
+    private void startInvestigation() {
+        if (currentCase == null || currentCase.getCaseId() == null) {
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Please load or create a case first.");
+            alert.show();
+            return;
+        }
+
+        String caseId = currentCase.getCaseId();
+        
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Investigation Progress");
+        dialog.setHeaderText("Running Sherlock AI Pipeline on Case: " + caseId);
+
+        VBox content = new VBox(10);
+        content.setPrefWidth(500);
+        content.setPrefHeight(350);
+
+        Label lblChunk = new Label("⏳ Chunking...");
+        Label lblEntity = new Label("⏳ Entity Extraction...");
+        Label lblRel = new Label("⏳ Relationship Extraction...");
+        Label lblMap = new Label("⏳ Relation Mapping...");
+        
+        String pendingStyle = "-fx-text-fill: #94a3b8; -fx-font-size: 14px;";
+        String activeStyle = "-fx-text-fill: #38bdf8; -fx-font-size: 14px; -fx-font-weight: bold;";
+        String doneStyle = "-fx-text-fill: #34d399; -fx-font-size: 14px; -fx-font-weight: bold;";
+
+        lblChunk.setStyle(pendingStyle);
+        lblEntity.setStyle(pendingStyle);
+        lblRel.setStyle(pendingStyle);
+        lblMap.setStyle(pendingStyle);
+
+        VBox stages = new VBox(5, lblChunk, lblEntity, lblRel, lblMap);
+        stages.setPadding(new Insets(10));
+        stages.setStyle("-fx-background-color: #161e2e; -fx-background-radius: 5px;");
+
+        TextArea logArea = new TextArea();
+        logArea.setEditable(false);
+        logArea.setStyle("-fx-control-inner-background: #0b0e14; -fx-text-fill: #a1a1aa; -fx-font-family: monospace;");
+        VBox.setVgrow(logArea, Priority.ALWAYS);
+
+        content.getChildren().addAll(stages, logArea);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(true); // Disable until done
+
+        client.startProcessingAsync(caseId).thenAccept(status -> {
+            Platform.runLater(() -> {
+                javafx.animation.Timeline[] timelineArr = new javafx.animation.Timeline[1];
+                timelineArr[0] = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                        client.getProcessingStatusAsync(caseId).thenAccept(currStatus -> {
+                            Platform.runLater(() -> {
+                                if (currStatus.getLogs() != null) {
+                                    String allLogs = String.join("\n", currStatus.getLogs());
+                                    logArea.setText(allLogs);
+                                    logArea.setScrollTop(Double.MAX_VALUE); // scroll down
+
+                                    // Update Stage highlights
+                                    if (allLogs.contains("STAGE: Relation Mapping")) {
+                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
+                                        lblEntity.setStyle(doneStyle); lblEntity.setText("✅ Entity Extraction");
+                                        lblRel.setStyle(doneStyle); lblRel.setText("✅ Relationship Extraction");
+                                        lblMap.setStyle(activeStyle); lblMap.setText("🔄 Relation Mapping...");
+                                    } else if (allLogs.contains("STAGE: Relationship Extraction")) {
+                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
+                                        lblEntity.setStyle(doneStyle); lblEntity.setText("✅ Entity Extraction");
+                                        lblRel.setStyle(activeStyle); lblRel.setText("🔄 Relationship Extraction...");
+                                    } else if (allLogs.contains("STAGE: Entity Extraction")) {
+                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
+                                        lblEntity.setStyle(activeStyle); lblEntity.setText("🔄 Entity Extraction...");
+                                    } else if (allLogs.contains("STAGE: Chunking")) {
+                                        lblChunk.setStyle(activeStyle); lblChunk.setText("🔄 Chunking...");
+                                    }
+                                }
+                                
+                                if (currStatus.isCompleted()) {
+                                    lblMap.setStyle(doneStyle); lblMap.setText("✅ Relation Mapping");
+                                    logArea.appendText("\n\nPipeline Completed!");
+                                    dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(false);
+                                    if (timelineArr[0] != null) timelineArr[0].stop();
+                                    refreshGraphData();
+                                }
+                            });
+                        });
+                    })
+                );
+                timelineArr[0].setCycleCount(javafx.animation.Animation.INDEFINITE);
+                timelineArr[0].play();
+                
+                dialog.setOnHidden(ev -> {
+                    if (timelineArr[0] != null) timelineArr[0].stop();
+                });
+            });
+        });
+
+        dialog.show();
     }
 
     private HBox buildMainSplit() {

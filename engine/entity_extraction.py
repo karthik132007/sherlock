@@ -144,6 +144,7 @@ def run_extraction_pipeline(
         print(f"[Sherlock] Chunks: {len(chunks)} | Batches (size {batch_size}): {decision['batches_needed']}")
 
     # Entity extraction (auto chooses single vs batched)
+    print("[Sherlock] STAGE: Entity Extraction - Starting entity extraction...")
     entities, _ = extract_entities_auto(
         warehouse_text=warehouse_text,
         chunks=chunks,
@@ -181,7 +182,7 @@ def run_extraction_pipeline(
     relationships: List[Dict[str, Any]] = []
     if extract_relationships and entities:
         if verbose:
-            print(f"[Sherlock] Starting relationship extraction for {len(entities)} entities (sending entities with data)...")
+            print(f"[Sherlock] STAGE: Relationship Extraction - Starting for {len(entities)} entities...")
         relationships = extract_relationships_batched(
             chunks=chunks,
             entities=entities,  # full entities with id,data now sent to LLM per prompts.py
@@ -224,7 +225,7 @@ def run_extraction_pipeline(
     graph_paths: Dict[str, Any] = {}
     if entities and relationships:
         if verbose:
-            print(f"[Sherlock] Building graph mappings: {len(entities)} entities + {len(relationships)} relations -> node-relation-node")
+            print(f"[Sherlock] STAGE: Relation Mapping - Building graph mappings...")
         try:
             from engine.graph_builder import build_graph, save_graph_outputs
 

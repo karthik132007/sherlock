@@ -218,10 +218,11 @@ public class CaseService {
         }
 
         String pythonScript = resolvePythonScriptPath();
+        String pythonCommand = resolvePythonCommand(pythonScript);
         List<String> commandTokens = new ArrayList<>();
-        commandTokens.add(appProperties.getPythonCommand());
+        commandTokens.add(pythonCommand);
         commandTokens.add(pythonScript);
-        commandTokens.add("--project");
+        commandTokens.add(appProperties.getProcessArgument());
         commandTokens.add(caseDirectory.toAbsolutePath().toString());
         commandTokens.add("--extract");
         commandTokens.add("--timeline");
@@ -326,12 +327,15 @@ public class CaseService {
         if (Files.exists(entitiesFile)) {
             try {
                 JsonNode root = objectMapper.readTree(entitiesFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("entities") ? root.get("entities") : null);
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         GraphDataResponse.Node node = objectMapper.treeToValue(item, GraphDataResponse.Node.class);
                         if (node != null && node.getId() != null) {
                             nodeMap.put(node.getId(), node);
-                            nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            if (node.getName() != null) {
+                                nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            }
                             nodes.add(node);
                         }
                     }
@@ -351,8 +355,9 @@ public class CaseService {
         if (Files.exists(graphDataFile)) {
             try {
                 JsonNode root = objectMapper.readTree(graphDataFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("graph") ? root.get("graph") : (root.has("mappings") ? root.get("mappings") : null));
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         String relId = item.has("relation_id") ? item.get("relation_id").asText() : "";
                         String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
                         Double conf = item.has("confidence") ? item.get("confidence").asDouble() : 1.0;
@@ -388,8 +393,9 @@ public class CaseService {
         } else if (Files.exists(relationsFile)) {
             try {
                 JsonNode root = objectMapper.readTree(relationsFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
+                JsonNode itemsNode = root.isArray() ? root : (root.has("relations") ? root.get("relations") : (root.has("relationships") ? root.get("relationships") : null));
+                if (itemsNode != null && itemsNode.isArray()) {
+                    for (JsonNode item : itemsNode) {
                         String source = item.has("source") ? item.get("source").asText() : "";
                         String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
                         String target = item.has("target") ? item.get("target").asText() : "";
@@ -580,23 +586,60 @@ public class CaseService {
     }
 
     private String resolvePythonScriptPath() {
+        // 1. Explicit configuration wins
         if (appProperties.getPythonScriptPath() != null && !appProperties.getPythonScriptPath().isBlank()) {
             File f = new File(appProperties.getPythonScriptPath());
             if (f.exists()) return f.getAbsolutePath();
+            log.warn("Configured sherlock.python-script-path does not exist: {}", appProperties.getPythonScriptPath());
         }
 
-        // Search upward from current working directory
+        // 2. Search upward from the current working directory (covers running the
+        //    backend from the repo root, app/sherlock-spring-backend, or any nested dir)
         Path cur = Paths.get("").toAbsolutePath();
-        Path candidate1 = cur.resolve("main.py");
-        if (Files.exists(candidate1)) return candidate1.toAbsolutePath().toString();
+        for (Path p = cur; p != null; p = p.getParent()) {
+            Path candidate = p.resolve("main.py");
+            if (Files.exists(candidate)) return candidate.toAbsolutePath().toString();
+        }
 
-        Path candidate2 = cur.resolve("../../main.py").normalize();
-        if (Files.exists(candidate2)) return candidate2.toAbsolutePath().toString();
+        // 3. Search relative to where the application classes/jar live
+        try {
+            Path codeLocation = Paths.get(
+                    CaseService.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath();
+            for (Path p = codeLocation; p != null; p = p.getParent()) {
+                Path candidate = p.resolve("main.py");
+                if (Files.exists(candidate)) return candidate.toAbsolutePath().toString();
+            }
+        } catch (Exception ignored) {}
 
-        Path candidate3 = Paths.get("/Users/dark/MyStuff/Code/Projects/sherlock/main.py");
-        if (Files.exists(candidate3)) return candidate3.toAbsolutePath().toString();
-
+        log.warn("main.py could not be located automatically; falling back to relative 'main.py'");
         return "main.py";
+    }
+
+    /**
+     * Picks the Python interpreter used to run main.py. Prefers the project
+     * virtualenv (".venv" next to main.py) so the engine dependencies
+     * (openai, tiktoken, scikit-learn) are available, unless a custom
+     * interpreter was explicitly configured via sherlock.python-command.
+     */
+    private String resolvePythonCommand(String pythonScript) {
+        String configured = appProperties.getPythonCommand();
+        Path scriptDir = Paths.get(pythonScript).toAbsolutePath().getParent();
+        if (scriptDir != null) {
+            Path venvPython = isWindows()
+                    ? scriptDir.resolve(".venv").resolve("Scripts").resolve("python.exe")
+                    : scriptDir.resolve(".venv").resolve("bin").resolve("python");
+            if (Files.exists(venvPython)
+                    && (configured == null || configured.isBlank()
+                        || configured.equals("python3") || configured.equals("python"))) {
+                log.info("Using project virtualenv Python: {}", venvPython.toAbsolutePath());
+                return venvPython.toAbsolutePath().toString();
+            }
+        }
+        return (configured == null || configured.isBlank()) ? "python3" : configured;
+    }
+
+    private boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
     }
 
     private void writeLlmConfig(Path caseDirectory, LlmConfigRequest config) throws IOException {
