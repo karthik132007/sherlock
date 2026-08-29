@@ -16,6 +16,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 public class InitialView extends BorderPane {
 
@@ -554,7 +555,7 @@ public class InitialView extends BorderPane {
                                     return client.startProcessingAsync(uploaded.getCaseId()).thenApply(p -> uploaded);
                                 });
                     }
-                    return client.createCaseAsync(caseName, caseName, llmConfig);
+                    return CompletableFuture.completedFuture(createdCase);
                 })
                 .thenAccept(finalCase -> Platform.runLater(() -> {
                     proceedBtn.setDisable(false);

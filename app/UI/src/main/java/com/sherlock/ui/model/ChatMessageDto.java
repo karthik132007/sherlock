@@ -11,7 +11,7 @@ import java.util.List;
 public class ChatMessageDto {
 
     private String role; // "user" or "sherlock"
-    private String content;
+    private String answer;
     private String timestamp;
     private List<String> referencedEntities = new ArrayList<>();
     private List<String> referencedSources = new ArrayList<>();
@@ -21,17 +21,17 @@ public class ChatMessageDto {
         this.timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
     }
 
-    public ChatMessageDto(String role, String content) {
+    public ChatMessageDto(String role, String answer) {
         this();
         this.role = role;
-        this.content = content;
+        this.answer = answer;
     }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
+    public String getAnswer() { return answer; }
+    public void setAnswer(String answer) { this.answer = answer; }
 
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }

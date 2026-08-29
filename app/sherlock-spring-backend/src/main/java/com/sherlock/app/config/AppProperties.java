@@ -13,7 +13,7 @@ public class AppProperties {
     private String baseDirectory = "../../data";
     private String pythonCommand = "python3";
     private String pythonScriptPath = "";
-    private String processArgument = "--case-id";
+    private String processArgument = "--project";
 
     // Neo4j Configuration
     private Neo4jConfig neo4j = new Neo4jConfig();

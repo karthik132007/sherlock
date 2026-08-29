@@ -167,8 +167,8 @@ public class ChatPanel extends VBox {
                 .thenAccept(resp -> Platform.runLater(() -> {
                     sendButton.setDisable(false);
                     typingIndicator.setVisible(false);
-                    if (resp != null && resp.getContent() != null) {
-                        addSherlockMessage(resp.getContent());
+                    if (resp != null && resp.getAnswer() != null) {
+                        addSherlockMessage(resp.getAnswer());
                     } else {
                         addSherlockMessage("No specific evidence found matching your query.");
                     }

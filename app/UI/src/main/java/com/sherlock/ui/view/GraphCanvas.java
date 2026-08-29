@@ -153,6 +153,7 @@ public class GraphCanvas extends StackPane {
 
     private HBox buildToolbar() {
         HBox toolbar = new HBox(6);
+        toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         toolbar.setAlignment(Pos.CENTER_RIGHT);
         toolbar.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
@@ -211,6 +212,7 @@ public class GraphCanvas extends StackPane {
 
     private VBox buildMinimap() {
         VBox box = new VBox(4);
+        box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
         Label title = new Label("Minimap");
@@ -226,6 +228,7 @@ public class GraphCanvas extends StackPane {
     private HBox buildLegend() {
         HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
+        box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 3px 8px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
 
         Label title = new Label("LEGEND:");
