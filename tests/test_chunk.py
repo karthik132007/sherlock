@@ -8,6 +8,7 @@ from engine.chunk import (
     semantic_chunk_text,
     _parse_warehouse_sources,
     _safe_prefix,
+    _apply_overlap,
 )
 
 
@@ -164,3 +165,18 @@ END_SOURCE: witness.txt
         # reassembled via naive should cover all
         total_chars = sum(c["metadata"]["char_length"] for c in chunks)
         self.assertGreater(total_chars, 4000)
+
+    def test_apply_overlap_does_not_cascade(self):
+        # Regression: overlap must come from the ORIGINAL previous chunk,
+        # not the already-overlapped one. Otherwise text can leak across two chunks.
+        a = "AAAA " * 400   # 2000 chars
+        b = "BBBB " * 10    # 50 chars — smaller than the overlap
+        c = "CCCC " * 400   # 2000 chars
+        raw = [(a, 0, len(a)), (b, len(a), len(a) + len(b)), (c, len(a) + len(b), len(a) + len(b) + len(c))]
+        out = _apply_overlap(raw, 100)
+        self.assertGreaterEqual(len(out), 3)
+        # chunk 2 gets overlap from chunk 1
+        self.assertIn("AAAA", out[1][0])
+        # chunk 3 must NOT contain text from chunk 1 — only from chunk 2
+        self.assertNotIn("AAAA", out[2][0])
+        self.assertIn("BBBB", out[2][0])

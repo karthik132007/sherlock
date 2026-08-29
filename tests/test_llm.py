@@ -63,6 +63,13 @@ class TestTokenUtils(unittest.TestCase):
         decision = decide_strategy(txt, chunks=chunks, context_window=500000, prefer_batched_when_fits=True)
         self.assertEqual(decision["batches_needed"], 3)  # 45/20 ceil =3
 
+    def test_batches_needed_respects_custom_batch_size(self):
+        txt = "hello"
+        chunks = [{"a": i} for i in range(45)]
+        decision = decide_strategy(txt, chunks=chunks, context_window=500000,
+                                   prefer_batched_when_fits=True, batch_size=10)
+        self.assertEqual(decision["batches_needed"], 5)  # 45/10 ceil =5, not 45/20=3
+
 
 class TestBatching(unittest.TestCase):
     def test_create_batches(self):

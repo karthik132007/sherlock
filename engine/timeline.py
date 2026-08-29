@@ -237,7 +237,7 @@ def run_timeline_pipeline(
 
     # Token-window decision (logging)
     decision = decide_strategy(
-        warehouse_text, chunks, context_window=effective_window, prefer_batched_when_fits=prefer_batched_when_fits
+        warehouse_text, chunks, context_window=effective_window, prefer_batched_when_fits=prefer_batched_when_fits, batch_size=batch_size
     )
     if verbose:
         print(f"[Sherlock Timeline] Warehouse stats: {get_token_stats(warehouse_text)}")

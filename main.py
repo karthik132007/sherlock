@@ -303,7 +303,7 @@ def main() -> None:
         from engine.llm import decide_strategy as _decide2
 
         final_decision = _decide2(
-            text, chunks=chunks, context_window=effective_window, prefer_batched_when_fits=not args.single_call
+            text, chunks=chunks, context_window=effective_window, prefer_batched_when_fits=not args.single_call, batch_size=args.batch_size
         )
         print(f"[Sherlock] Final decision after chunking: strategy={final_decision['strategy']} | batches_needed={final_decision['batches_needed']} | total_chunks={len(chunks)}")
     except Exception:

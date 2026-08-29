@@ -420,7 +420,9 @@ def _apply_overlap(
         return chunks
     overlapped: List[Tuple[str, int, int]] = [chunks[0]]
     for i in range(1, len(chunks)):
-        prev_text, _, _ = overlapped[i - 1]  # use already overlapped prev? Use original prev tail
+        # Always take the tail of the ORIGINAL previous chunk. Using the already-
+        # overlapped chunk would cascade the overlap (text leaking across two chunks).
+        prev_text, _, _ = chunks[i - 1]
         # Take tail of previous chunk up to overlap chars, try to break on word boundary
         if len(prev_text) <= overlap:
             overlap_text = prev_text

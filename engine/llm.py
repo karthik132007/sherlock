@@ -429,9 +429,17 @@ def decide_strategy(
     chunks: Optional[List[Dict[str, Any]]] = None,
     context_window: int = DEFAULT_CONTEXT_WINDOW_TOKENS,
     prefer_batched_when_fits: bool = True,
+    batch_size: int = DEFAULT_BATCH_SIZE,
 ) -> Dict[str, Any]:
     """
     Decide whether to send whole warehouse or chunked batches to LLM.
+
+    Args:
+        warehouse_text: full warehouse text
+        chunks: list of chunks (used to compute batches_needed)
+        context_window: LLM token window
+        prefer_batched_when_fits: if True, use batched even when the warehouse fits
+        batch_size: chunks per batch used to compute batches_needed
     """
     stats = get_token_stats(warehouse_text)
     est = stats["estimated_tokens"]
@@ -440,7 +448,7 @@ def decide_strategy(
     if fits:
         if prefer_batched_when_fits:
             strategy = "batched"
-            reason = f"Fits in window ({est} <= {context_window}), using batched mode (20 chunks/batch) with dedup context to avoid alias duplicates."
+            reason = f"Fits in window ({est} <= {context_window}), using batched mode ({batch_size} chunks/batch) with dedup context to avoid alias duplicates."
         else:
             strategy = "single_call"
             reason = f"Fits in window ({est} <= {context_window}), sending whole warehouse in one LLM call (no chunking needed)."
@@ -452,7 +460,7 @@ def decide_strategy(
     if chunks is not None:
         import math
 
-        batches_needed = math.ceil(len(chunks) / DEFAULT_BATCH_SIZE) if strategy == "batched" else 1
+        batches_needed = math.ceil(len(chunks) / batch_size) if strategy == "batched" else 1
 
     return {
         **stats,
