@@ -47,6 +47,8 @@ def run_extraction_pipeline(
     llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
     prefer_batched_when_fits: bool = True,
     extract_relationships: bool = True,
+    extract_timeline: bool = False,
+    timeline_prefer_batched: bool = False,
     verbose: bool = True,
 ) -> Dict[str, Any]:
     """
@@ -61,13 +63,15 @@ def run_extraction_pipeline(
         prefer_batched_when_fits: if True, even when warehouse fits, use batched+dedup (user spec).
                                   if False, use single-call when it fits.
         extract_relationships: also run relationship extraction after entities
+        extract_timeline: also run timeline extraction (batched LLM, sorted chronologically → timeline.json)
+        timeline_prefer_batched: for timeline, if True force batched even when fits; default False (single_call more coherent)
         verbose: print progress
 
     Returns:
-        dict with keys: entities, relationships, token_decision, stats, llm_config
+        dict with keys: entities, relationships, timeline, token_decision, stats, llm_config
 
     Side-effects:
-        Writes processed/entities.json and processed/relationships.json
+        Writes processed/entities.json, processed/relationships.json, processed/timeline.json (if enabled)
     """
     project_path = Path(project_path).expanduser().resolve()
     warehouse_path = project_path / "warehouse.txt"
@@ -233,12 +237,55 @@ def run_extraction_pipeline(
     elif verbose:
         print(f"[Sherlock] Skipping graph mapping — need both entities and relationships (got {len(entities)}, {len(relationships) if 'relationships' in locals() else 0})")
 
+    # ------------------------------------------------------------------
+    # Timeline extraction: chunks/warehouse -> LLM returns unsorted timestamp/event -> we sort -> timeline.json
+    # Per user spec: LLM can return in any order (encounter order), we sort chronologically and store.
+    # ------------------------------------------------------------------
+    timeline_events: List[Dict[str, Any]] = []
+    timeline_paths: Dict[str, Any] = {}
+    timeline_decision: Optional[Dict[str, Any]] = None
+    if extract_timeline:
+        if verbose:
+            print(f"[Sherlock] Starting timeline extraction (batch_size={batch_size}, prefer_batched_when_fits={timeline_prefer_batched})")
+        try:
+            from engine.timeline import save_timeline_outputs
+            from engine.llm import extract_timeline_auto as _extract_timeline_auto
+
+            # Re-use same chunks + warehouse_text + cfg; timeline auto-decides strategy
+            # Default for timeline is prefer_batched=False (single call when fits is more coherent)
+            timeline_events, timeline_decision = _extract_timeline_auto(
+                warehouse_text=warehouse_text,
+                chunks=chunks,
+                context_window=effective_window,
+                batch_size=batch_size,
+                llm_config=cfg,
+                prefer_batched_when_fits=timeline_prefer_batched,
+                verbose=verbose,
+                sort_after=True,
+            )
+            # Persist sorted timeline
+            timeline_paths = save_timeline_outputs(
+                project_path, timeline_events, token_decision=timeline_decision, verbose=verbose
+            )
+            if verbose:
+                print(f"[Sherlock] Timeline done: {len(timeline_events)} events sorted → {timeline_paths.get('timeline_json')}")
+        except Exception as e:
+            print(f"[Sherlock] WARNING: timeline extraction failed: {e}", file=sys.stderr)
+            logger.warning("Timeline extraction failed", exc_info=True)
+            # Non-fatal — keep empty timeline
+    elif verbose:
+        print(f"[Sherlock] Skipping timeline extraction — use --timeline to enable")
+
     return {
         "entities": entities,
         "relationships": relationships,
         "relations": relationships,  # alias
         "graph_mappings": graph_mappings,
         "graph_paths": graph_paths,
+        "timeline": timeline_events,
+        "timeline_events": timeline_events,  # alias
+        "timeline_paths": timeline_paths,
+        "timeline_decision": timeline_decision,
         "token_decision": decision,
         "stats": get_token_stats(warehouse_text),
         "llm_config": cfg,
@@ -253,13 +300,15 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(description="Sherlock — Entity & Relationship Extraction (batched LLM, via llm.json)")
+    parser = argparse.ArgumentParser(description="Sherlock — Entity & Relationship & Timeline Extraction (batched LLM, via llm.json)")
     parser.add_argument("--project", required=True, help="Path to Sherlock project directory (must contain llm.json)")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="Chunks per LLM batch (default 20)")
     parser.add_argument("--context-window", type=int, default=None, help="LLM context window tokens (default: from llm.json/provider)")
     parser.add_argument("--model", type=str, default=None, help="LLM model (default: from llm.json)")
     parser.add_argument("--single-call", action="store_true", help="Prefer single-call when warehouse fits (instead of batched)")
     parser.add_argument("--no-relationships", action="store_true", help="Skip relationship extraction")
+    parser.add_argument("--timeline", action="store_true", help="Also run timeline extraction (chunks->LLM unsorted -> sort -> timeline.json)")
+    parser.add_argument("--timeline-prefer-batched", action="store_true", help="For timeline, force batched even when warehouse fits (default: single_call when fits)")
     args = parser.parse_args()
 
     try:
@@ -270,9 +319,13 @@ if __name__ == "__main__":
             model=args.model,
             prefer_batched_when_fits=not args.single_call,
             extract_relationships=not args.no_relationships,
+            extract_timeline=args.timeline,
+            timeline_prefer_batched=args.timeline_prefer_batched,
             verbose=True,
         )
-        print(f"[Sherlock] Done — {len(result['entities'])} entities, {len(result['relationships'])} relationships")
+        print(f"[Sherlock] Done — {len(result['entities'])} entities, {len(result['relationships'])} relationships, {len(result.get('timeline', []))} timeline events")
+        if args.timeline and result.get("timeline_paths"):
+            print(f"[Sherlock] Timeline → {result['timeline_paths'].get('timeline_json')}")
     except Exception as e:
         print(f"[Sherlock] ERROR: {e}", file=sys.stderr)
         logger.exception("Extraction pipeline failed")

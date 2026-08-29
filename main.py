@@ -91,6 +91,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip relationship extraction (entities only)",
     )
+    parser.add_argument(
+        "--timeline",
+        action="store_true",
+        help="Also run timeline extraction (chunks->LLM unsorted timestamp/event -> sorted -> timeline.json)",
+    )
+    parser.add_argument(
+        "--timeline-only",
+        action="store_true",
+        help="Run ONLY timeline extraction (skip entity/relationship extraction, requires chunks.json/warehouse.txt)",
+    )
+    parser.add_argument(
+        "--timeline-prefer-batched",
+        action="store_true",
+        help="For timeline, force batched mode even when warehouse fits (default: single_call when fits)",
+    )
     return parser.parse_args()
 
 
@@ -283,27 +298,75 @@ def main() -> None:
         pass
 
     # Optional: LLM entity/relationship extraction
-    if args.extract:
-        print(f"[Sherlock] --extract enabled — starting LLM extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
-        try:
-            from engine.entity_extraction import run_extraction_pipeline
+    if args.extract or args.timeline_only:
+        # If --timeline-only, skip entities/relationships but run timeline
+        if args.timeline_only:
+            print(f"[Sherlock] --timeline-only enabled — starting ONLY timeline extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+            try:
+                from engine.timeline import run_timeline_pipeline
 
-            result = run_extraction_pipeline(
+                t_result = run_timeline_pipeline(
+                    project_path=project_path,
+                    batch_size=args.batch_size,
+                    context_window=effective_window,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    prefer_batched_when_fits=args.timeline_prefer_batched,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Timeline done: {len(t_result['timeline'])} events sorted chronologically → {t_result['paths']['timeline_json']}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Timeline extraction failed: {e}", file=sys.stderr)
+                logger.exception("Timeline extraction failed")
+                print(f"[Sherlock] Chunking succeeded; timeline error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
+        else:
+            print(f"[Sherlock] --extract enabled — starting LLM extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+            try:
+                from engine.entity_extraction import run_extraction_pipeline
+
+                result = run_extraction_pipeline(
+                    project_path=project_path,
+                    batch_size=args.batch_size,
+                    context_window=effective_window,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    prefer_batched_when_fits=not args.single_call,
+                    extract_relationships=not args.no_relationships,
+                    extract_timeline=args.timeline,
+                    timeline_prefer_batched=args.timeline_prefer_batched,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Extraction done: {len(result['entities'])} entities, {len(result['relationships'])} relationships")
+                if args.timeline:
+                    tlen = len(result.get("timeline", []))
+                    print(f"[Sherlock] Timeline done: {tlen} events sorted chronologically")
+                    if tlen and result.get("timeline_paths"):
+                        print(f"[Sherlock] Timeline → {result['timeline_paths'].get('timeline_json')}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: LLM extraction failed: {e}", file=sys.stderr)
+                logger.exception("Extraction failed")
+                # Don't exit 1 for chunking success — extraction is stage 2
+                print(f"[Sherlock] Chunking succeeded; extraction error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
+    elif args.timeline:
+        # --timeline without --extract: run just timeline after chunking
+        print(f"[Sherlock] --timeline enabled — starting timeline extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+        try:
+            from engine.timeline import run_timeline_pipeline
+
+            t_result = run_timeline_pipeline(
                 project_path=project_path,
                 batch_size=args.batch_size,
                 context_window=effective_window,
                 model=effective_model,
                 llm_config=llm_cfg,
-                prefer_batched_when_fits=not args.single_call,
-                extract_relationships=not args.no_relationships,
+                prefer_batched_when_fits=args.timeline_prefer_batched,
                 verbose=True,
             )
-            print(f"[Sherlock] Extraction done: {len(result['entities'])} entities, {len(result['relationships'])} relationships")
+            print(f"[Sherlock] Timeline done: {len(t_result['timeline'])} events sorted chronologically → {t_result['paths']['timeline_json']}")
         except Exception as e:
-            print(f"[Sherlock] ERROR: LLM extraction failed: {e}", file=sys.stderr)
-            logger.exception("Extraction failed")
-            # Don't exit 1 for chunking success — extraction is stage 2
-            print(f"[Sherlock] Chunking succeeded; extraction error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
+            print(f"[Sherlock] ERROR: Timeline extraction failed: {e}", file=sys.stderr)
+            logger.exception("Timeline extraction failed")
+            print(f"[Sherlock] Chunking succeeded; timeline error is non-fatal.", file=sys.stderr)
 
     print(f"[Sherlock] Processing completed successfully")
 
