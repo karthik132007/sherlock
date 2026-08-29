@@ -29,6 +29,11 @@ public class Neo4jGraphService {
     }
 
     private synchronized void initDriver() {
+        // Guard against creating (and leaking) multiple drivers when several
+        // threads call isConnected() concurrently while the driver is null.
+        if (this.driver != null) {
+            return;
+        }
         AppProperties.Neo4jConfig cfg = appProperties.getNeo4j();
         if (cfg != null && cfg.isEnabled() && cfg.getUri() != null && !cfg.getUri().isBlank()) {
             try {
@@ -292,13 +297,26 @@ public class Neo4jGraphService {
         if (label == null || label.isBlank()) return "Entity";
         String clean = label.replaceAll("[^a-zA-Z0-9_]", "");
         if (clean.isEmpty()) return "Entity";
+        // Cypher identifiers cannot start with a digit
+        if (Character.isDigit(clean.charAt(0))) {
+            clean = "L_" + clean;
+        }
         return Character.toUpperCase(clean.charAt(0)) + clean.substring(1).toLowerCase(Locale.ROOT);
     }
 
     private String sanitizeRelation(String rel) {
         if (rel == null || rel.isBlank()) return "RELATED_TO";
         String clean = rel.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_]", "_");
-        return clean.isEmpty() ? "RELATED_TO" : clean;
+        if (clean.isEmpty()) return "RELATED_TO";
+        // Cypher identifiers cannot start with a digit
+        if (Character.isDigit(clean.charAt(0))) {
+            clean = "R_" + clean;
+        }
+        // Underscores alone are not a valid identifier either
+        if (clean.replaceAll("_", "").isEmpty()) {
+            return "RELATED_TO";
+        }
+        return clean;
     }
 
     @PreDestroy

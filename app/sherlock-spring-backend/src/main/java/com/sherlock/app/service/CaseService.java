@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,16 @@ public class CaseService {
     private final OllamaService ollamaService;
     private final ObjectMapper objectMapper;
     private final Map<String, ProcessingStatus> statusTracker = new ConcurrentHashMap<>();
+    /**
+     * Shared executor for the Python pipeline background tasks. A single shared,
+     * daemon-threaded pool avoids the per-request thread leak that occurred when a
+     * new single-thread executor was created (and never shut down) for every run.
+     */
+    private final ExecutorService pipelineExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "sherlock-pipeline");
+        t.setDaemon(true);
+        return t;
+    });
 
     public CaseService(AppProperties appProperties, Neo4jGraphService neo4jGraphService, OllamaService ollamaService) {
         this.appProperties = appProperties;
@@ -124,6 +135,26 @@ public class CaseService {
         } catch (IOException e) {
             log.error("Unable to list Sherlock cases", e);
             throw new IllegalStateException("Unable to list Sherlock cases", e);
+        }
+    }
+
+    public CaseResponse updateLlmConfig(String caseId, LlmConfigRequest llmConfig) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        try {
+            if (llmConfig != null) {
+                writeLlmConfig(caseDirectory, llmConfig);
+            }
+            CaseResponse response = readCaseMetadata(caseDirectory);
+            if (response != null && llmConfig != null) {
+                response.setLlmConfig(llmConfig);
+                writeMetadata(caseDirectory, response);
+            }
+            return response;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to update LLM config for case: " + caseId, e);
         }
     }
 
@@ -231,6 +262,113 @@ public class CaseService {
         return warehouseFile.toString();
     }
 
+    public ProcessingStatus startTimelineProcessing(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+
+        // Ensure warehouse.txt exists
+        Path warehousePath = caseDirectory.resolve("warehouse.txt");
+        if (!Files.exists(warehousePath)) {
+            try {
+                buildWarehouseFile(caseDirectory);
+            } catch (IOException e) {
+                log.error("Failed to build warehouse.txt before timeline processing: {}", e.getMessage());
+            }
+        }
+
+        String pythonScript = resolvePythonScriptPath();
+        String pythonCommand = resolvePythonCommand(pythonScript);
+        List<String> commandTokens = new ArrayList<>();
+        commandTokens.add(pythonCommand);
+        commandTokens.add(pythonScript);
+        commandTokens.add(appProperties.getProcessArgument());
+        commandTokens.add(caseDirectory.toAbsolutePath().toString());
+        commandTokens.add("--timeline-only");
+
+        ProcessingStatus status = new ProcessingStatus();
+        status.setCaseId(caseId);
+        status.setStatus("PROCESSING_TIMELINE");
+        status.setScriptPath(pythonScript);
+        status.setCommand(String.join(" ", commandTokens));
+        status.setMessage("Timeline extraction started...");
+        status.setCompleted(false);
+        status.setSuccess(false);
+
+        statusTracker.put(caseId + "_timeline", status);
+
+        pipelineExecutor.submit(() -> {
+            try {
+                log.info("Executing Python timeline command: {}", String.join(" ", commandTokens));
+                ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
+                processBuilder.directory(new File(pythonScript).getParentFile());
+                processBuilder.environment().put("PYTHONUNBUFFERED", "1");
+                processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
+                processBuilder.environment().put("PYTHONUTF8", "1");
+                processBuilder.redirectErrorStream(true);
+
+                Process process = processBuilder.start();
+
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        final String logLine = line;
+                        status.getLogs().add(logLine);
+                        status.setMessage(logLine);
+                        log.info("[Python Timeline - {}] {}", caseId, logLine);
+                    }
+                }
+
+                int exitCode = process.waitFor();
+                status.setExitCode(exitCode);
+                status.setCompleted(true);
+
+                if (exitCode == 0) {
+                    status.setStatus("COMPLETED");
+                    status.setSuccess(true);
+                    status.setMessage("Timeline extracted successfully.");
+                } else {
+                    status.setStatus("FAILED");
+                    status.setSuccess(false);
+                    status.setMessage("Python timeline pipeline finished with error exit code: " + exitCode);
+                }
+
+            } catch (Exception e) {
+                log.error("Error executing Python timeline pipeline for case: {}", caseId, e);
+                status.setStatus("FAILED");
+                status.setCompleted(true);
+                status.setSuccess(false);
+                status.setMessage("Processing failed: " + e.getMessage());
+                status.getLogs().add("ERROR: " + e.getMessage());
+            }
+        });
+
+        return status;
+    }
+
+    public ProcessingStatus getTimelineProcessingStatus(String caseId) {
+        ProcessingStatus status = statusTracker.get(caseId + "_timeline");
+        if (status == null) {
+            Path caseDirectory = getCaseDirectory(caseId);
+            Path timelineFile = caseDirectory.resolve("processed").resolve("timeline.json");
+            status = new ProcessingStatus();
+            status.setCaseId(caseId);
+            if (Files.exists(timelineFile)) {
+                status.setStatus("COMPLETED");
+                status.setCompleted(true);
+                status.setSuccess(true);
+                status.setMessage("Timeline ready.");
+            } else {
+                status.setStatus("READY");
+                status.setCompleted(false);
+                status.setMessage("Ready for processing.");
+            }
+        }
+        return status;
+    }
+
     public ProcessingStatus startProcessing(String caseId) {
         Path caseDirectory = getCaseDirectory(caseId);
         if (!Files.exists(caseDirectory)) {
@@ -268,11 +406,14 @@ public class CaseService {
 
         statusTracker.put(caseId, status);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
+        pipelineExecutor.submit(() -> {
             try {
                 log.info("Executing Python command: {}", String.join(" ", commandTokens));
                 ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
                 processBuilder.directory(new File(pythonScript).getParentFile());
+                processBuilder.environment().put("PYTHONUNBUFFERED", "1");
+                processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
+                processBuilder.environment().put("PYTHONUTF8", "1");
                 processBuilder.redirectErrorStream(true);
 
                 Process process = processBuilder.start();
@@ -510,24 +651,33 @@ public class CaseService {
 
         StringBuilder answer = new StringBuilder();
 
-        // 1. Search entities
+        // 1. Search entities (null-safe: names/aliases may be missing in JSON data)
         List<GraphDataResponse.Node> relevantNodes = graph.getNodes().stream()
-                .filter(n -> qLower.contains(n.getName().toLowerCase(Locale.ROOT))
-                        || n.getName().toLowerCase(Locale.ROOT).contains(qLower)
-                        || n.getAliases().stream().anyMatch(a -> qLower.contains(a.toLowerCase(Locale.ROOT))))
+                .filter(n -> {
+                    String name = n.getName() != null ? n.getName().toLowerCase(Locale.ROOT) : "";
+                    boolean nameMatches = !name.isEmpty()
+                            && (qLower.contains(name) || name.contains(qLower));
+                    boolean aliasMatches = n.getAliases().stream()
+                            .anyMatch(a -> a != null && !a.isBlank() && qLower.contains(a.toLowerCase(Locale.ROOT)));
+                    return nameMatches || aliasMatches;
+                })
                 .collect(Collectors.toList());
 
-        // 2. Search edges connected to relevant nodes or relation words
+        // 2. Search edges connected to relevant nodes or relation words (null-safe)
         List<GraphDataResponse.Edge> relevantEdges = graph.getEdges().stream()
                 .filter(e -> {
                     boolean match = false;
+                    String source = e.getSource();
+                    String target = e.getTarget();
                     for (var n : relevantNodes) {
-                        if (e.getSource().equalsIgnoreCase(n.getName()) || e.getTarget().equalsIgnoreCase(n.getName())) {
+                        if ((source != null && source.equalsIgnoreCase(n.getName()))
+                                || (target != null && target.equalsIgnoreCase(n.getName()))) {
                             match = true;
                             break;
                         }
                     }
-                    if (qLower.contains(e.getRelation().toLowerCase(Locale.ROOT).replace("_", " "))) {
+                    String relation = e.getRelation();
+                    if (relation != null && qLower.contains(relation.toLowerCase(Locale.ROOT).replace("_", " "))) {
                         match = true;
                     }
                     return match;
@@ -537,11 +687,14 @@ public class CaseService {
         // 3. Search timeline events
         List<TimelineEventResponse.TimelineEvent> relevantEvents = timeline.getTimeline().stream()
                 .filter(ev -> {
-                    String combined = (ev.getTitle() + " " + ev.getDescription() + " " + ev.getTimestamp()).toLowerCase(Locale.ROOT);
+                    String title = ev.getTitle() != null ? ev.getTitle() : "";
+                    String description = ev.getDescription() != null ? ev.getDescription() : "";
+                    String timestamp = ev.getTimestamp() != null ? ev.getTimestamp() : "";
+                    String combined = (title + " " + description + " " + timestamp).toLowerCase(Locale.ROOT);
                     for (var n : relevantNodes) {
-                        if (combined.contains(n.getName().toLowerCase(Locale.ROOT))) return true;
+                        if (n.getName() != null && combined.contains(n.getName().toLowerCase(Locale.ROOT))) return true;
                     }
-                    return relevantNodes.isEmpty() && combined.contains(qLower);
+                    return relevantNodes.isEmpty() && !qLower.isEmpty() && combined.contains(qLower);
                 })
                 .collect(Collectors.toList());
 
@@ -556,12 +709,12 @@ public class CaseService {
                     model = caseResp.getLlmConfig().getModel();
                 }
             }
+            List<String> available = ollamaService != null ? ollamaService.getAvailableModels() : List.of();
             if (model == null || model.isBlank()) {
-                List<String> available = ollamaService != null ? ollamaService.getAvailableModels() : List.of();
                 model = !available.isEmpty() ? available.get(0) : "gemma4:e2b";
             }
 
-            if (ollamaService != null && !ollamaService.getAvailableModels().isEmpty()) {
+            if (!available.isEmpty()) {
                 cypherQuery = ollamaService.generateCypherQuery(caseId, query, model);
                 if (cypherQuery != null && !cypherQuery.isBlank() && neo4jGraphService != null && neo4jGraphService.isConnected()) {
                     cypherResults = neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
@@ -665,7 +818,16 @@ public class CaseService {
     }
 
     private Path getCaseDirectory(String caseId) {
-        return Paths.get(appProperties.getBaseDirectory()).resolve(caseId);
+        Path rootDir = Paths.get(appProperties.getBaseDirectory()).toAbsolutePath().normalize();
+        if (caseId == null || caseId.isBlank()) {
+            throw new IllegalArgumentException("Case id must not be empty");
+        }
+        Path caseDirectory = rootDir.resolve(caseId).normalize();
+        // Guard against path traversal (e.g. caseId = "../other-case" or absolute paths)
+        if (!caseDirectory.startsWith(rootDir) || caseDirectory.equals(rootDir)) {
+            throw new IllegalArgumentException("Invalid case id: " + caseId);
+        }
+        return caseDirectory;
     }
 
     private String resolvePythonScriptPath() {
@@ -714,8 +876,18 @@ public class CaseService {
             if (Files.exists(venvPython)
                     && (configured == null || configured.isBlank()
                         || configured.equals("python3") || configured.equals("python"))) {
-                log.info("Using project virtualenv Python: {}", venvPython.toAbsolutePath());
+                log.info("Using project virtualenv Python (.venv): {}", venvPython.toAbsolutePath());
                 return venvPython.toAbsolutePath().toString();
+            }
+
+            Path venvPythonNoDot = isWindows()
+                    ? scriptDir.resolve("venv").resolve("Scripts").resolve("python.exe")
+                    : scriptDir.resolve("venv").resolve("bin").resolve("python");
+            if (Files.exists(venvPythonNoDot)
+                    && (configured == null || configured.isBlank()
+                        || configured.equals("python3") || configured.equals("python"))) {
+                log.info("Using project virtualenv Python (venv): {}", venvPythonNoDot.toAbsolutePath());
+                return venvPythonNoDot.toAbsolutePath().toString();
             }
         }
         return (configured == null || configured.isBlank()) ? "python3" : configured;
@@ -815,7 +987,9 @@ public class CaseService {
                         GraphDataResponse.Node node = objectMapper.treeToValue(item, GraphDataResponse.Node.class);
                         if (node != null && node.getId() != null) {
                             nodeMap.put(node.getId(), node);
-                            nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            if (node.getName() != null) {
+                                nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            }
                             nodes.add(node);
                         }
                     }
