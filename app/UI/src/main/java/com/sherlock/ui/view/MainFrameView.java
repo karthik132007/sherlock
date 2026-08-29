@@ -28,8 +28,11 @@ public class MainFrameView extends BorderPane {
     private final ProgressIndicator refreshIndicator = new ProgressIndicator();
 
     private final GraphCanvas graphCanvas = new GraphCanvas();
+    private final TimelinePanel timelinePanel = new TimelinePanel(this::startTimelineExtraction);
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
+    private Button investigateBtn;
+    private Button settingsBtn;
 
     public MainFrameView(SherlockBackendClient client, Runnable onNewCaseRequested) {
         this.client = client;
@@ -68,6 +71,13 @@ public class MainFrameView extends BorderPane {
                     graphCanvas.setGraphData(graphData);
 
                     int nodes = graphData != null && graphData.getNodes() != null ? graphData.getNodes().size() : 0;
+                    if (nodes > 0) {
+                        investigateBtn.setVisible(false);
+                        investigateBtn.setManaged(false);
+                    } else {
+                        investigateBtn.setVisible(true);
+                        investigateBtn.setManaged(true);
+                    }
                     int edges = graphData != null && graphData.getEdges() != null ? graphData.getEdges().size() : 0;
 
                     nodeCountBadge.setText(nodes + " Node" + (nodes == 1 ? "" : "s"));
@@ -79,6 +89,15 @@ public class MainFrameView extends BorderPane {
                         refreshIndicator.setVisible(false);
                         System.err.println("Failed to load graph data: " + ex.getMessage());
                     });
+                    return null;
+                });
+                
+        client.getTimelineAsync(caseId)
+                .thenAccept(timelineData -> Platform.runLater(() -> {
+                    timelinePanel.setTimelineData(timelineData);
+                }))
+                .exceptionally(ex -> {
+                    System.err.println("Failed to load timeline data: " + ex.getMessage());
                     return null;
                 });
     }
@@ -116,11 +135,15 @@ public class MainFrameView extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         // Action Buttons
-        Button investigateBtn = new Button("🚀 Start Investigation");
+        investigateBtn = new Button("🚀 Start Investigation");
         investigateBtn.getStyleClass().add("primary-button");
         investigateBtn.setStyle(
                 "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 6px 14px;");
         investigateBtn.setOnAction(e -> startInvestigation());
+
+        settingsBtn = new Button("⚙ Settings");
+        settingsBtn.getStyleClass().add("secondary-button");
+        settingsBtn.setOnAction(e -> showSettingsDialog());
 
         Button historyBtn = new Button("📁 Case History");
         historyBtn.getStyleClass().add("secondary-button");
@@ -139,8 +162,97 @@ public class MainFrameView extends BorderPane {
         });
 
         bar.getChildren().addAll(brand, caseBadge, nodeCountBadge, edgeCountBadge, refreshIndicator, spacer,
-                investigateBtn, historyBtn, refreshBtn, newCaseBtn);
+                investigateBtn, settingsBtn, historyBtn, refreshBtn, newCaseBtn);
         return bar;
+    }
+
+    private void startTimelineExtraction() {
+        if (currentCase == null || currentCase.getCaseId() == null) {
+            return;
+        }
+
+        String caseId = currentCase.getCaseId();
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Timeline Extraction");
+        dialog.setHeaderText("Running Timeline Extraction for Case: " + caseId);
+
+        VBox content = new VBox(10);
+        content.setPrefWidth(500);
+        content.setPrefHeight(300);
+
+        Label lblExtract = new Label("🔄 Extracting Timeline Events...");
+        lblExtract.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        VBox stages = new VBox(5, lblExtract);
+        stages.setPadding(new Insets(10));
+        stages.setStyle("-fx-background-color: #161e2e; -fx-background-radius: 5px;");
+
+        TextArea logArea = new TextArea();
+        logArea.setEditable(false);
+        logArea.setStyle("-fx-control-inner-background: #0b0e14; -fx-text-fill: #a1a1aa; -fx-font-family: monospace;");
+        VBox.setVgrow(logArea, Priority.ALWAYS);
+
+        content.getChildren().addAll(stages, logArea);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(true); // Disable until done
+
+        client.startTimelineProcessingAsync(caseId).thenAccept(status -> {
+            Platform.runLater(() -> {
+                javafx.animation.Timeline[] timelineArr = new javafx.animation.Timeline[1];
+                timelineArr[0] = new javafx.animation.Timeline(
+                        new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                            client.getTimelineProcessingStatusAsync(caseId).thenAccept(currStatus -> {
+                                Platform.runLater(() -> {
+                                    if (currStatus != null && currStatus.getLogs() != null) {
+                                        String allLogs = String.join("\n", currStatus.getLogs());
+                                        logArea.setText(allLogs);
+                                        logArea.setScrollTop(Double.MAX_VALUE);
+                                    }
+
+                                    if (currStatus != null && currStatus.isCompleted()) {
+                                        if (currStatus.isSuccess()) {
+                                            lblExtract.setStyle("-fx-text-fill: #34d399; -fx-font-size: 14px; -fx-font-weight: bold;");
+                                            lblExtract.setText("✅ Timeline Extracted");
+                                            logArea.appendText("\n\nTimeline Extraction Completed!");
+                                        } else {
+                                            lblExtract.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 14px; -fx-font-weight: bold;");
+                                            lblExtract.setText("❌ Timeline Extraction Failed");
+                                            logArea.appendText("\n\nTimeline Extraction Failed: " + (currStatus.getMessage() != null ? currStatus.getMessage() : "Unknown error"));
+                                        }
+                                        dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(false);
+                                        if (timelineArr[0] != null)
+                                            timelineArr[0].stop();
+                                        refreshGraphData();
+                                    }
+                                });
+                            }).exceptionally(ex -> {
+                                Platform.runLater(() -> {
+                                    logArea.appendText("\nFailed to poll status: " + ex.getMessage());
+                                });
+                                return null;
+                            });
+                        }));
+                timelineArr[0].setCycleCount(javafx.animation.Animation.INDEFINITE);
+                timelineArr[0].play();
+
+                dialog.setOnHidden(ev -> {
+                    if (timelineArr[0] != null)
+                        timelineArr[0].stop();
+                });
+            });
+        }).exceptionally(ex -> {
+            Platform.runLater(() -> {
+                lblExtract.setStyle("-fx-text-fill: #ef4444; -fx-font-size: 14px; -fx-font-weight: bold;");
+                lblExtract.setText("❌ Failed to start extraction");
+                logArea.setText("Error starting timeline extraction:\n" + ex.getMessage());
+                dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(false);
+            });
+            return null;
+        });
+
+        dialog.show();
     }
 
     private void startInvestigation() {
@@ -263,14 +375,68 @@ public class MainFrameView extends BorderPane {
         HBox.setHgrow(leftCol, Priority.ALWAYS);
         leftCol.setFillWidth(true);
 
-        VBox.setVgrow(graphCanvas, Priority.ALWAYS);
-        graphCanvas.setMinHeight(280);
+        HBox toggleBox = new HBox(0);
+        toggleBox.setAlignment(Pos.CENTER);
+        ToggleGroup group = new ToggleGroup();
+        ToggleButton graphBtn = new ToggleButton("🕸 Graph View");
+        ToggleButton timelineBtn = new ToggleButton("⏳ Timeline View");
+        
+        graphBtn.setToggleGroup(group);
+        timelineBtn.setToggleGroup(group);
+        graphBtn.setSelected(true);
+        
+        Runnable updateStyles = () -> {
+            String baseStyle = "-fx-font-weight: bold; -fx-padding: 6px 16px; -fx-border-color: #0f172a; ";
+            String selColors = "-fx-background-color: #38bdf8; -fx-text-fill: #0f172a; ";
+            String unselColors = "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; ";
+            
+            graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors) 
+                + "-fx-background-radius: 6px 0 0 6px; -fx-border-width: 1px 0 1px 1px; -fx-border-radius: 6px 0 0 6px;");
+                
+            timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors) 
+                + "-fx-background-radius: 0 6px 6px 0; -fx-border-width: 1px 1px 1px 0; -fx-border-radius: 0 6px 6px 0;");
+        };
+        
+        graphBtn.selectedProperty().addListener((obs, old, isSel) -> {
+            updateStyles.run();
+            if (isSel) {
+                graphCanvas.setVisible(true);
+                graphCanvas.setManaged(true);
+                timelinePanel.setVisible(false);
+                timelinePanel.setManaged(false);
+            }
+        });
+        
+        timelineBtn.selectedProperty().addListener((obs, old, isSel) -> {
+            updateStyles.run();
+            if (isSel) {
+                timelinePanel.setVisible(true);
+                timelinePanel.setManaged(true);
+                graphCanvas.setVisible(false);
+                graphCanvas.setManaged(false);
+            }
+        });
+        
+        group.selectedToggleProperty().addListener((obs, old, newVal) -> {
+            if (newVal == null) old.setSelected(true);
+        });
+        
+        updateStyles.run();
+        toggleBox.getChildren().addAll(graphBtn, timelineBtn);
+
+        StackPane viewStack = new StackPane();
+        VBox.setVgrow(viewStack, Priority.ALWAYS);
+        viewStack.setMinHeight(280);
+        
+        timelinePanel.setVisible(false);
+        timelinePanel.setManaged(false);
+        viewStack.getChildren().addAll(graphCanvas, timelinePanel);
 
         detailsPanel.setMinHeight(160);
         detailsPanel.setPrefHeight(180);
         detailsPanel.setMaxHeight(200);
 
-        leftCol.getChildren().addAll(graphCanvas, detailsPanel);
+        leftCol.getChildren().addAll(toggleBox, viewStack, detailsPanel);
 
         // Right Column (Chat Panel)
         chatPanel.setMinWidth(320);
@@ -325,7 +491,7 @@ public class MainFrameView extends BorderPane {
         client.listCasesAsync().thenAccept(cases -> Platform.runLater(() -> {
             listContainer.getChildren().clear();
             if (cases.isEmpty()) {
-                Label empty = new Label("No cases found in Documents/Sherlock.");
+                Label empty = new Label("No cases found.");
                 empty.setStyle("-fx-text-fill: #94a3b8;");
                 listContainer.getChildren().add(empty);
             } else {
@@ -360,5 +526,185 @@ public class MainFrameView extends BorderPane {
         }));
 
         dialog.showAndWait();
+    }
+
+    private void showSettingsDialog() {
+        if (currentCase == null) return;
+        
+        Dialog<com.sherlock.ui.model.LlmConfigDto> dialog = new Dialog<>();
+        dialog.setTitle("Case Settings");
+        dialog.setHeaderText("Update LLM Settings for Case: " + currentCase.getCaseId());
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialogPane.setStyle("-fx-background-color: #121824; -fx-text-fill: white;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        ComboBox<String> provider = new ComboBox<>();
+        provider.setEditable(true);
+        provider.getItems().addAll("Ollama", "OpenAI", "DeepSeek", "OpenRouter", "Groq", "Mistral", "Custom");
+        provider.setPromptText("openai, ollama, deepseek, etc.");
+
+        ComboBox<String> model = new ComboBox<>();
+        model.setEditable(true);
+        model.setPromptText("Model name (e.g. gpt-4o-mini)");
+
+        TextField baseUrl = new TextField();
+        baseUrl.setPromptText("API Base URL (optional)");
+        PasswordField apiKey = new PasswordField();
+        apiKey.setPromptText("API Key (optional)");
+
+        // Pre-fill existing config if available
+        String existingProvider = null;
+        String existingModel = null;
+        if (currentCase.getLlmConfig() != null) {
+            existingProvider = currentCase.getLlmConfig().getProvider();
+            existingModel = currentCase.getLlmConfig().getModel();
+            if (currentCase.getLlmConfig().getBaseUrl() != null) baseUrl.setText(currentCase.getLlmConfig().getBaseUrl());
+            if (currentCase.getLlmConfig().getApiKey() != null) apiKey.setText(currentCase.getLlmConfig().getApiKey());
+        }
+
+        // Resolve the configured provider against the known list (keep custom values)
+        final String configuredProvider = existingProvider;
+        final String configuredModel = existingModel;
+        if (configuredProvider != null && !configuredProvider.isBlank()
+                && provider.getItems().stream().noneMatch(i -> i.equalsIgnoreCase(configuredProvider))) {
+            provider.getItems().add(configuredProvider);
+        }
+        String providerValue = (configuredProvider == null || configuredProvider.isBlank()) ? "OpenAI" : configuredProvider;
+        // Set the value before attaching the action handler so the initial
+        // population below runs exactly once.
+        provider.setValue(providerValue);
+
+        provider.setOnAction(e -> applyLlmProviderDefaults(provider.getValue(), model, apiKey, configuredModel));
+
+        // Populate the model selector for the initial provider (Ollama -> `ollama list`)
+        applyLlmProviderDefaults(provider.getValue(), model, apiKey, configuredModel);
+
+        String labelStyle = "-fx-text-fill: white;";
+        String fieldStyle = "-fx-control-inner-background: #1e293b; -fx-text-fill: white;";
+        provider.setStyle(fieldStyle);
+        model.setStyle(fieldStyle);
+        baseUrl.setStyle(fieldStyle);
+        apiKey.setStyle(fieldStyle);
+
+        Label provLbl = new Label("Provider:"); provLbl.setStyle(labelStyle);
+        Label modLbl = new Label("Model:"); modLbl.setStyle(labelStyle);
+        Label urlLbl = new Label("Base URL:"); urlLbl.setStyle(labelStyle);
+        Label keyLbl = new Label("API Key:"); keyLbl.setStyle(labelStyle);
+
+        grid.add(provLbl, 0, 0);
+        grid.add(provider, 1, 0);
+        grid.add(modLbl, 0, 1);
+        grid.add(model, 1, 1);
+        grid.add(urlLbl, 0, 2);
+        grid.add(baseUrl, 1, 2);
+        grid.add(keyLbl, 0, 3);
+        grid.add(apiKey, 1, 3);
+
+        dialogPane.setContent(grid);
+        Platform.runLater(provider::requestFocus);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                com.sherlock.ui.model.LlmConfigDto config = new com.sherlock.ui.model.LlmConfigDto();
+                config.setProvider(provider.getValue() != null ? provider.getValue().trim() : "");
+                config.setModel(model.getValue() != null ? model.getValue().trim() : "");
+                config.setBaseUrl(baseUrl.getText() != null ? baseUrl.getText().trim() : "");
+                config.setApiKey(apiKey.getText() != null ? apiKey.getText().trim() : "");
+                return config;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(config -> {
+            client.updateLlmConfigAsync(currentCase.getCaseId(), config).thenAccept(updatedCase -> {
+                Platform.runLater(() -> {
+                    this.currentCase = updatedCase;
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION, "Settings updated successfully.");
+                    alert.show();
+                });
+            }).exceptionally(ex -> {
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to update settings: " + ex.getMessage());
+                    alert.show();
+                });
+                return null;
+            });
+        });
+    }
+
+    /**
+     * Populates the settings dialog's model selector based on the chosen
+     * provider. When Ollama is selected, the available local models are fetched
+     * from the backend (the equivalent of `ollama list`) and the API key field
+     * is disabled; other providers get their conventional default model lists.
+     *
+     * @param preferredModel the previously configured model to keep selected if present
+     */
+    private void applyLlmProviderDefaults(String providerValue, ComboBox<String> modelCombo,
+                                          PasswordField apiKey, String preferredModel) {
+        if (providerValue == null || providerValue.isBlank()) {
+            return;
+        }
+
+        if ("Ollama".equalsIgnoreCase(providerValue)) {
+            apiKey.setDisable(true);
+            apiKey.clear();
+            apiKey.setPromptText("Local Ollama (No API Key Required)");
+
+            modelCombo.getItems().clear();
+            modelCombo.setValue(null);
+            modelCombo.setPromptText("Loading Ollama models...");
+            client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
+                if (models != null && !models.isEmpty()) {
+                    modelCombo.getItems().setAll(models);
+                    if (preferredModel != null && !preferredModel.isBlank() && models.contains(preferredModel)) {
+                        modelCombo.setValue(preferredModel);
+                    } else {
+                        modelCombo.setValue(models.get(0));
+                    }
+                    modelCombo.setDisable(false);
+                    modelCombo.setPromptText(null);
+                } else {
+                    modelCombo.getItems().clear();
+                    modelCombo.setValue(null);
+                    modelCombo.setDisable(true);
+                    modelCombo.setPromptText("No Ollama models found (is Ollama running?)");
+                }
+            }));
+            return;
+        }
+
+        apiKey.setDisable(false);
+        apiKey.setPromptText("sk-... (required for cloud provider)");
+        modelCombo.setDisable(false);
+        modelCombo.setPromptText(null);
+
+        if ("DeepSeek".equalsIgnoreCase(providerValue)) {
+            modelCombo.getItems().setAll("deepseek-chat", "deepseek-coder");
+        } else if ("Groq".equalsIgnoreCase(providerValue)) {
+            modelCombo.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
+        } else if ("OpenRouter".equalsIgnoreCase(providerValue)) {
+            modelCombo.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct");
+        } else if ("Mistral".equalsIgnoreCase(providerValue)) {
+            modelCombo.getItems().setAll("mistral-large-latest", "mistral-small-latest");
+        } else {
+            // OpenAI / Custom
+            modelCombo.getItems().setAll("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
+        }
+
+        if (preferredModel != null && !preferredModel.isBlank()) {
+            if (!modelCombo.getItems().contains(preferredModel)) {
+                modelCombo.getItems().add(preferredModel);
+            }
+            modelCombo.setValue(preferredModel);
+        } else {
+            modelCombo.getSelectionModel().selectFirst();
+        }
     }
 }

@@ -102,6 +102,36 @@ public class SherlockBackendClient {
         }, ioExecutor);
     }
 
+    public CompletableFuture<ProcessingStatusDto> startTimelineProcessingAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/timeline/process"))
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to start timeline processing: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<ProcessingStatusDto> getTimelineProcessingStatusAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/timeline/status"))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get timeline processing status: " + e.getMessage(), e);
+            }
+        });
+    }
+
     public CompletableFuture<ProcessingStatusDto> startProcessingAsync(String caseId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -187,12 +217,19 @@ public class SherlockBackendClient {
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model) {
+        return sendChatMessageAsync(caseId, query, model, null);
+    }
+
+    public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model, String provider) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Map<String, Object> map = new HashMap<>();
                 map.put("query", query);
                 if (model != null && !model.isBlank()) {
                     map.put("model", model);
+                }
+                if (provider != null && !provider.isBlank()) {
+                    map.put("provider", provider);
                 }
                 String json = objectMapper.writeValueAsString(map);
                 HttpRequest request = HttpRequest.newBuilder()
@@ -268,5 +305,22 @@ public class SherlockBackendClient {
                 return false;
             }
         }, ioExecutor);
+    }
+
+    public CompletableFuture<CaseDto> updateLlmConfigAsync(String caseId, LlmConfigDto config) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String requestBody = objectMapper.writeValueAsString(config);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/llm"))
+                        .header("Content-Type", "application/json")
+                        .PUT(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return objectMapper.readValue(response.body(), CaseDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to update LLM config: " + e.getMessage(), e);
+            }
+        });
     }
 }

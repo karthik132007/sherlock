@@ -27,6 +27,18 @@ import logging
 import sys
 from pathlib import Path
 
+# Force UTF-8 on stdout/stderr to avoid Windows cp1252/cp437 UnicodeEncodeErrors
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Ensure engine is importable when running as script
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 

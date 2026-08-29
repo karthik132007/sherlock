@@ -20,8 +20,21 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+# Force UTF-8 on stdout/stderr to avoid Windows cp1252/cp437 UnicodeEncodeErrors
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 from engine.llm import (
     DEFAULT_BATCH_SIZE,

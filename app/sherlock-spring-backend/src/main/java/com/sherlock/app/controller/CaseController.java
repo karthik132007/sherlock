@@ -39,6 +39,11 @@ public class CaseController {
         return ResponseEntity.ok(caseService.listCases());
     }
 
+    @PutMapping("/cases/{caseId}/llm")
+    public ResponseEntity<CaseResponse> updateLlmConfig(@PathVariable String caseId, @Valid @RequestBody LlmConfigRequest request) {
+        return ResponseEntity.ok(caseService.updateLlmConfig(caseId, request));
+    }
+
     @GetMapping("/cases/{caseId}")
     public ResponseEntity<CaseResponse> getCase(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.getCase(caseId));
@@ -64,6 +69,16 @@ public class CaseController {
     @GetMapping("/cases/{caseId}/graph")
     public ResponseEntity<GraphDataResponse> getGraphData(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.getGraphData(caseId));
+    }
+
+    @PostMapping("/cases/{caseId}/timeline/process")
+    public ResponseEntity<ProcessingStatus> processTimeline(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.startTimelineProcessing(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/timeline/status")
+    public ResponseEntity<ProcessingStatus> getTimelineProcessingStatus(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getTimelineProcessingStatus(caseId));
     }
 
     @GetMapping("/cases/{caseId}/timeline")
