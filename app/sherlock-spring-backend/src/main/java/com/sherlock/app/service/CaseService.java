@@ -190,10 +190,10 @@ public class CaseService {
         Path dataDirectory = caseDirectory.resolve("data");
         Path warehouseFile = caseDirectory.resolve("warehouse.txt");
 
-        StringBuilder warehouseContent = new StringBuilder();
-
         if (Files.exists(dataDirectory) && Files.isDirectory(dataDirectory)) {
-            try (var stream = Files.list(dataDirectory)) {
+            try (var stream = Files.list(dataDirectory);
+                 java.io.BufferedWriter writer = Files.newBufferedWriter(warehouseFile, StandardCharsets.UTF_8,
+                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 List<Path> files = stream
                         .filter(Files::isRegularFile)
                         .sorted(Comparator.comparing(Path::getFileName))
@@ -201,33 +201,31 @@ public class CaseService {
 
                 for (Path file : files) {
                     String fileName = file.getFileName().toString();
-                    String content = "";
+                    String fileContent = "";
                     try {
-                        content = Files.readString(file, StandardCharsets.UTF_8);
+                        fileContent = Files.readString(file, StandardCharsets.UTF_8);
                     } catch (Exception e) {
                         try {
-                            content = Files.readString(file, StandardCharsets.ISO_8859_1);
+                            fileContent = Files.readString(file, StandardCharsets.ISO_8859_1);
                         } catch (Exception ignored) {
-                            content = "[Binary or unreadable content for " + fileName + "]";
+                            fileContent = "[Binary or unreadable content for " + fileName + "]";
                         }
                     }
 
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("SOURCE_FILE: ").append(fileName).append("\n");
-                    warehouseContent.append("SOURCE_TYPE: TEXT\n");
-                    warehouseContent.append("========================================\n\n");
-                    warehouseContent.append(content.trim()).append("\n\n");
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("END_SOURCE: ").append(fileName).append("\n");
-                    warehouseContent.append("========================================\n\n\n");
+                    writer.write("========================================\n");
+                    writer.write("SOURCE_FILE: " + fileName + "\n");
+                    writer.write("SOURCE_TYPE: TEXT\n");
+                    writer.write("========================================\n\n");
+                    writer.write(fileContent.trim() + "\n\n");
+                    writer.write("========================================\n");
+                    writer.write("END_SOURCE: " + fileName + "\n");
+                    writer.write("========================================\n\n\n");
                 }
             }
         }
-
-        Files.writeString(warehouseFile, warehouseContent.toString(), StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
-        log.info("Built warehouse.txt for case: {} ({} bytes)", caseDirectory.getFileName(), warehouseContent.length());
+        
+        long size = Files.exists(warehouseFile) ? Files.size(warehouseFile) : 0;
+        log.info("Built warehouse.txt for case: {} ({} bytes)", caseDirectory.getFileName(), size);
         return warehouseFile.toString();
     }
 
@@ -268,7 +266,8 @@ public class CaseService {
 
         statusTracker.put(caseId, status);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
+        java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
             try {
                 log.info("Executing Python command: {}", String.join(" ", commandTokens));
                 ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
@@ -316,6 +315,8 @@ public class CaseService {
                 status.setSuccess(false);
                 status.setMessage("Processing failed: " + e.getMessage());
                 status.getLogs().add("ERROR: " + e.getMessage());
+            } finally {
+                executor.shutdown();
             }
         });
 
@@ -339,6 +340,9 @@ public class CaseService {
                 status.setCompleted(false);
                 status.setMessage("Ready for processing.");
             }
+        }
+        if (status != null && status.isCompleted()) {
+            statusTracker.remove(caseId);
         }
         return status;
     }

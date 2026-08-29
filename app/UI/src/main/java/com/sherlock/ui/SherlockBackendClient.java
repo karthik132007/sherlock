@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SherlockBackendClient {
 
@@ -26,6 +28,7 @@ public class SherlockBackendClient {
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final ExecutorService ioExecutor = Executors.newCachedThreadPool();
 
     public SherlockBackendClient() {
         this(DEFAULT_BASE_URL);
@@ -70,7 +73,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to create case: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<CaseDto> uploadFilesAsync(String caseId, List<File> files) {
@@ -96,7 +99,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to upload files: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<ProcessingStatusDto> startProcessingAsync(String caseId) {
@@ -116,7 +119,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to start processing: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<ProcessingStatusDto> getProcessingStatusAsync(String caseId) {
@@ -136,7 +139,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to get processing status: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<GraphDataDto> getGraphDataAsync(String caseId) {
@@ -156,7 +159,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to fetch graph data: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<TimelineEventDto> getTimelineAsync(String caseId) {
@@ -176,7 +179,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to fetch timeline: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query) {
@@ -207,7 +210,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to query Sherlock chat: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<List<CaseDto>> listCasesAsync() {
@@ -227,7 +230,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 throw new RuntimeException("Failed to list cases: " + e.getMessage(), e);
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<List<String>> getOllamaModelsAsync() {
@@ -247,7 +250,7 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 return List.of();
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<Boolean> syncNeo4jAsync(String caseId) {
@@ -264,6 +267,6 @@ public class SherlockBackendClient {
             } catch (Exception e) {
                 return false;
             }
-        });
+        }, ioExecutor);
     }
 }
