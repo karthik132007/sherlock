@@ -1156,3 +1156,469 @@ def create_graph_mappings_via_llm(
     if verbose:
         print("[Sherlock LLM] Falling back to deterministic graph mapping")
     return build_graph_mappings(entities, relationships)
+
+
+# ---------------------------------------------------------------------------
+# Timeline extraction — timestamp/event, unsorted from LLM, then sorted
+# ---------------------------------------------------------------------------
+
+import datetime as _dt
+
+_TIMELINE_DATETIME_FORMATS: List[str] = [
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M",
+    "%Y-%m-%d",
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M",
+    "%d %B %Y %H:%M:%S",
+    "%d %B %Y %H:%M",
+    "%d %B %Y",
+    "%d %b %Y %H:%M:%S",
+    "%d %b %Y %H:%M",
+    "%d %b %Y",
+    "%d-%m-%Y %H:%M",
+    "%d/%m/%Y %H:%M",
+    "%Y/%m/%d %H:%M",
+    "%m/%d/%Y %H:%M",
+]
+
+
+def _strip_timezone_suffix(ts: str) -> str:
+    """Remove trailing timezone tokens like IST, UTC, +05:30 for parsing attempts."""
+    if not ts:
+        return ts
+    # Remove trailing IST/UTC/GMT etc (case insensitive)
+    ts = re.sub(r"\s+(IST|UTC|GMT|UTC\+.*|GMT\+.*)$", "", ts.strip(), flags=re.IGNORECASE)
+    # Remove trailing Z
+    ts = re.sub(r"\s*Z\s*$", "", ts)
+    # Normalise multiple spaces / T separator
+    ts = ts.strip()
+    return ts
+
+
+def _try_parse_timeline_timestamp(raw: str) -> Optional[_dt.datetime]:
+    """
+    Try to parse a timestamp string into a datetime for sorting.
+    Supports ISO-8601, 'YYYY-MM-DD HH:MM', '14 April 2026 18:30', etc.
+    Returns naive datetime (or aware if tz present) or None if unparseable.
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s:
+        return None
+
+    # Fast: try dateutil if available (most robust)
+    try:
+        from dateutil import parser as _parser  # type: ignore
+
+        # dateutil handles many formats + IST (needs tzinfos)
+        # Provide tzinfos for IST
+        tzinfos = {"IST": 5.5 * 3600}
+        try:
+            dt = _parser.parse(s, tzinfos=tzinfos, fuzzy=True, dayfirst=False)
+            return dt
+        except Exception:
+            pass
+        # fuzzy fallback without tzinfos
+        try:
+            dt = _parser.parse(s, fuzzy=True)
+            return dt
+        except Exception:
+            pass
+    except ImportError:
+        pass
+
+    # Try stripping tz suffix and try known formats
+    stripped = _strip_timezone_suffix(s)
+    # Replace 'T' with space for some formats
+    for fmt in _TIMELINE_DATETIME_FORMATS:
+        try:
+            dt = _dt.datetime.strptime(stripped, fmt)
+            return dt
+        except Exception:
+            continue
+        # Try with T replaced?
+    # Try also stripping T variant
+    stripped_t = stripped.replace("T", " ")
+    if stripped_t != stripped:
+        for fmt in _TIMELINE_DATETIME_FORMATS:
+            try:
+                dt = _dt.datetime.strptime(stripped_t, fmt)
+                return dt
+            except Exception:
+                continue
+
+    # Regex fallback: extract YYYY-MM-DD and optional HH:MM:SS (allow " at " separator)
+    # Look for 2026-04-14 pattern
+    m = re.search(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s*(?:at)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?", s)
+    if m:
+        try:
+            y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            h = int(m.group(4)) if m.group(4) else 0
+            mi = int(m.group(5)) if m.group(5) else 0
+            se = int(m.group(6)) if m.group(6) else 0
+            return _dt.datetime(y, mo, d, h, mi, se)
+        except Exception:
+            pass
+
+    # Regex for "14 April 2026" or "14 Apr 2026" (day month year)
+    month_map = {
+        "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+        "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+        "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8, "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+    }
+    m2 = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})(?:\s*(?:at)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?", s)
+    if m2:
+        try:
+            d = int(m2.group(1))
+            mon_str = m2.group(2).lower()
+            y = int(m2.group(3))
+            mon = month_map.get(mon_str)
+            if mon:
+                h = int(m2.group(4)) if m2.group(4) else 0
+                mi = int(m2.group(5)) if m2.group(5) else 0
+                se = int(m2.group(6)) if m2.group(6) else 0
+                return _dt.datetime(y, mon, d, h, mi, se)
+        except Exception:
+            pass
+
+    # Regex for "April 14, 2026" or "Apr 14, 2026" with optional time (US style) — allow "at" between date and time
+    m3 = re.search(r"([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})(?:\s*(?:at)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM|am|pm))?)?", s)
+    if m3:
+        try:
+            mon_str = m3.group(1).lower()
+            d = int(m3.group(2))
+            y = int(m3.group(3))
+            mon = month_map.get(mon_str)
+            if mon:
+                h = int(m3.group(4)) if m3.group(4) else 0
+                mi = int(m3.group(5)) if m3.group(5) else 0
+                se = int(m3.group(6)) if m3.group(6) else 0
+                ampm = m3.group(7)
+                if ampm:
+                    ampm = ampm.lower()
+                    if ampm == "pm" and h < 12:
+                        h += 12
+                    elif ampm == "am" and h == 12:
+                        h = 0
+                return _dt.datetime(y, mon, d, h, mi, se)
+        except Exception:
+            pass
+
+    # Regex for generic date with time like "14-04-2026 18:30" or "14/04/2026"
+    m4 = re.search(r"(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?", s)
+    if m4:
+        try:
+            # Try to disambiguate d/m vs m/d: if first >12 assume d/m
+            a, b, y = int(m4.group(1)), int(m4.group(2)), int(m4.group(3))
+            h = int(m4.group(4)) if m4.group(4) else 0
+            mi = int(m4.group(5)) if m4.group(5) else 0
+            se = int(m4.group(6)) if m4.group(6) else 0
+            if a > 12:
+                d, mo = a, b
+            elif b > 12:
+                d, mo = a, b  # a is month? ambiguous, default d,m
+                # but keep as d= a, mo=b if both <=12 default dd/mm
+                d, mo = a, b
+            else:
+                # both <=12, treat as dd/mm (common in India)
+                d, mo = a, b
+            return _dt.datetime(y, mo, d, h, mi, se)
+        except Exception:
+            pass
+
+    return None
+
+
+def sort_timeline_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Sort timeline events chronologically by timestamp.
+    Events are returned in parsed order; original order preserved for unparseable timestamps
+    (those go to the end, sorted lexicographically as fallback).
+
+    Each event should have 'timestamp' (string). Stable sort is used so encounter order is
+    tie-breaker for equal timestamps.
+    """
+    def sort_key(ev: Dict[str, Any]):
+        raw = ev.get("timestamp", "")
+        dt = _try_parse_timeline_timestamp(str(raw))
+        if dt is not None:
+            # Use aware->naive for comparison by timestamp()
+            try:
+                # For sorting, use tuple (0, dt); None second for parseable
+                # Put parseable first
+                return (0, dt, "")
+            except Exception:
+                return (0, dt, "")
+        # Unparseable -> push to end, sort by raw string to keep deterministic
+        return (1, _dt.datetime.max, str(raw))
+
+    # Attach original index for stable tie-break
+    indexed = list(enumerate(events))
+    # Python sort is stable; we want parseable events first sorted by dt, then unparseable lexicographically
+    # Use sort_key + index
+    sorted_indexed = sorted(indexed, key=lambda ix_ev: (sort_key(ix_ev[1]), ix_ev[0]))
+    return [ev for _, ev in sorted_indexed]
+
+
+def _timeline_dedup_key(ev: Dict[str, Any]) -> tuple:
+    """Normalized key for timeline dedup: (normalized_timestamp, normalized_event)."""
+    ts = str(ev.get("timestamp", "")).strip().lower()
+    # Normalize timestamp by removing extra spaces, IST etc and lowercasing
+    ts_norm = re.sub(r"\s+", " ", _strip_timezone_suffix(ts)).strip()
+    # For event text, normalize similarly to entity dedup
+    event_norm = _normalize_name(str(ev.get("event", "")))
+    return (ts_norm, event_norm[:120])
+
+
+def normalize_timeline_event(raw: Dict[str, Any], default_source: str = "", default_chunk: str = "") -> Optional[Dict[str, Any]]:
+    """
+    Normalize a single raw timeline event from LLM into canonical schema.
+    Returns None if missing required fields.
+    """
+    if not isinstance(raw, dict):
+        return None
+    ts = raw.get("timestamp") or raw.get("time") or raw.get("date") or raw.get("datetime")
+    event_text = raw.get("event") or raw.get("description") or raw.get("title") or raw.get("text")
+    if not ts or not event_text:
+        return None
+    ts = str(ts).strip()
+    event_text = str(event_text).strip()
+    if not ts or not event_text:
+        return None
+
+    source_file = str(raw.get("source_file", "") or raw.get("source", "") or default_source).strip()
+    chunk_id = str(raw.get("chunk_id", "") or raw.get("chunkId", "") or default_chunk).strip()
+    confidence = raw.get("confidence", 0.8)
+    try:
+        confidence = float(confidence)
+        confidence = max(0.0, min(1.0, confidence))
+    except Exception:
+        confidence = 0.8
+    evidence_text = str(raw.get("evidence_text", "") or raw.get("evidence", "") or event_text[:120]).strip()
+
+    # Attempt to generate ISO-ish normalized timestamp for sorting but keep original
+    # Store original as 'timestamp' and also 'timestamp_normalized' if parseable
+    dt = _try_parse_timeline_timestamp(ts)
+    timestamp_normalized = None
+    if dt is not None:
+        try:
+            # Format as ISO with space separator, keep seconds if non-zero
+            if dt.second != 0:
+                timestamp_normalized = dt.strftime("%Y-%m-%d %H:%M:%S")
+            elif dt.hour != 0 or dt.minute != 0:
+                timestamp_normalized = dt.strftime("%Y-%m-%d %H:%M")
+            else:
+                # Only date or midnight — check if original had time
+                has_time = bool(re.search(r"\d{1,2}:\d{2}", ts))
+                if has_time:
+                    timestamp_normalized = dt.strftime("%Y-%m-%d %H:%M")
+                else:
+                    timestamp_normalized = dt.strftime("%Y-%m-%d")
+        except Exception:
+            timestamp_normalized = None
+
+    out: Dict[str, Any] = {
+        "timestamp": ts,
+        "event": event_text,
+        "source_file": source_file,
+        "chunk_id": chunk_id,
+        "confidence": confidence,
+        "evidence_text": evidence_text,
+    }
+    if timestamp_normalized and timestamp_normalized != ts:
+        out["timestamp_normalized"] = timestamp_normalized
+        # Also store sortable iso
+        out["_parsed_datetime"] = dt.isoformat() if dt else None
+    else:
+        out["_parsed_datetime"] = dt.isoformat() if dt else None
+
+    # Keep any extra fields like event_type if supplied
+    if "event_type" in raw:
+        out["event_type"] = raw["event_type"]
+    if "entities" in raw:
+        out["entities"] = raw["entities"]
+
+    return out
+
+
+def extract_timeline_batched(
+    chunks: List[Dict[str, Any]],
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    verbose: bool = True,
+    sort_after: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Batched timeline extraction:
+      - Splits chunks into batches of `batch_size` (default 20)
+      - Each LLM call receives current batch + previous events (for dedup)
+      - Merges all results, dedups by (timestamp, event), then sorts chronologically.
+
+    Args:
+        chunks: list of chunk dicts {chunk_id, source_file, text}
+        batch_size: chunks per LLM call
+        llm_config: LLMConfig or dict
+        project_path: for resolving llm.json
+        verbose: print progress
+        sort_after: if True, sort returned list chronologically; if False, return encounter order.
+
+    Returns:
+        List of timeline events sorted chronologically (if sort_after True).
+    """
+    from engine.prompts import TIMELINE_SYSTEM_PROMPT, build_timeline_prompt
+
+    batches = create_batches(chunks, batch_size)
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(project_path, overrides=llm_config if isinstance(llm_config, dict) else None)
+    if model:
+        cfg.model = model
+    if verbose:
+        print(f"[Sherlock LLM] Batched timeline extraction: {len(chunks)} chunks → {len(batches)} batches (size {batch_size}) | provider={cfg.provider} model={cfg.model}")
+
+    all_events: List[Dict[str, Any]] = []
+    previous_events: List[Dict[str, Any]] = []
+    seen_keys: set = set()
+
+    for idx, batch in enumerate(batches, start=1):
+        if verbose:
+            print(f"[Sherlock LLM]  Batch {idx}/{len(batches)}: {len(batch)} chunks | prev_events={len(previous_events)}")
+
+        user_prompt = build_timeline_prompt(batch, previous_events)
+        raw_response = call_llm(user_prompt, system_prompt=TIMELINE_SYSTEM_PROMPT, llm_config=cfg)
+        raw_events = parse_json_array(raw_response)
+
+        new_count = 0
+        default_src = batch[0].get("source_file", "") if batch else ""
+        default_chunk = batch[0].get("chunk_id", "") if batch else ""
+        for raw_ev in raw_events:
+            norm = normalize_timeline_event(raw_ev, default_source=default_src, default_chunk=default_chunk)
+            if norm is None:
+                continue
+            # Ensure source/chunk fallback to batch if not supplied
+            if not norm.get("source_file"):
+                norm["source_file"] = default_src
+            if not norm.get("chunk_id"):
+                norm["chunk_id"] = default_chunk
+            key = _timeline_dedup_key(norm)
+            if key in seen_keys:
+                continue
+            # Also skip empty event text
+            if not norm["event"].strip():
+                continue
+            seen_keys.add(key)
+            all_events.append(norm)
+            new_count += 1
+
+        # Update previous for next batch — send deduplicated sorted snapshot? Send current all so far sorted for context
+        # To keep LLM context small, send last 30 events if many
+        if len(all_events) > 30:
+            previous_events = all_events[-30:]
+        else:
+            previous_events = list(all_events)
+
+        if verbose:
+            print(f"[Sherlock LLM]   → got {len(raw_events)} raw, {new_count} new unique, total: {len(all_events)}")
+
+    if sort_after:
+        sorted_events = sort_timeline_events(all_events)
+        if verbose:
+            print(f"[Sherlock LLM] Timeline extraction complete: {len(all_events)} unique → sorted chronologically ({len(sorted_events)} events)")
+        return sorted_events
+    else:
+        if verbose:
+            print(f"[Sherlock LLM] Timeline extraction complete: {len(all_events)} unique (unsorted, encounter order)")
+        return all_events
+
+
+def extract_timeline_single_call(
+    warehouse_text: str,
+    chunks: Optional[List[Dict[str, Any]]] = None,
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    verbose: bool = True,
+    sort_after: bool = True,
+) -> List[Dict[str, Any]]:
+    """Single LLM call with whole warehouse text for timeline (when it fits in context)."""
+    from engine.prompts import TIMELINE_SYSTEM_PROMPT, build_single_call_timeline_prompt
+
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(project_path, overrides=llm_config if isinstance(llm_config, dict) else None)
+    if model:
+        cfg.model = model
+    if verbose:
+        stats = get_token_stats(warehouse_text)
+        print(f"[Sherlock LLM] Single-call timeline extraction: {stats['estimated_tokens']} tokens, {stats['words']} words | provider={cfg.provider} model={cfg.model}")
+
+    user_prompt = build_single_call_timeline_prompt(warehouse_text)
+    raw_response = call_llm(user_prompt, system_prompt=TIMELINE_SYSTEM_PROMPT, llm_config=cfg)
+    raw_events = parse_json_array(raw_response)
+
+    all_events: List[Dict[str, Any]] = []
+    seen_keys: set = set()
+    default_src = "warehouse.txt"
+    default_chunk = chunks[0].get("chunk_id", "") if chunks else "warehouse_chunk_001"
+    for raw_ev in raw_events:
+        norm = normalize_timeline_event(raw_ev, default_source=default_src, default_chunk=default_chunk)
+        if norm is None:
+            continue
+        key = _timeline_dedup_key(norm)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        all_events.append(norm)
+
+    # Deduplicate again via sort helper
+    if sort_after:
+        sorted_events = sort_timeline_events(all_events)
+        if verbose:
+            print(f"[Sherlock LLM] Single-call timeline done: {len(raw_events)} raw → {len(sorted_events)} sorted unique")
+        return sorted_events
+    else:
+        if verbose:
+            print(f"[Sherlock LLM] Single-call timeline done: {len(raw_events)} raw → {len(all_events)} unique (unsorted)")
+        return all_events
+
+
+def extract_timeline_auto(
+    warehouse_text: str,
+    chunks: List[Dict[str, Any]],
+    context_window: Optional[int] = None,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    prefer_batched_when_fits: bool = False,
+    verbose: bool = True,
+    sort_after: bool = True,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Auto-decide strategy based on token window, then extract timeline.
+    If warehouse fits and prefer_batched_when_fits=False (default for timeline), uses single call;
+    otherwise batched.
+
+    Timeline is less alias-sensitive than entities, so single-call when fits is often more coherent.
+    Set prefer_batched_when_fits=True to force batched even when fits.
+
+    Returns (timeline_events_sorted, decision_info)
+    """
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(project_path, overrides=llm_config if isinstance(llm_config, dict) else None)
+    if model:
+        cfg.model = model
+    effective_window = context_window if context_window is not None else cfg.context_window
+    decision = decide_strategy(
+        warehouse_text, chunks, context_window=effective_window, prefer_batched_when_fits=prefer_batched_when_fits
+    )
+    if verbose:
+        print(f"[Sherlock LLM] Timeline token check: {decision['estimated_tokens']} tokens (window {effective_window}) | fits={decision['fits_in_context']} | strategy={decision['strategy']} | provider={cfg.provider} model={cfg.model}")
+        print(f"[Sherlock LLM] Timeline reason: {decision['reason']}")
+
+    if decision["strategy"] == "single_call":
+        events = extract_timeline_single_call(warehouse_text, chunks=chunks, llm_config=cfg, verbose=verbose, sort_after=sort_after)
+    else:
+        events = extract_timeline_batched(chunks, batch_size=batch_size, llm_config=cfg, verbose=verbose, sort_after=sort_after)
+
+    return events, decision
