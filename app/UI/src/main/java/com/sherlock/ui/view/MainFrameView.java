@@ -4,7 +4,6 @@ import com.sherlock.ui.SherlockBackendClient;
 import com.sherlock.ui.model.CaseDto;
 import com.sherlock.ui.model.GraphDataDto;
 import com.sherlock.ui.model.GraphDataDto.EdgeDto;
-import com.sherlock.ui.model.GraphDataDto.NodeDto;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -56,7 +55,8 @@ public class MainFrameView extends BorderPane {
     }
 
     public void refreshGraphData() {
-        if (currentCase == null || currentCase.getCaseId() == null) return;
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
 
         refreshIndicator.setVisible(true);
         String caseId = currentCase.getCaseId();
@@ -95,15 +95,19 @@ public class MainFrameView extends BorderPane {
         Label icon = new Label("🕵️");
         icon.setStyle("-fx-font-size: 18px;");
         Label title = new Label("SHERLOCK");
-        title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ffffff; -fx-letter-spacing: 1.5px;");
+        title.setStyle(
+                "-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ffffff; -fx-letter-spacing: 1.5px;");
         brand.getChildren().addAll(icon, title);
 
         // Case Badge
-        caseBadge.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 4px 12px; -fx-background-radius: 6px; -fx-border-color: #243048; -fx-border-radius: 6px;");
+        caseBadge.setStyle(
+                "-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 4px 12px; -fx-background-radius: 6px; -fx-border-color: #243048; -fx-border-radius: 6px;");
 
         // Stats Badges
-        nodeCountBadge.setStyle("-fx-background-color: rgba(59, 130, 246, 0.15); -fx-text-fill: #60a5fa; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 6px;");
-        edgeCountBadge.setStyle("-fx-background-color: rgba(16, 185, 129, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 6px;");
+        nodeCountBadge.setStyle(
+                "-fx-background-color: rgba(59, 130, 246, 0.15); -fx-text-fill: #60a5fa; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 6px;");
+        edgeCountBadge.setStyle(
+                "-fx-background-color: rgba(16, 185, 129, 0.15); -fx-text-fill: #34d399; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 6px;");
 
         refreshIndicator.setMaxSize(16, 16);
         refreshIndicator.setVisible(false);
@@ -114,7 +118,8 @@ public class MainFrameView extends BorderPane {
         // Action Buttons
         Button investigateBtn = new Button("🚀 Start Investigation");
         investigateBtn.getStyleClass().add("primary-button");
-        investigateBtn.setStyle("-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 6px 14px;");
+        investigateBtn.setStyle(
+                "-fx-background-color: #8b5cf6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 6px 14px;");
         investigateBtn.setOnAction(e -> startInvestigation());
 
         Button historyBtn = new Button("📁 Case History");
@@ -129,10 +134,12 @@ public class MainFrameView extends BorderPane {
         newCaseBtn.getStyleClass().add("primary-button");
         newCaseBtn.setStyle("-fx-font-size: 12px; -fx-padding: 6px 14px;");
         newCaseBtn.setOnAction(e -> {
-            if (onNewCaseRequested != null) onNewCaseRequested.run();
+            if (onNewCaseRequested != null)
+                onNewCaseRequested.run();
         });
 
-        bar.getChildren().addAll(brand, caseBadge, nodeCountBadge, edgeCountBadge, refreshIndicator, spacer, investigateBtn, historyBtn, refreshBtn, newCaseBtn);
+        bar.getChildren().addAll(brand, caseBadge, nodeCountBadge, edgeCountBadge, refreshIndicator, spacer,
+                investigateBtn, historyBtn, refreshBtn, newCaseBtn);
         return bar;
     }
 
@@ -144,7 +151,7 @@ public class MainFrameView extends BorderPane {
         }
 
         String caseId = currentCase.getCaseId();
-        
+
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Investigation Progress");
         dialog.setHeaderText("Running Sherlock AI Pipeline on Case: " + caseId);
@@ -157,7 +164,7 @@ public class MainFrameView extends BorderPane {
         Label lblEntity = new Label("⏳ Entity Extraction...");
         Label lblRel = new Label("⏳ Relationship Extraction...");
         Label lblMap = new Label("⏳ Relation Mapping...");
-        
+
         String pendingStyle = "-fx-text-fill: #94a3b8; -fx-font-size: 14px;";
         String activeStyle = "-fx-text-fill: #38bdf8; -fx-font-size: 14px; -fx-font-weight: bold;";
         String doneStyle = "-fx-text-fill: #34d399; -fx-font-size: 14px; -fx-font-weight: bold;";
@@ -185,48 +192,60 @@ public class MainFrameView extends BorderPane {
             Platform.runLater(() -> {
                 javafx.animation.Timeline[] timelineArr = new javafx.animation.Timeline[1];
                 timelineArr[0] = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
-                        client.getProcessingStatusAsync(caseId).thenAccept(currStatus -> {
-                            Platform.runLater(() -> {
-                                if (currStatus.getLogs() != null) {
-                                    String allLogs = String.join("\n", currStatus.getLogs());
-                                    logArea.setText(allLogs);
-                                    logArea.setScrollTop(Double.MAX_VALUE); // scroll down
+                        new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                            client.getProcessingStatusAsync(caseId).thenAccept(currStatus -> {
+                                Platform.runLater(() -> {
+                                    if (currStatus.getLogs() != null) {
+                                        String allLogs = String.join("\n", currStatus.getLogs());
+                                        logArea.setText(allLogs);
+                                        logArea.setScrollTop(Double.MAX_VALUE); // scroll down
 
-                                    // Update Stage highlights
-                                    if (allLogs.contains("STAGE: Relation Mapping")) {
-                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
-                                        lblEntity.setStyle(doneStyle); lblEntity.setText("✅ Entity Extraction");
-                                        lblRel.setStyle(doneStyle); lblRel.setText("✅ Relationship Extraction");
-                                        lblMap.setStyle(activeStyle); lblMap.setText("🔄 Relation Mapping...");
-                                    } else if (allLogs.contains("STAGE: Relationship Extraction")) {
-                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
-                                        lblEntity.setStyle(doneStyle); lblEntity.setText("✅ Entity Extraction");
-                                        lblRel.setStyle(activeStyle); lblRel.setText("🔄 Relationship Extraction...");
-                                    } else if (allLogs.contains("STAGE: Entity Extraction")) {
-                                        lblChunk.setStyle(doneStyle); lblChunk.setText("✅ Chunking");
-                                        lblEntity.setStyle(activeStyle); lblEntity.setText("🔄 Entity Extraction...");
-                                    } else if (allLogs.contains("STAGE: Chunking")) {
-                                        lblChunk.setStyle(activeStyle); lblChunk.setText("🔄 Chunking...");
+                                        // Update Stage highlights
+                                        if (allLogs.contains("STAGE: Relation Mapping")) {
+                                            lblChunk.setStyle(doneStyle);
+                                            lblChunk.setText("✅ Chunking");
+                                            lblEntity.setStyle(doneStyle);
+                                            lblEntity.setText("✅ Entity Extraction");
+                                            lblRel.setStyle(doneStyle);
+                                            lblRel.setText("✅ Relationship Extraction");
+                                            lblMap.setStyle(activeStyle);
+                                            lblMap.setText("🔄 Relation Mapping...");
+                                        } else if (allLogs.contains("STAGE: Relationship Extraction")) {
+                                            lblChunk.setStyle(doneStyle);
+                                            lblChunk.setText("✅ Chunking");
+                                            lblEntity.setStyle(doneStyle);
+                                            lblEntity.setText("✅ Entity Extraction");
+                                            lblRel.setStyle(activeStyle);
+                                            lblRel.setText("🔄 Relationship Extraction...");
+                                        } else if (allLogs.contains("STAGE: Entity Extraction")) {
+                                            lblChunk.setStyle(doneStyle);
+                                            lblChunk.setText("✅ Chunking");
+                                            lblEntity.setStyle(activeStyle);
+                                            lblEntity.setText("🔄 Entity Extraction...");
+                                        } else if (allLogs.contains("STAGE: Chunking")) {
+                                            lblChunk.setStyle(activeStyle);
+                                            lblChunk.setText("🔄 Chunking...");
+                                        }
                                     }
-                                }
-                                
-                                if (currStatus.isCompleted()) {
-                                    lblMap.setStyle(doneStyle); lblMap.setText("✅ Relation Mapping");
-                                    logArea.appendText("\n\nPipeline Completed!");
-                                    dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(false);
-                                    if (timelineArr[0] != null) timelineArr[0].stop();
-                                    refreshGraphData();
-                                }
+
+                                    if (currStatus.isCompleted()) {
+                                        lblMap.setStyle(doneStyle);
+                                        lblMap.setText("✅ Relation Mapping");
+                                        logArea.appendText("\n\nPipeline Completed!");
+                                        dialog.getDialogPane().lookupButton(ButtonType.CLOSE).setDisable(false);
+                                        if (timelineArr[0] != null)
+                                            timelineArr[0].stop();
+                                        refreshGraphData();
+                                    }
+                                });
                             });
-                        });
-                    })
-                );
+                        }));
                 timelineArr[0].setCycleCount(javafx.animation.Animation.INDEFINITE);
                 timelineArr[0].play();
-                
+
                 dialog.setOnHidden(ev -> {
-                    if (timelineArr[0] != null) timelineArr[0].stop();
+                    if (timelineArr[0] != null)
+                        timelineArr[0].stop();
                 });
             });
         });
@@ -267,7 +286,8 @@ public class MainFrameView extends BorderPane {
             List<EdgeDto> related = new ArrayList<>();
             if (currentGraph != null && currentGraph.getEdges() != null) {
                 related = currentGraph.getEdges().stream()
-                        .filter(e -> e.getSource().equalsIgnoreCase(node.getName()) || e.getTarget().equalsIgnoreCase(node.getName()))
+                        .filter(e -> e.getSource().equalsIgnoreCase(node.getName())
+                                || e.getTarget().equalsIgnoreCase(node.getName()))
                         .collect(Collectors.toList());
             }
             detailsPanel.showNodeDetails(node, related);
@@ -312,7 +332,8 @@ public class MainFrameView extends BorderPane {
                 for (CaseDto c : cases) {
                     HBox row = new HBox(10);
                     row.setAlignment(Pos.CENTER_LEFT);
-                    row.setStyle("-fx-background-color: #161e2e; -fx-padding: 8px 12px; -fx-background-radius: 6px; -fx-border-color: #243048; -fx-border-radius: 6px;");
+                    row.setStyle(
+                            "-fx-background-color: #161e2e; -fx-padding: 8px 12px; -fx-background-radius: 6px; -fx-border-color: #243048; -fx-border-radius: 6px;");
 
                     VBox info = new VBox(2);
                     Label nameLbl = new Label(c.getCaseName() + " (" + c.getCaseId() + ")");

@@ -1,7 +1,6 @@
 package com.sherlock.ui.view;
 
 import com.sherlock.ui.SherlockBackendClient;
-import com.sherlock.ui.model.ChatMessageDto;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -48,7 +47,8 @@ public class ChatPanel extends VBox {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Label status = new Label("Sherlock AI");
-        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 2px 8px; -fx-background-radius: 10px;");
+        status.setStyle(
+                "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 2px 8px; -fx-background-radius: 10px;");
 
         header.getChildren().addAll(title, spacer, status);
 
@@ -59,7 +59,8 @@ public class ChatPanel extends VBox {
         modelIcon.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #94a3b8;");
 
         modelSelector.setEditable(true);
-        modelSelector.setStyle("-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-background-radius: 6px;");
+        modelSelector.setStyle(
+                "-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-background-radius: 6px;");
         modelSelector.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(modelSelector, Priority.ALWAYS);
 
@@ -116,13 +117,15 @@ public class ChatPanel extends VBox {
         getChildren().addAll(header, modelRow, suggestions, scrollPane, inputRow);
 
         // Initial greeting
-        addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. Ask me questions about persons of interest, call logs, witness statements, or chronological occurrences.");
+        addSherlockMessage(
+                "Greetings. I am Sherlock, your investigation intelligence assistant. Ask me questions about persons of interest, call logs, witness statements, or chronological occurrences.");
     }
 
     public void setCaseId(String caseId) {
         this.currentCaseId = caseId;
         messageContainer.getChildren().clear();
-        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
+        addSherlockMessage("Case **" + caseId
+                + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
     }
 
     private FlowPane buildQuickSuggestions() {
@@ -135,9 +138,12 @@ public class ChatPanel extends VBox {
 
     private Button createSuggestionPill(String query) {
         Button btn = new Button(query);
-        btn.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
+        btn.setStyle(
+                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;");
+        btn.setOnMouseEntered(e -> btn.setStyle(
+                "-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle(
+                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
         btn.setOnAction(e -> {
             inputField.setText(query);
             sendMessage();
@@ -147,7 +153,8 @@ public class ChatPanel extends VBox {
 
     private void sendMessage() {
         String query = inputField.getText() != null ? inputField.getText().trim() : "";
-        if (query.isBlank()) return;
+        if (query.isBlank())
+            return;
 
         addUserMessage(query);
         inputField.clear();
