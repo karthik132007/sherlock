@@ -159,8 +159,8 @@ public class ChatPanel extends VBox {
                 } else {
                     modelSelector.getItems().clear();
                     modelSelector.setValue(null);
-                    modelSelector.setDisable(true);
-                    modelSelector.setPromptText("No Ollama models found (is Ollama running?)");
+                    modelSelector.setDisable(false); // Enable manual typing even if Ollama is off
+                    modelSelector.setPromptText("Type model (e.g., llama3.1)");
                 }
             }));
             return;

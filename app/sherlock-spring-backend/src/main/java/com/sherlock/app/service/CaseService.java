@@ -221,44 +221,52 @@ public class CaseService {
         Path dataDirectory = caseDirectory.resolve("data");
         Path warehouseFile = caseDirectory.resolve("warehouse.txt");
 
-        StringBuilder warehouseContent = new StringBuilder();
-
         if (Files.exists(dataDirectory) && Files.isDirectory(dataDirectory)) {
-            try (var stream = Files.list(dataDirectory)) {
+            try (var stream = Files.list(dataDirectory);
+                 java.io.BufferedWriter writer = Files.newBufferedWriter(warehouseFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+
                 List<Path> files = stream
                         .filter(Files::isRegularFile)
                         .sorted(Comparator.comparing(Path::getFileName))
                         .collect(Collectors.toList());
 
+                long totalBytes = 0;
                 for (Path file : files) {
                     String fileName = file.getFileName().toString();
-                    String content = "";
-                    try {
-                        content = Files.readString(file, StandardCharsets.UTF_8);
+
+                    writer.write("========================================\n");
+                    writer.write("SOURCE_FILE: " + fileName + "\n");
+                    writer.write("SOURCE_TYPE: TEXT\n");
+                    writer.write("========================================\n\n");
+
+                    try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            writer.write(line);
+                            writer.write("\n");
+                        }
                     } catch (Exception e) {
-                        try {
-                            content = Files.readString(file, StandardCharsets.ISO_8859_1);
+                        try (BufferedReader reader2 = Files.newBufferedReader(file, StandardCharsets.ISO_8859_1)) {
+                            String line;
+                            while ((line = reader2.readLine()) != null) {
+                                writer.write(line);
+                                writer.write("\n");
+                            }
                         } catch (Exception ignored) {
-                            content = "[Binary or unreadable content for " + fileName + "]";
+                            writer.write("[Binary or unreadable content for " + fileName + "]\n");
                         }
                     }
 
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("SOURCE_FILE: ").append(fileName).append("\n");
-                    warehouseContent.append("SOURCE_TYPE: TEXT\n");
-                    warehouseContent.append("========================================\n\n");
-                    warehouseContent.append(content.trim()).append("\n\n");
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("END_SOURCE: ").append(fileName).append("\n");
-                    warehouseContent.append("========================================\n\n\n");
+                    writer.write("\n========================================\n");
+                    writer.write("END_SOURCE: " + fileName + "\n");
+                    writer.write("========================================\n\n\n");
                 }
+
+                log.info("Built warehouse.txt for case: {}", caseDirectory.getFileName());
+                return warehouseFile.toString();
             }
         }
-
-        Files.writeString(warehouseFile, warehouseContent.toString(), StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
-        log.info("Built warehouse.txt for case: {} ({} bytes)", caseDirectory.getFileName(), warehouseContent.length());
+        
         return warehouseFile.toString();
     }
 
@@ -282,6 +290,7 @@ public class CaseService {
         String pythonCommand = resolvePythonCommand(pythonScript);
         List<String> commandTokens = new ArrayList<>();
         commandTokens.add(pythonCommand);
+        commandTokens.add("-u");
         commandTokens.add(pythonScript);
         commandTokens.add(appProperties.getProcessArgument());
         commandTokens.add(caseDirectory.toAbsolutePath().toString());
@@ -389,6 +398,7 @@ public class CaseService {
         String pythonCommand = resolvePythonCommand(pythonScript);
         List<String> commandTokens = new ArrayList<>();
         commandTokens.add(pythonCommand);
+        commandTokens.add("-u");
         commandTokens.add(pythonScript);
         commandTokens.add(appProperties.getProcessArgument());
         commandTokens.add(caseDirectory.toAbsolutePath().toString());

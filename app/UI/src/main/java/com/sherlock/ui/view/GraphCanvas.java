@@ -229,10 +229,10 @@ public class GraphCanvas extends StackPane {
         HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 3px 8px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 2px 4px; -fx-background-radius: 4px; -fx-border-color: #1e293b; -fx-border-radius: 4px; -fx-border-width: 1px;");
 
         Label title = new Label("LEGEND:");
-        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 7px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
         box.getChildren().add(title);
 
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
@@ -246,11 +246,11 @@ public class GraphCanvas extends StackPane {
     }
 
     private HBox legendItem(Color color, String text) {
-        HBox row = new HBox(3);
+        HBox row = new HBox(2);
         row.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(3, color);
+        Circle dot = new Circle(2, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #94a3b8;");
+        label.setStyle("-fx-font-size: 7px; -fx-text-fill: #94a3b8;");
         row.getChildren().addAll(dot, label);
         return row;
     }
