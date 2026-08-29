@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "sherlock")
@@ -38,26 +40,56 @@ public class AppProperties {
     }
 
     public String getBaseDirectory() {
-        if (baseDirectory == null || baseDirectory.isBlank() || baseDirectory.equals("../../data")) {
-            baseDirectory = Paths.get(System.getProperty("user.home"), "Documents", "Sherlock").toString();
+        if (baseDirectory != null && !baseDirectory.isBlank() && !baseDirectory.equals("../../data")) {
+            Path p = Paths.get(baseDirectory);
+            p = ensureWritableDirectory(p);
+            if (p != null) {
+                return p.toAbsolutePath().normalize().toString();
+            }
         }
-        Path p = Paths.get(baseDirectory);
-        
-        p = ensureWritableDirectory(p);
-        if (p == null) {
-            // Fallback 1: user.home/Sherlock (avoids Windows Controlled Folder Access on Documents)
-            p = ensureWritableDirectory(Paths.get(System.getProperty("user.home"), "Sherlock"));
+
+        // 1. Check OneDrive Documents directory (for Windows systems syncing Documents with OneDrive)
+        List<Path> candidates = new ArrayList<>();
+        String oneDrive = System.getenv("OneDrive");
+        if (oneDrive != null && !oneDrive.isBlank()) {
+            candidates.add(Paths.get(oneDrive, "Documents", "Sherlock"));
         }
-        if (p == null) {
-            // Fallback 2: current directory / sherlock_data
-            p = ensureWritableDirectory(Paths.get("sherlock_data").toAbsolutePath());
+        String oneDriveConsumer = System.getenv("OneDriveConsumer");
+        if (oneDriveConsumer != null && !oneDriveConsumer.isBlank()) {
+            candidates.add(Paths.get(oneDriveConsumer, "Documents", "Sherlock"));
         }
-        if (p == null) {
-            // Ultimate fallback (might still fail later, but we tried)
-            p = Paths.get(System.getProperty("user.home"), "Sherlock");
+        String oneDriveCommercial = System.getenv("OneDriveCommercial");
+        if (oneDriveCommercial != null && !oneDriveCommercial.isBlank()) {
+            candidates.add(Paths.get(oneDriveCommercial, "Documents", "Sherlock"));
         }
-        
-        baseDirectory = p.toAbsolutePath().normalize().toString();
+        candidates.add(Paths.get(System.getProperty("user.home"), "OneDrive", "Documents", "Sherlock"));
+
+        // 2. Standard user Documents directory
+        candidates.add(Paths.get(System.getProperty("user.home"), "Documents", "Sherlock"));
+
+        // 3. Fallback: user home / Sherlock
+        candidates.add(Paths.get(System.getProperty("user.home"), "Sherlock"));
+
+        // 4. Fallback: current working directory / sherlock_data
+        candidates.add(Paths.get("sherlock_data").toAbsolutePath());
+
+        for (Path candidate : candidates) {
+            Path parent = candidate.getParent();
+            if (parent != null && Files.exists(parent)) {
+                Path p = ensureWritableDirectory(candidate);
+                if (p != null) {
+                    baseDirectory = p.toAbsolutePath().normalize().toString();
+                    return baseDirectory;
+                }
+            }
+        }
+
+        // Ultimate fallback
+        Path fallback = ensureWritableDirectory(Paths.get(System.getProperty("user.home"), "Documents", "Sherlock"));
+        if (fallback == null) {
+            fallback = Paths.get(System.getProperty("user.home"), "Sherlock");
+        }
+        baseDirectory = fallback.toAbsolutePath().normalize().toString();
         return baseDirectory;
     }
     
