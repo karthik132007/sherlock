@@ -1,0 +1,356 @@
+{
+  "case_id": "SHRLK-ROSE-2026-001",
+  "case_name": "Operation Rose",
+  "disclaimer": "All persons, phones, addresses, case numbers are fictional.",
+  "actual_sequence_of_events": [
+    "2026-04-04: Rose Mathew attends group guided meditation with Meera Krishnan and Ananya Joseph in Adyar. Meera uses suggestion techniques. Rose later messages Ananya that she felt pressured.",
+    "2026-04-06: Rose has heated argument with Arjun Dev on phone (06:12 call) where Arjun says 'You'll regret pushing me away'. Later that day Rose visits Dr. Shalini Clinic in Anna Nagar for anxiety, prescribed Alprazolam 0.5mg x10. Prescription becomes source of sedative.",
+    "2026-04-07 to 2026-04-10: Meera holds two private sessions (08 Apr and 10 Apr, 17:00 and 10:30). In sessions Meera asks Rose to repeat 'I trust you' and uses breathing/suggestion. Rose feels scared/pressured but struggles to say no. She writes deleted note 10 Apr 16:22 'Don't know how to say no to Meera... felt scared after' then deletes it.",
+    "2026-04-09: Arjun unexpectedly appears at Rose's client meeting in Nungambakkam (Brew Room), showing pattern of monitoring/pressuring.",
+    "2026-04-10 16:20: Vikram Rao visits Green View Apartments to see friend Priya Menon in Flat 2A (same building as Rose). This is innocent but will later look suspicious on CCTV.",
+    "2026-04-11 22:14: Arjun sends message to Rose 'You'll regret ignoring me, Rose. You can't just cut me off like this.' Rose forwards screenshot to Ananya, expressing fear.",
+    "2026-04-12: Rose argues with Vikram at Besant Nagar studio about karma; Vikram says 'Karma will catch you if you play with energies you don't understand' (philosophical, not threat). Rose pays Vikram Rs1,500 for art print Beach Series #042 (invoice VR-042) — transaction will later be misinterpreted as occult payment.",
+    "2026-04-13: Rose spends day at Marina (payment Rs380), receives missed call from Meera at 20:05 (Meera will later deny), has argument call with Arjun 20:30. Night 22:10-22:18 she searches 'alprazolam alcohol interaction' and 'how much is dangerous' — she is anxious about medication, researching interaction out of worry, not forming definitive suicide plan yet. She deletes a message to Ananya at 22:45 ('if anything happens...' per Ananya's recollection).",
+    "2026-04-14 09:15-10:18: Rose messages Ananya 'Feeling very low, didn't sleep', tells Meera she needs time alone, tells Arjun 'please give me space'. She is sleep-deprived (3h sleep) and overwhelmed. Last long call with Ananya at 14:05 (03:44), last outgoing message to Ananya at 15:12 thanking her.",
+    "2026-04-14 15:18: Rose last unlocks phone. Between 15:30 and 16:45, alone in Flat 3B (door latched from inside, no forced entry), Rose self-administers Alprazolam (2-3 tablets, from the 4 missing plus possibly loose tablets) mixed into orange juice with a small amount of alcohol (≈15ml ethanol, source unclear but not brought by intruder — likely from a small bottle she had, not logged in purchases). She does this intentionally under acute distress and sustained coercive pressure, but ambivalence remains — note 'I can't keep doing this. It's too much. Sorry. — R' was written earlier that day or previous night as a draft, not prominently placed, reflecting distress rather than formal suicide note.",
+    "2026-04-14 16:16-16:22: Arjun Dev is in fact near Anna Nagar (CCTV 16:16 medium, phone ping 16:18) having come to buy an apology gift at Crossword (Anna Nagar branch) between 16:00-16:30 (cash payment, no receipt, store CCTV inconclusive). He does NOT enter Flat 3B and does NOT administer substances. His presence is coincidental to death window but creates apparent opportunity. The blurred stairwell figure at 16:20 is a motion artifact/ghosting from low FPS, not a person entering Rose's flat.",
+    "2026-04-14 16:20-16:45: No other person enters Flat 3B. Toxic effects lead to CNS depression and death between 15:30-17:30. No struggle, body found supine.",
+    "2026-04-14 18:14: Ananya calls Rose (missed), 18:28 arrives with manager, discovers body 18:30. Police arrive 19:05.",
+    "2026-04-15 to 2026-04-18: Investigation reveals alibi contradictions (Arjun T. Nagar claim vs Anna Nagar ping/CCTV; Meera Adyar 18:00 claim vs Nungambakkam 18:20 CCTV) but neither person was in flat at ingestion. Meera's 12:45 GPS movement toward Nungambakkam was for grocery/errand, not Anna Nagar."
+  ],
+  "actual_cause_of_death": "Acute mixed central nervous system depression due to self-administered Alprazolam (benzodiazepine) and ethanol toxicity; ingestion via partially consumed orange drink (E-003). Synergistic effect fatal at individually sub-lethal doses. Superficial hand/wrist marks are old, not causative, unrelated to mechanism.",
+  "responsible_person_if_any": "Rose Mathew (self-administration); no direct homicide. Primary contributory factor is sustained coercive control/harassment by Arjun Dev and, secondarily, psychological pressure via suggestive sessions by Meera Krishnan, which increased vulnerability but did not involve direct administration or supernatural mind control.",
+  "intentional_or_accidental": "Intentional self-harm under sustained psychological distress and coercive influence; classified as undetermined/suicide-leaning. Evidence leans toward intentional (note, searches, recent stress) but accidental misjudgment of interaction cannot be fully excluded. Ground truth models it as intentional self-harm facilitated by coercive context, not accidental overdose and not third-party homicide.",
+  "misleading_evidence": [
+    "E-003 initial appearance as routine orange juice — actually contains ethanol+benzodiazepine (genuine but initially appears unimportant, inverse of misleading)",
+    "Financial transaction Rs1,500 Rose -> Vikram Rao on 12 Apr 18:00 for 'art print Beach Series #042' (Invoice VR-042) — appears occult/ritual payment but is legitimate art purchase",
+    "Arjun's Rs10,000 cash withdrawal 13 Apr 15:30 at T. Nagar SBI ATM — appears to show preparation near Anna Nagar route but is for family wedding contribution (mother corroborates), innocent but looks suspicious",
+    "Browser search 13 Apr 22:12 'how much alprazolam is dangerous' — appears planning for suicide, but context is anxiety research about interaction worry; true search but misleading inference",
+    "CCTV 10 Apr 16:20 Vikram Rao near Green View Apartments — appears suspicious proximity 4 days before death, but was visiting Priya Menon Flat 2A (verified by building register and Priya witness), innocent",
+    "CCTV 16:20 14 Apr blurred stairwell figure (CAM-GV-02, LOW confidence) — appears unknown intruder near Flat 3B, but is motion blur/artifact, no person entered",
+    "CCTV 10:42 14 Apr Cafe Coffee Day T. Nagar male in grey hoodie — appears to corroborate Arjun alibi, but face obscured, possible mistaken identification, cannot confirm",
+    "Vikram's occult rumours ('black magic') — rumours, not supernatural facts; victims' fear based on rumour not action",
+    "Meera's search 'how to make someone more suggestible' (15 Mar) — appears manipulation planning, but is dissertation research for MA Psychology (fee Rs1,200 on 12 Apr corroborates)"
+  ],
+  "genuine_evidence": [
+    "E-003 Glass with orange liquid residue: ethanol + benzodiazepine positive (prelim preliminary) — central toxicology evidence, initially appears unimportant routine drink",
+    "E-005 Medication blister Alprazolam 0.5mg prescribed 06 Apr (6 remaining, 4 missing + 2 loose) — source of sedative, appears routine prescription but explains toxicology",
+    "Deleted note 10 Apr 16:22 'meera_session_notes_10apr.txt' (recovered) — 'Don't know how to say no to Meera... felt scared after' — shows escalating discomfort and inability to set boundaries with Meera, genuine clue hidden as deleted draft",
+    "Phone_messages 11 Apr 22:14 Arjun threatening-like message 'You'll regret ignoring me, Rose...' — pattern of coercive pressure, forwarded to Ananya 22:31",
+    "Call log 13 Apr 20:05 Meera -> Rose missed call (0s) — proves Meera contacted Rose despite denying contact after 12 Apr (lie)",
+    "CCTV 16:16:44 CAM-AN-03 person resembling Arjun near Green View + phone tower ping 16:18 AN-AG-W-03 — genuine temporal contradiction proving Arjun was near Anna Nagar during death window despite T. Nagar alibi",
+    "CCTV 18:20:33 CAM-NM-02 person resembling Meera in Nungambakkam — contradicts Meera claim 'Adyar at 18:00' (travel 9km in 20min impossible), genuine temporal contradiction",
+    "Last digital activity 14 Apr 15:12 message + 15:18 last unlock — anchors ToD window start",
+    "Swiggy delivery 14 Apr 14:48 Rs450 — confirms Rose alive and ordering lunch just before ToD window",
+    "Financial dissertation fee 12 Apr Rs1,200 Meera -> University of Madras — corroborates innocent explanation for suggestibility search",
+    "Invoice VR-042 for art print — validates innocent explanation for Vikram transaction"
+  ],
+  "false_statements": [
+    {
+      "speaker": "Arjun Dev",
+      "statement": "I never sent any threatening message to Rose",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "Phone messages show 11 Apr 22:14 Arjun -> Rose 'You'll regret ignoring me, Rose...' (E-001, E-002 cross-confirmed)",
+      "type": "deliberate lie"
+    },
+    {
+      "speaker": "Arjun Dev",
+      "statement": "I was at T. Nagar the entire afternoon 15:00-17:30 and never went near Anna Nagar on 14 Apr",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "CCTV CAM-AN-03 16:16:44 shows person resembling Arjun near Green View, phone data ping 16:18 AN-AG-W-03 near Anna Nagar; later admits 20-min Crossword visit",
+      "type": "deliberate lie"
+    },
+    {
+      "speaker": "Arjun Dev",
+      "statement": "I did not delete any messages",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "Forensic delete log shows 12 Apr 09:42:18 Arjun invoked 'Delete for Everyone' for message to Rose (sequence gap on Rose phone)",
+      "type": "deliberate lie"
+    },
+    {
+      "speaker": "Meera Krishnan",
+      "statement": "My last session with Rose was on 08 April; we did not meet after",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "Digital forensics shows session 10 Apr 10:30 plus deleted note created 10 Apr 16:22 referencing that session, and message 10 Apr 19:30 Rose telling Meera she needs space",
+      "type": "subtle inconsistency / minimization"
+    },
+    {
+      "speaker": "Meera Krishnan",
+      "statement": "I have not contacted Rose since 12 Apr / since she told me to give her space on 10 Apr",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "Call log shows missed call Meera -> Rose 13 Apr 20:05:33 (6s ring) and message 13 Apr 19:50, plus 14 Apr 09:55 reply",
+      "type": "deliberate lie"
+    },
+    {
+      "speaker": "Meera Krishnan",
+      "statement": "I was in Adyar at 18:00 on 14 Apr at home",
+      "timestamp": "16 Apr 2026 interview",
+      "truth": "CCTV CAM-NM-02 18:20:33 shows person resembling Meera in Nungambakkam (9km away, 20min impossible). She WAS home at 18:35 (Swiggy delivery confirms), but 18:00 claim contradicts Nungambakkam sighting.",
+      "type": "temporal contradiction / false alibi (deliberate or mistaken)"
+    },
+    {
+      "speaker": "Ananya Joseph",
+      "statement": "I last spoke to Rose at about 14:00 for about 5 minutes on 14 Apr",
+      "timestamp": "14 Apr 2026 first statement 19:30",
+      "truth": "Call log shows 14:05:22 duration 03:44. Supplementary statement corrects to ~14:05 3-4 mins.",
+      "type": "subtle inconsistency (stress-induced timing drift, not deliberate)"
+    },
+    {
+      "speaker": "Ananya Joseph",
+      "statement": "I called Rose at about 18:10 on 14 Apr",
+      "timestamp": "14 Apr 2026 first statement",
+      "truth": "Call log shows missed call 18:14:12. Ananya later acknowledges 18:10 was approximate.",
+      "type": "subtle inconsistency"
+    }
+  ],
+  "entity_aliases": {
+    "Rose Mathew": [
+      "Rose Mathew",
+      "Rose M.",
+      "R. Mathew",
+      "Rose",
+      "rose.m@okicici",
+      "+91-90000-10001"
+    ],
+    "Arjun Dev": [
+      "Arjun Dev",
+      "Arjun D.",
+      "A. Dev",
+      "Arjun",
+      "arjun.d@oksbi",
+      "+91-90000-10002"
+    ],
+    "Meera Krishnan": [
+      "Meera Krishnan",
+      "Meera K.",
+      "M. Krishnan",
+      "Meera",
+      "meera.k@okhdfc",
+      "+91-90000-10003"
+    ],
+    "Vikram Rao": [
+      "Vikram Rao",
+      "Vikram R.",
+      "V. Rao",
+      "Vikram",
+      "vikram.rao.art@okhdfc",
+      "+91-90000-10005"
+    ],
+    "Ananya Joseph": [
+      "Ananya Joseph",
+      "Ananya J.",
+      "A. Joseph",
+      "Ananya",
+      "+91-90000-10004"
+    ],
+    "Locations": {
+      "Green View Apartments": [
+        "Green View Apartments",
+        "Green View",
+        "Flat 3B",
+        "12/45 3rd Main Road, Anna Nagar West"
+      ],
+      "Adyar": [
+        "Adyar",
+        "Shanti Apartments, 22/8 Lattice Bridge Road",
+        "Adyar area"
+      ],
+      "Besant Nagar": [
+        "Besant Nagar",
+        "4/21 Beach Road, Besant Nagar",
+        "Vikram's Studio"
+      ],
+      "T. Nagar": [
+        "T. Nagar",
+        "T Nagar",
+        "Venkatnarayana Road, T. Nagar"
+      ],
+      "Nungambakkam": [
+        "Nungambakkam",
+        "High Road, Nungambakkam",
+        "The Brew Room, Nungambakkam"
+      ],
+      "Anna Nagar": [
+        "Anna Nagar",
+        "Anna Nagar West",
+        "AN-AG-W-03",
+        "3rd Main Road"
+      ]
+    },
+    "Evidence": {
+      "E-001": [
+        "E-001",
+        "Mobile Phone",
+        "Rose iPhone"
+      ],
+      "E-003": [
+        "E-003",
+        "Glass",
+        "Drink",
+        "Orange juice glass"
+      ],
+      "E-004": [
+        "E-004",
+        "Handwritten Note",
+        "Note"
+      ],
+      "E-005": [
+        "E-005",
+        "Medication",
+        "Alprazolam",
+        "Blister pack"
+      ]
+    }
+  },
+  "important_relationships": [
+    "Rose Mathew --FRIEND_OF--> Ananya Joseph (strong, 7 years, Loyola)",
+    "Arjun Dev --ROMANTICALLY_INTERESTED_IN--> Rose Mathew (unrequited, rejected Oct 2025)",
+    "Rose Mathew --REJECTED--> Arjun Dev (clear refusals, requested space)",
+    "Rose Mathew --ATTENDED_SESSION_WITH--> Meera Krishnan (04 Apr group, 08 Apr private, 10 Apr private)",
+    "Meera Krishnan --INFLUENCED_VIA_SUGGESTION--> Rose Mathew (guided imagery, 'I trust you' repetition, not supernatural)",
+    "Rose Mathew --EXPRESSED_DISCOMFORT_WITH--> Meera Krishnan (08-10 Apr messages, deleted note)",
+    "Rose Mathew --FRIGHTENED_OF--> Arjun Dev (after 11 Apr message and monitoring behaviour)",
+    "Rose Mathew --FRIGHTENED_OF--> Vikram Rao (after 12 Apr 'karma' comment, rumour-based, not direct threat)",
+    "Vikram Rao --ASSOCIATED_WITH--> FriendGroup (via Ananya/Arjun/Meera, Besant Nagar gatherings)",
+    "Arjun Dev --PREVIOUSLY_WORKED_WITH--> Meera Krishnan (Loyola College Fest 2019) (2-hop connection Rose->Meera->Arjun)",
+    "Meera Krishnan --PREVIOUSLY_WORKED_WITH--> Arjun Dev (bidirectional)",
+    "Rose Mathew --PATIENT_OF--> Dr. Shalini (Anna Nagar, prescribed Alprazolam 06 Apr)",
+    "Rose Mathew --PAID--> Vikram Rao (Rs1,500 art print 12 Apr, invoice VR-042)",
+    "Ananya Joseph --DISCOVERED--> Rose Mathew (with Mr. Suresh, 18:30 14 Apr)",
+    "Mr. Suresh --MANAGER_OF--> Green View Apartments",
+    "Arjun Dev --SENT_MESSAGE_TO--> Rose Mathew (threatening-like 11 Apr 22:14)",
+    "Meera Krishnan --SENT_MESSAGE_TO--> Rose Mathew (session invites)",
+    "Rose Mathew --SENT_MESSAGE_TO--> Ananya Joseph (last message 15:12)",
+    "Ananya Joseph --CALLED--> Rose Mathew (14:05 03:44 last long call)",
+    "Evidence E-003 --TESTED_IN--> FSL Toxicology (prelim positive ethanol+benzodiazepine)",
+    "Evidence E-004 --WRITTEN_BY--> Rose Mathew (alleged, generic note)",
+    "Rose --SEEN_AT--> Green View Apartments Entrance 11:57 14 Apr (CAM-GV-01)",
+    "Arjun --SEEN_AT--> Anna Nagar 3rd Main 16:16 14 Apr (CAM-AN-03, medium, disputed)",
+    "Meera --SEEN_AT--> Nungambakkam High Road 18:20 14 Apr (CAM-NM-02, medium-high)"
+  ],
+  "expected_knowledge_graph_edges": [
+    [
+      "Rose Mathew",
+      "FRIEND_OF",
+      "Ananya Joseph"
+    ],
+    [
+      "Arjun Dev",
+      "ROMANTICALLY_INTERESTED_IN",
+      "Rose Mathew"
+    ],
+    [
+      "Rose Mathew",
+      "ATTENDED_SESSION_WITH",
+      "Meera Krishnan"
+    ],
+    [
+      "Meera Krishnan",
+      "INFLUENCED_VIA_SUGGESTION",
+      "Rose Mathew"
+    ],
+    [
+      "Vikram Rao",
+      "ASSOCIATED_WITH",
+      "FriendGroup"
+    ],
+    [
+      "Rose Mathew",
+      "SEEN_AT",
+      "Green View Apartments"
+    ],
+    [
+      "Arjun Dev",
+      "SEEN_AT",
+      "Anna Nagar"
+    ],
+    [
+      "Meera Krishnan",
+      "SEEN_AT",
+      "Nungambakkam"
+    ],
+    [
+      "Arjun Dev",
+      "SENT_MESSAGE_TO",
+      "Rose Mathew"
+    ],
+    [
+      "Rose Mathew",
+      "SENT_MESSAGE_TO",
+      "Ananya Joseph"
+    ],
+    [
+      "Ananya Joseph",
+      "CALLED",
+      "Rose Mathew"
+    ],
+    [
+      "Meera Krishnan",
+      "CALLED",
+      "Rose Mathew"
+    ],
+    [
+      "Rose Mathew",
+      "PAID",
+      "Vikram Rao"
+    ],
+    [
+      "Rose Mathew",
+      "PATIENT_OF",
+      "Dr. Shalini"
+    ],
+    [
+      "Evidence E-003",
+      "MENTIONED_IN",
+      "03_scene_report.txt"
+    ],
+    [
+      "Evidence E-003",
+      "MENTIONED_IN",
+      "04_postmortem_report.txt"
+    ],
+    [
+      "Evidence E-004",
+      "MENTIONED_IN",
+      "03_scene_report.txt"
+    ],
+    [
+      "Arjun Dev",
+      "PREVIOUSLY_WORKED_WITH",
+      "Meera Krishnan"
+    ],
+    [
+      "Ananya Joseph",
+      "DISCOVERED",
+      "Rose Mathew"
+    ],
+    [
+      "Vikram Rao",
+      "RUMOURED_ASSOCIATION",
+      "Occult Practices"
+    ]
+  ],
+  "temporal_contradictions_for_testing": [
+    "Arjun claims T. Nagar 15:00-17:30 but CCTV 16:16 near Anna Nagar + tower ping 16:18 Anna Nagar West (temporal contradiction)",
+    "Meera claims Adyar at 18:00 but CCTV Nungambakkam 18:20 resembling Meera (9km in 20min impossible)",
+    "Ananya claims last call 14:00/5 mins vs log 14:05/03:44",
+    "Ananya claims call 18:10 vs log 18:14",
+    "Meera claims no contact after 12 Apr vs missed call 13 Apr 20:05"
+  ],
+  "contradiction_breakdown": {
+    "subtle_inconsistencies": 5,
+    "deliberate_lies": 3,
+    "misleading_but_true": 5,
+    "innocent_explanations_suspicious": 3
+  },
+  "evidence_confidence_notes": "Every extracted fact should be traceable to source document + timestamp + evidence ID + confidence (CONFIRMED/LIKELY/UNVERIFIED/CLAIMED, CCTV confidence HIGH/MEDIUM/LOW). See 12_location_timeline.txt and 13_cctv_summary.txt for tag usage.",
+  "testing_goals": [
+    "Entity resolution: Rose Mathew/Rose M./R. Mathew etc.",
+    "Relationship extraction: See important_relationships",
+    "Temporal reasoning: Detect alibi contradictions (Arjun 16:16, Meera 18:20)",
+    "Multi-hop: Rose -> Meera -> Arjun via college fest",
+    "Contradiction detection: 5 subtle, 3 lies, 5 misleading true, 3 innocent suspicious",
+    "Evidence confidence: Trace to document+timestamp+evidenceID"
+  ],
+  "author_note": "This ground truth is hidden; public investigation documents (01-19) contain enough evidence for AI to hypothesize but not to confidently declare guilt without analysing contradictions and relationships. Manner of death is intentionally ambiguous in public docs, leaning suicide-under-coercion, not clear homicide."
+}

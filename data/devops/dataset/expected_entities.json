@@ -1,0 +1,447 @@
+{
+  "dataset": "server_crash_logs.jsonl",
+  "generated": "2026-08-28T10:35:09",
+  "total_events": 195,
+  "time_range": {
+    "start": "2026-08-28T06:00:00",
+    "end": "2026-08-28T10:35:09",
+    "duration_hours": 4.58
+  },
+  "servers": [
+    {
+      "server_id": "APP-SRV-01",
+      "hostname": "customer-portal-01",
+      "private_ip": "10.10.1.20",
+      "os": "Linux Ubuntu 22.04 LTS (kernel 5.15.0-91-generic)",
+      "environment": "Production",
+      "application": "CustomerPortal",
+      "database": "CustomerDB",
+      "roles": ["APP-SRV-01", "customer-portal-01", "10.10.1.20"]
+    }
+  ],
+  "applications": [
+    {
+      "name": "CustomerPortal",
+      "version": "v2.8.4",
+      "port": 8080,
+      "server_id": "APP-SRV-01"
+    }
+  ],
+  "databases": [
+    {
+      "name": "CustomerDB",
+      "engine": "PostgreSQL 14.9",
+      "port": 5432,
+      "server_id": "APP-SRV-01"
+    }
+  ],
+  "ips": [
+    {
+      "address": "10.10.1.20",
+      "role": "server_private",
+      "description": "APP-SRV-01 private IP"
+    },
+    {
+      "address": "185.22.10.5",
+      "role": "external_attacker",
+      "description": "Fictional external actor, appears in 32 events (scan→brute_force→login→outbound)",
+      "first_seen": "2026-08-28T08:09:08",
+      "last_seen": "2026-08-28T10:35:09",
+      "event_count": 32,
+      "related_users": ["admin", "alice"]
+    },
+    {
+      "address": "10.10.1.45",
+      "role": "internal_user_alice",
+      "user": "alice",
+      "event_count": 18
+    },
+    {
+      "address": "10.10.1.52",
+      "role": "internal_user_bob",
+      "user": "bob",
+      "event_count": 14
+    },
+    {
+      "address": "10.10.1.10",
+      "role": "internal_admin_legit",
+      "user": "admin",
+      "description": "Legitimate admin internal IP, distinct from attacker using same username"
+    },
+    {
+      "address": "10.10.1.15",
+      "role": "backup_server",
+      "services": ["backup", "pg_dump"]
+    },
+    {
+      "address": "10.10.1.30",
+      "role": "monitoring_server",
+      "services": ["health_check", "monitoring_agent"]
+    },
+    {
+      "address": "10.10.1.100",
+      "role": "deploy_user",
+      "user": "deploy_user"
+    },
+    {
+      "address": "8.8.8.8",
+      "role": "external_dns",
+      "protocol": "UDP",
+      "port": 53
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "role": "compromised_account",
+      "legit_ip": "10.10.1.10",
+      "attacker_ip": "185.22.10.5",
+      "failed_logins_attacker": 11,
+      "successful_logins_attacker": 1,
+      "session_attacker": "sess-x1y2z3",
+      "event_count": 16
+    },
+    {
+      "username": "alice",
+      "role": "normal_user",
+      "ip": "10.10.1.45",
+      "failed_logins_attacker": 2,
+      "failed_logins_legit": 1,
+      "event_count": 18
+    },
+    {
+      "username": "bob",
+      "role": "normal_user",
+      "ip": "10.10.1.52",
+      "failed_logins_legit": 1,
+      "event_count": 14
+    },
+    {
+      "username": "service_backup",
+      "role": "service_account",
+      "ip": "10.10.1.15",
+      "description": "Runs pg_dump backup 06:45"
+    },
+    {
+      "username": "deploy_user",
+      "role": "deployer",
+      "ip": "10.10.1.100",
+      "auth_method": "ssh_key"
+    },
+    {
+      "username": "monitoring",
+      "role": "health_check",
+      "ip": "10.10.1.30"
+    }
+  ],
+  "sessions": [
+    {
+      "session_id": "sess-x1y2z3",
+      "user": "admin",
+      "source_ip": "185.22.10.5",
+      "created": "2026-08-28T08:39:44",
+      "anomaly": "login_after_11_failures",
+      "role": "attacker_session"
+    },
+    {
+      "session_id": "sess-a1b2c3",
+      "user": "alice",
+      "source_ip": "10.10.1.45"
+    },
+    {
+      "session_id": "sess-d4e5f6",
+      "user": "bob",
+      "source_ip": "10.10.1.52"
+    },
+    {
+      "session_id": "sess-g7h8i9",
+      "user": "deploy_user",
+      "source_ip": "10.10.1.100"
+    },
+    {
+      "session_id": "sess-j0k1l2",
+      "user": "service_backup",
+      "source_ip": "10.10.1.15"
+    }
+  ],
+  "processes": [
+    {
+      "name": "update_helper",
+      "role": "suspicious",
+      "binary": "/tmp/update_helper",
+      "pids": [3421, 3422, 3428],
+      "parent_pids": [1845, 3421],
+      "parent_process": "sshd",
+      "user": "admin",
+      "first_seen": "2026-08-28T08:48:15",
+      "event_count": 18,
+      "related_files": ["/tmp/update_helper", "/tmp/.cache_update", "/tmp/.cache_update.2", "/tmp/tmp_3421.log", "/etc/app/config.conf", "/etc/crontab"],
+      "related_ips": ["185.22.10.5"],
+      "top_cpu_at_peak": 86,
+      "note": "Never labeled malware; infer via post-login timing, persistence, resource spike"
+    },
+    {
+      "name": "app_worker",
+      "pid": 1842,
+      "parent_pid": 1,
+      "cmdline": "/usr/bin/python3 /opt/app/worker.py",
+      "role": "normal_app"
+    },
+    {
+      "name": "pg_dump",
+      "pid": 2105,
+      "parent_pid": 1,
+      "user": "service_backup",
+      "role": "backup"
+    },
+    {
+      "name": "monitoring_agent",
+      "pid": 1920,
+      "parent_pid": 1,
+      "role": "monitoring"
+    }
+  ],
+  "files": [
+    {
+      "path": "/tmp/update_helper",
+      "role": "suspicious_binary",
+      "size_bytes": 1843200,
+      "permissions": "755",
+      "owner": "admin",
+      "created": "2026-08-28T08:56:25",
+      "process": "update_helper",
+      "pid": 3421
+    },
+    {
+      "path": "/tmp/.cache_update",
+      "role": "suspicious_cache",
+      "size_bytes": 8900,
+      "created": "2026-08-28T08:58:44"
+    },
+    {
+      "path": "/tmp/.cache_update.2",
+      "role": "suspicious_cache",
+      "size_bytes": 45600000,
+      "created": "2026-08-28T09:42:53"
+    },
+    {
+      "path": "/tmp/tmp_3421.log",
+      "role": "suspicious_tmp",
+      "size_bytes": 0
+    },
+    {
+      "path": "/etc/app/config.conf",
+      "role": "config_modified",
+      "modified": "2026-08-28T08:57:19",
+      "changes": ["max_connections 100->500", "added outbound_allow 185.22.10.5:443"],
+      "hash_before": "a3f5c9e2b1",
+      "hash_after": "7d9e2f4a6c",
+      "user": "admin",
+      "process": "update_helper"
+    },
+    {
+      "path": "/etc/crontab",
+      "role": "persistence",
+      "modified": "2026-08-28T09:06:00",
+      "change": "*/5 * * * * /tmp/update_helper --daemon"
+    },
+    {
+      "path": "/var/log/customer-portal.log",
+      "role": "app_log",
+      "normal": true
+    },
+    {
+      "path": "/backup/CustomerDB_20260828_0645.dump",
+      "role": "backup",
+      "size_bytes": 933000000,
+      "normal": true
+    }
+  ],
+  "network": {
+    "suspicious_ports_targeted": [22, 80, 443, 8080, 3306, 5432],
+    "suspicious_connections": [
+      {
+        "direction": "attacker->server",
+        "source_ip": "185.22.10.5",
+        "destination_ip": "10.10.1.20",
+        "ports": "41201-41206->22,80,443,8080,3306,5432",
+        "count": 6,
+        "status": "BLOCKED",
+        "time": "2026-08-28T08:09:08"
+      },
+      {
+        "direction": "attacker->server",
+        "source_ip": "185.22.10.5",
+        "destination_ip": "10.10.1.20",
+        "source_port": 41310,
+        "destination_port": 22,
+        "status": "ESTABLISHED",
+        "time": "2026-08-28T08:12:??"
+      },
+      {
+        "direction": "server->attacker",
+        "source_ip": "10.10.1.20",
+        "destination_ip": "185.22.10.5",
+        "destination_port": 443,
+        "protocol": "TCP",
+        "process": "update_helper",
+        "count": 6,
+        "bytes": [1245000, 890000, 2100000, 3450000, 4890000, 6200000],
+        "first": "2026-08-28T09:12:57",
+        "last": "2026-08-28T10:28:48"
+      }
+    ],
+    "normal_connections": [
+      {
+        "source_ip": "10.10.1.20",
+        "destination_ip": "10.10.1.15",
+        "destination_port": 22,
+        "description": "backup"
+      },
+      {
+        "source_ip": "10.10.1.20",
+        "destination_ip": "10.10.1.30",
+        "destination_port": 9090,
+        "description": "monitoring"
+      },
+      {
+        "source_ip": "10.10.1.20",
+        "destination_ip": "8.8.8.8",
+        "destination_port": 53,
+        "protocol": "UDP",
+        "description": "DNS"
+      },
+      {
+        "source_ip": "10.10.1.20",
+        "destination_ip": "10.10.1.15",
+        "destination_port": 5432,
+        "description": "DB"
+      }
+    ]
+  },
+  "metrics_summary": {
+    "cpu_percent": {
+      "baseline_range": "28-45",
+      "anomaly_progression": [52, 58, 62, 68, 72, 78, 84, 88, 91, 93, 95, 96, 97, 98, 99],
+      "peak": 98,
+      "peak_time": "2026-08-28T10:29:41",
+      "top_process_at_peak": "update_helper 86%"
+    },
+    "ram_percent": {
+      "baseline_range": "41-52",
+      "anomaly_progression": [54, 61, 67, 72, 78, 83, 86, 89, 91, 93, 95, 96],
+      "peak": 95,
+      "peak_time": "2026-08-28T10:30:23"
+    },
+    "disk_percent": {
+      "baseline": 58,
+      "peak": 76,
+      "anomaly_progression": [60, 61, 63, 66, 69, 72, 76]
+    },
+    "network_bandwidth_mbps": {
+      "baseline": 4.2,
+      "anomaly_progression": [18.4, 32.5, 48.2, 62.1, 71.3],
+      "peak": 71.3
+    }
+  },
+  "attack_chain": {
+    "stages": [
+      {"order": 1, "stage": "Reconnaissance", "event_type": "NETWORK_CONNECTION", "indicator": "port_scan 6 ports", "timestamp": "2026-08-28T08:09:08", "severity": "WARN"},
+      {"order": 2, "stage": "BruteForce", "event_type": "AUTH_LOGIN", "indicator": "11 failed admin logins", "timestamp": "2026-08-28T08:13:31–08:38:??", "ids_alert": "brute_force"},
+      {"order": 3, "stage": "InitialAccess", "event_type": "AUTH_LOGIN", "indicator": "admin success from 185.22.10.5 after 11 failures", "timestamp": "2026-08-28T08:39:44", "session": "sess-x1y2z3"},
+      {"order": 4, "stage": "Execution", "event_type": "PROCESS_START", "indicator": "update_helper pid3421 parent sshd", "timestamp": "2026-08-28T08:48:15"},
+      {"order": 5, "stage": "Persistence_File", "event_type": "FILE_CREATE", "indicator": "/tmp/update_helper 1.8MB", "timestamp": "2026-08-28T08:56:25"},
+      {"order": 6, "stage": "Persistence_Config", "event_type": "CONFIG_CHANGE", "indicator": "config.conf max_connections 500 + outbound_allow", "timestamp": "2026-08-28T09:03:49"},
+      {"order": 7, "stage": "Persistence_Cron", "event_type": "FILE_MODIFY /etc/crontab", "indicator": "*/5 * * * * update_helper", "timestamp": "2026-08-28T09:06:00"},
+      {"order": 8, "stage": "C2", "event_type": "NETWORK_CONNECTION", "indicator": "6 outbound 443 to 185.22.10.5", "timestamp": "2026-08-28T09:12:57–10:28:48"},
+      {"order": 9, "stage": "ResourceExhaustion", "event_type": "CPU_METRIC/RAM_METRIC", "indicator": "CPU 91→98% RAM 83→95% top update_helper", "timestamp": "2026-08-28T09:24:19–10:30:23"},
+      {"order": 10, "stage": "ApplicationImpact", "event_type": "API_REQUEST 500/503/504", "indicator": "latency 1245→10000ms pool 100/0", "timestamp": "2026-08-28T09:53:48–10:10:23"},
+      {"order": 11, "stage": "DatabaseImpact", "event_type": "DB_METRIC", "indicator": "pool 100/0 waiting 58 avg 5800ms", "timestamp": "2026-08-28T10:11:01–10:31:27"},
+      {"order": 12, "stage": "Crash", "event_type": "SERVER_CRASH", "indicator": "Kernel panic OOM last_process update_helper", "timestamp": "2026-08-28T10:35:07"}
+    ],
+    "root_cause_inferred": "update_helper persisted via crontab and config change, established C2 to 185.22.10.5:443, consumed CPU/RAM/disk/network, exhausted CustomerPortal heap and CustomerDB pool, triggered OOM kernel panic"
+  },
+  "event_type_counts": {
+    "SYSTEM_BOOT": 1,
+    "SERVICE_START": 2,
+    "CPU_METRIC": 27,
+    "RAM_METRIC": 19,
+    "DISK_METRIC": 10,
+    "NETWORK_METRIC": 9,
+    "DB_METRIC": 3,
+    "AUTH_LOGIN": 21,
+    "SESSION_CREATE": 1,
+    "AUTH_LOGOUT": 1,
+    "API_REQUEST": 22,
+    "DB_QUERY": 11,
+    "APP_ERROR": 6,
+    "HEALTH_CHECK": 14,
+    "NETWORK_CONNECTION": 18,
+    "PROCESS_START": 6,
+    "PROCESS_STOP": 1,
+    "FILE_CREATE": 5,
+    "FILE_MODIFY": 4,
+    "CONFIG_CHANGE": 2,
+    "CONFIG_CHECK": 1,
+    "SCHEDULED_JOB": 2,
+    "BACKUP_JOB": 2,
+    "IDS_ALERT": 2,
+    "SERVICE_STATUS": 2,
+    "SERVICE_FAILURE": 1,
+    "SERVER_STATUS": 1,
+    "SERVER_CRASH": 1
+  },
+  "severity_counts": {
+    "INFO": 96,
+    "WARN": 65,
+    "ERROR": 12,
+    "CRITICAL": 22
+  },
+  "expected_graph_relationships": [
+    {"from": "User:admin", "relationship": "LOGGED_INTO", "to": "Server:APP-SRV-01", "via": "AUTH_LOGIN SUCCESS 185.22.10.5"},
+    {"from": "IP:185.22.10.5", "relationship": "CONNECTED_TO", "to": "Server:APP-SRV-01", "via": "NETWORK_CONNECTION 18 events"},
+    {"from": "IP:185.22.10.5", "relationship": "ATTEMPTED_LOGIN", "to": "User:admin", "via": "11 FAILURE + 1 SUCCESS"},
+    {"from": "Server:APP-SRV-01", "relationship": "RUNS", "to": "Process:update_helper", "via": "PROCESS_START pid3421"},
+    {"from": "Process:update_helper", "relationship": "CHILD_PROCESS", "to": "Process:update_helper", "via": "pid3422 parent 3421"},
+    {"from": "Process:update_helper", "relationship": "CONNECTED_TO", "to": "IP:185.22.10.5", "via": "NETWORK_CONNECTION outbound 443"},
+    {"from": "Process:update_helper", "relationship": "MODIFIED", "to": "File:/etc/app/config.conf", "via": "FILE_MODIFY"},
+    {"from": "Process:update_helper", "relationship": "CREATED", "to": "File:/tmp/update_helper", "via": "FILE_CREATE"},
+    {"from": "User:admin", "relationship": "MODIFIED", "to": "File:/etc/crontab", "via": "FILE_MODIFY"},
+    {"from": "Server:APP-SRV-01", "relationship": "RUNS", "to": "Application:CustomerPortal", "via": "SERVICE_START"},
+    {"from": "Application:CustomerPortal", "relationship": "USES", "to": "Database:CustomerDB", "via": "DB_QUERY"},
+    {"from": "Server:APP-SRV-01", "relationship": "EXPERIENCED", "to": "Anomaly:CPU 98%", "via": "CPU_METRIC CRITICAL"},
+    {"from": "Server:APP-SRV-01", "relationship": "EXPERIENCED", "to": "Anomaly:RAM 95%", "via": "RAM_METRIC CRITICAL"},
+    {"from": "Application:CustomerPortal", "relationship": "GENERATED", "to": "Error:OOM", "via": "APP_ERROR"},
+    {"from": "Database:CustomerDB", "relationship": "GENERATED", "to": "Error:pool_exhausted", "via": "DB_METRIC"},
+    {"from": "Process:update_helper", "relationship": "CONTRIBUTED_TO", "to": "ResourceSpike", "via": "top_process_cpu 86%"},
+    {"from": "Anomaly:Resource", "relationship": "PRECEDED", "to": "Event:SERVER_CRASH", "via": "temporal 08:48→10:35"}
+  ],
+  "noise_events": {
+    "description": "Harmless events an investigator must NOT flag as attack",
+    "examples": [
+      {"event_id": "EVT-0046", "reason": "bob failed login (typo) then immediate success"},
+      {"event_id": "EVT-0025", "reason": "API 404 /api/customers/999 Customer not found (normal error)"},
+      {"event_id": "EVT-0032", "reason": "pg_dump backup and CONFIG_CHECK routine"},
+      {"event_id": "EVT-0011", "reason": "session_cleanup cron"}
+    ]
+  },
+  "final_crash_sequence": [
+    {"event_id": "EVT-0191", "timestamp": "2026-08-28T10:34:51", "event_type": "SERVICE_FAILURE", "reason": "CustomerPortal pid 1842 terminated unexpectedly"},
+    {"event_id": "EVT-0192", "timestamp": "2026-08-28T10:34:58", "event_type": "HEALTH_CHECK", "severity": "CRITICAL", "error": "Connection refused"},
+    {"event_id": "EVT-0193", "timestamp": "2026-08-28T10:35:02", "event_type": "SERVER_STATUS", "status": "UNRESPONSIVE", "last_cpu": 99, "last_ram": 96},
+    {"event_id": "EVT-0194", "timestamp": "2026-08-28T10:35:07", "event_type": "SERVER_CRASH", "reason": "Kernel panic - Out of memory and no killable processes", "last_process": "update_helper"},
+    {"event_id": "EVT-0195", "timestamp": "2026-08-28T10:35:09", "event_type": "NETWORK_CONNECTION", "status": "CLOSED", "process": "update_helper"}
+  ],
+  "investigation_queries": [
+    "Find all events associated with APP-SRV-01 (195)",
+    "Find all IPs connected to APP-SRV-01 (185.22.10.5 appears 32×)",
+    "Find failed vs successful logins from 185.22.10.5 (11 fail → 1 success)",
+    "Find processes started after suspicious login (update_helper 08:48)",
+    "Find files modified by admin/update_helper (config.conf, crontab, 3 tmp files)",
+    "Find CPU/RAM anomalies before crash (gradual 52→98% from 09:12)",
+    "Find events within 30m before crash (10:05–10:35)",
+    "Find path IP 185.22.10.5 → SERVER_CRASH (via auth→process→c2→metrics→app→db→crash)",
+    "Find entities within 2–3 hops of crash (update_helper, admin, config.conf, CustomerPortal)",
+    "Build timeline 06:00→10:35 reconstructing story"
+  ]
+}

@@ -1,0 +1,56 @@
+CASE ID: SHRLK-ROSE-2026-001 | FIR: ANPS-2026-0414-03
+Compiled: 18 April 2026 by Inspector K. Raghavan (Fictional)
+Note: Text table for Sherlock testing. No definitive culprit identified — reflects ongoing investigation ambiguity.
+
+--------------------------------------------------------------------------------
+Columns: NAME | MOTIVE | OPPORTUNITY | ALIBI | EVIDENCE FOR | EVIDENCE AGAINST | UNRESOLVED QUESTIONS
+--------------------------------------------------------------------------------
+
+NAME: Arjun Dev (also Arjun D., A. Dev) — 28, Software Engineer, T. Nagar / Nungambakkam, +91-90000-10002
+MOTIVE: High — Unrequited romantic love for Rose Mathew; Rose rejected him ~Oct 2025; pattern of controlling/pressuring behaviour, emotional manipulation; Rose expressed fear of him; threatening-like message 11Apr 22:14 "You'll regret ignoring me" could indicate escalation; possible jealousy/possessiveness.
+OPPORTUNITY: Disputed — Claims T. Nagar 15:00-17:30 14Apr, but CCTV 16:16 near Anna Nagar (MEDIUM) + phone ping 16:18 Anna Nagar West tower (CONFIRMED) place him near Green View during ToD window 15:30-17:30. Building glare gap 16:15-16:22 means entry not captured; stairwell blurred figure 16:20 could be him (LOW). If he was near building, opportunity exists. Otherwise, no confirmed entry to flat.
+ALIBI: CLAIMED: Continuous presence at Saravana Bhavan/CCD T. Nagar 15:00-17:30. Waiter corroborates seeing him ~15:30 and ~17:00 but not continuous. Phone ping contradicts. Arjun later claims he went to Anna Nagar Crossword to buy gift 16:00-16:30 (gap explanation) — receipt not provided, store CCTV inconclusive (LOW). Verifiable claim but weak.
+EVIDENCE FOR: Repeated pressuring messages/calls (06Apr 06:12 argue, 11Apr threat, 13Apr 02:18), showing up at Nungambakkam Brew Room uninvited 09Apr, fear expressed by Rose, alibi contradiction, lies in interview (denies threat message and near-visit), deleted message gap 12Apr 09:42 (he deleted), Rs10k withdrawal near Anna Nagar route looks suspicious (though family function true).
+EVIDENCE AGAINST: No forced entry, no DNA/print in flat, no evidence he supplied pills/alcohol, no direct witness seeing him enter Flat 3B, gift-shop gap explanation plausible, threatening message could be interpreted as emotional not literal murder threat, phone tower ping accuracy ~400m not pinpoint inside flat.
+UNRESOLVED QUESTIONS: Was he actually inside Flat 3B at 16:20? Why lie about threatening message and deletion if innocent? Is gift claim true? What was deleted message 12Apr 09:42 content?
+
+--------------------------------------------------------------------------------
+
+NAME: Meera Krishnan (also Meera K., M. Krishnan) — 26, MA Psychology, Adyar, +91-90000-10003
+MOTIVE: Medium-Low (Investigative interest) — Obsessive interest in hypnosis/suggestibility; Rose became uncomfortable with sessions; possible desire to maintain influence/control; no classic romantic/financial motive. Plausible psychological pressure but not murder motive; investigators consider whether suggestive influence contributed to vulnerability.
+OPPORTUNITY: Low-Disputed — Claims Adyar home 12:30-18:30 14Apr; but GPS 12:45 movement toward Nungambakkam (LIKELY) and CCTV 18:20 Nungambakkam resembling Meera (MEDIUM-HIGH) contradict Adyar 18:00 claim. However 18:35 Swiggy delivery proves home at 18:35. If she was at Nungambakkam 18:20, travel from Adyar 9km in 20min impossible; but could have been at Nungambakkam earlier then returned 18:35? Timeline gap exists. No evidence placing her at Anna Nagar West near ToD window 15:30-17:30, except disputed GPS 12:45 (hours before). No CCTV near Green View for her on 14Apr.
+ALIBI: CLAIMED Adyar home 12:30 onwards, Swiggy 18:35 corroborates evening presence but not afternoon. GPS 12:45 ping toward Nungambakkam undisputed technical, Meera disputes accuracy. No full corroboration for 14Apr 15:00-17:30 window.
+EVIDENCE FOR: Sessions with suggestive repetition ("I trust you"), Rose's deleted note 10Apr 16:22 shows she felt scared/pressured, Meera's inconsistency about last session (claims 08Apr vs 10Apr evidence), lie about not contacting after 12Apr (missed call 13Apr 20:05), searches about suggestibility (though dissertation), location contradictions.
+EVIDENCE AGAINST: Sessions were initially consensual, Rose set boundary 10Apr and Meera apparently respected (no further sessions after), "Hypnosis cannot make someone do against will" is true psychologically — no supernatural mind control, interest is academic; no evidence she supplied drugs/alcohol, no financial/physical evidence, her behaviour could be misinterpreted caring.
+UNRESOLVED QUESTIONS: What was actual content of 08Apr and 10Apr sessions? Was suggestibility search truly dissertation (fee Rs1,200 supports, but need dissertation text)? Why lie/minimize about contact and session dates? Was she near Nungambakkam 12:45 and 18:20 why?
+
+--------------------------------------------------------------------------------
+
+NAME: Vikram Rao (also Vikram R., V. Rao) — 29, Artist/Tattoo Artist, Besant Nagar, +91-90000-10005
+MOTIVE: Low (Rumour-driven) — Rumoured occult/black magic involvement; argument 12Apr "karma will catch you" could be interpreted as threat; but these are rumours and beliefs, not proven supernatural facts; no direct conflict over relationship or money; peripheral to Rose's life.
+OPPORTUNITY: Low — Claims Besant Nagar studio 14:00-19:00 14Apr; assistant Mani corroborates 14:00-16:00, alone 16:00-19:00 (UNVERIFIED). No tower ping near Anna Nagar, no CCTV near Green View on 14Apr. Earlier CCTV 10Apr 16:20 near Green View initially suspicious but proven visit to friend Priya Flat 2A (register + witness).
+ALIBI: CLAIMED studio presence, partially corroborated (Mani) for 14:00-16:00, alone after. Tea shop claim 16:35 UNVERIFIED but no contradictory location data. Generally plausible but weak for 16:00-17:30 critical window (alone).
+EVIDENCE FOR: Rumours of occult, argument 12Apr, art print transaction Rs1,500 initially appears suspicious (could be ritual payment), initial CCTV near building 10Apr flagged.
+EVIDENCE AGAINST: Rumours alone unreliable; argument context was philosophical astrology, not personal threat; transaction proven art print via invoice VR-042 and forensics (Vikram phone invoice); visit to building 10Apr innocent (Priya Menon corroboration); no phone/contact pattern of harassment; no searches about drugs; no deletions.
+UNRESOLVED QUESTIONS: Can assistant Mani fully corroborate 14Apr afternoon after 16:00? Could studio tea shop provide CCTV for 16:35? Is there any ritual gathering evidence beyond talk?
+
+--------------------------------------------------------------------------------
+
+NAME: Ananya Joseph (also Ananya J., A. Joseph) — 27, Marketing Executive, close friend, +91-90000-10004
+MOTIVE: None (Not suspect, but statement reliability assessed) — Closest friend, discovered body, trusted by Rose; no motive, but her statements contain subtle inconsistencies, useful for contradiction detection not guilt.
+OPPORTUNITY: N/A (Not suspect) — Was with Rose? Actually at her own residence until 18:14 call, then at Green View 18:28 discovery — timeline confirmed.
+ALIBI: CONFIRMED — Call logs 14:05 with Rose, 18:14 missed, manager log 18:28, CCTV 18:28 entry — consistent.
+EVIDENCE FOR: N/A
+EVIDENCE AGAINST: N/A (her information about Rose's fear is key, but inconsistency I1 14:00 vs 14:05 shows witness fallibility)
+UNRESOLVED QUESTIONS: What was content of deleted message 13Apr 22:45 (she claims "if anything happens...")? Minor timing drifts 18:10 vs 18:14 — due to stress?
+
+--------------------------------------------------------------------------------
+
+OVERALL ASSESSMENT (Inspector Notes):
+--------------------------------------------------------------------------------
+- No definitive culprit identified. All three persons of interest have some suspicious indicators but also exculpatory/innocent explanations.
+- Arjun has strongest motive + most significant alibi contradiction + lies; requires further verification of gift claim.
+- Meera has psychological influence context + location contradictions + lies about contact/session dates; but no direct evidence of murder/coercion-to-death.
+- Vikram appears least involved after innocent explanations corroborated; rumours insufficient.
+- Contradictions intentionally left for Sherlock to detect via temporal reasoning and cross-document analysis.
+- Confidence weighting: CONFIRMED > LIKELY > CLAIMED > UNVERIFIED.
