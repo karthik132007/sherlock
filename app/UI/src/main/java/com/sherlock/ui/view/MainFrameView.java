@@ -60,7 +60,8 @@ public class MainFrameView extends BorderPane {
     }
 
     public void refreshGraphData() {
-        if (currentCase == null || currentCase.getCaseId() == null) return;
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
 
         refreshIndicator.setVisible(true);
         String caseId = currentCase.getCaseId();
@@ -92,7 +93,7 @@ public class MainFrameView extends BorderPane {
                     });
                     return null;
                 });
-                
+
         client.getTimelineAsync(caseId)
                 .thenAccept(timelineData -> Platform.runLater(() -> {
                     timelinePanel.setTimelineData(timelineData);
@@ -122,13 +123,14 @@ public class MainFrameView extends BorderPane {
 
         // Navigation
         VBox navMenu = new VBox(4);
-        
+
         Button navHome = createNavButton("🏠", "Home");
         navHome.getStyleClass().add("nav-item-active");
         navHome.setOnAction(e -> {
-            if (onNewCaseRequested != null) onNewCaseRequested.run();
+            if (onNewCaseRequested != null)
+                onNewCaseRequested.run();
         });
-        
+
         Button navGraph = createNavButton("🕸", "Knowledge Graph");
         Button navSearch = createNavButton("🔍", "Search");
         Button navDocs = createNavButton("📄", "Documents");
@@ -145,14 +147,15 @@ public class MainFrameView extends BorderPane {
         // System Online Status
         VBox statusBox = new VBox(4);
         statusBox.setPadding(new Insets(12));
-        statusBox.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-background-radius: 8px; -fx-border-radius: 8px;");
+        statusBox.setStyle(
+                "-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-background-radius: 8px; -fx-border-radius: 8px;");
         HBox onlineStatus = new HBox(6);
         onlineStatus.setAlignment(Pos.CENTER_LEFT);
         Circle dot = new Circle(4, Color.web("#10b981"));
         Label onlineLbl = new Label("System Online");
         onlineLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
         onlineStatus.getChildren().addAll(dot, onlineLbl);
-        
+
         Label version = new Label("v1.0.0");
         version.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
         statusBox.getChildren().addAll(onlineStatus, version);
@@ -161,25 +164,26 @@ public class MainFrameView extends BorderPane {
         HBox userBox = new HBox(10);
         userBox.setAlignment(Pos.CENTER_LEFT);
         userBox.setPadding(new Insets(10, 0, 0, 0));
-        
+
         Label avatar = new Label("S");
         avatar.setAlignment(Pos.CENTER);
         avatar.setMinSize(32, 32);
-        avatar.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
-        
+        avatar.setStyle(
+                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
+
         VBox userInfo = new VBox(0);
         Label userName = new Label("Sherlock Admin");
         userName.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
         Label userRole = new Label("Investigator");
         userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
         userInfo.getChildren().addAll(userName, userRole);
-        
+
         userBox.getChildren().addAll(avatar, userInfo);
 
         sidebar.getChildren().addAll(brand, navMenu, spacer, statusBox, userBox);
         return sidebar;
     }
-    
+
     private Button createNavButton(String iconText, String text) {
         Button btn = new Button(iconText + "   " + text);
         btn.getStyleClass().add("nav-item");
@@ -203,26 +207,25 @@ public class MainFrameView extends BorderPane {
         searchBar.setPromptText("Ask anything or search the graph...");
         searchBar.getStyleClass().add("text-field");
         searchBar.setPrefWidth(300);
-        
-        HBox viewToggles = new HBox(0);
+
         ToggleGroup group = new ToggleGroup();
         ToggleButton graphBtn = new ToggleButton("🕸 Graph View");
         ToggleButton timelineBtn = new ToggleButton("⏳ Timeline View");
         graphBtn.setToggleGroup(group);
         timelineBtn.setToggleGroup(group);
         graphBtn.setSelected(true);
-        
+
         Runnable updateStyles = () -> {
             String baseStyle = "-fx-font-weight: 600; -fx-font-size: 12px; -fx-padding: 6px 14px; ";
             String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
             String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
-            
-            graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors) 
-                + "-fx-background-radius: 6px;");
-            timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors) 
-                + "-fx-background-radius: 6px;");
+
+            graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors)
+                    + "-fx-background-radius: 6px;");
+            timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors)
+                    + "-fx-background-radius: 6px;");
         };
-        
+
         graphBtn.selectedProperty().addListener((obs, old, isSel) -> {
             updateStyles.run();
             if (isSel) {
@@ -232,7 +235,7 @@ public class MainFrameView extends BorderPane {
                 timelinePanel.setManaged(false);
             }
         });
-        
+
         timelineBtn.selectedProperty().addListener((obs, old, isSel) -> {
             updateStyles.run();
             if (isSel) {
@@ -242,35 +245,37 @@ public class MainFrameView extends BorderPane {
                 graphCanvas.setManaged(false);
             }
         });
-        
+
         group.selectedToggleProperty().addListener((obs, old, newVal) -> {
-            if (newVal == null) old.setSelected(true);
+            if (newVal == null)
+                old.setSelected(true);
         });
-        
+
         updateStyles.run();
-        
+
         HBox toggleWrapper = new HBox(4);
         toggleWrapper.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 8px; -fx-padding: 4px;");
         toggleWrapper.getChildren().addAll(graphBtn, timelineBtn);
-        
+
         Region hSpacer = new Region();
         HBox.setHgrow(hSpacer, Priority.ALWAYS);
-        
+
         Button refreshBtn = new Button("↻");
         refreshBtn.getStyleClass().add("tool-button");
         refreshBtn.setOnAction(e -> refreshGraphData());
-        
+
         investigateBtn = new Button("🚀 Start Extraction");
         investigateBtn.getStyleClass().add("primary-button");
         investigateBtn.setStyle("-fx-padding: 6px 14px; -fx-font-size: 12px;");
         investigateBtn.setOnAction(e -> startInvestigation());
 
-        header.getChildren().addAll(searchBar, toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge, nodeCountBadge, edgeCountBadge, refreshBtn);
+        header.getChildren().addAll(searchBar, toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
+                nodeCountBadge, edgeCountBadge, refreshBtn);
 
         // Stack for Graph/Timeline
         StackPane viewStack = new StackPane();
         VBox.setVgrow(viewStack, Priority.ALWAYS);
-        
+
         timelinePanel.setVisible(false);
         timelinePanel.setManaged(false);
         viewStack.getChildren().addAll(graphCanvas, timelinePanel);
@@ -324,74 +329,82 @@ public class MainFrameView extends BorderPane {
             }
         });
     }
-    
-    // (Timeline processing, Investigation progress dialogs, and settings dialogs remain mostly structurally the same but their styles have been removed to let CSS take over, or adjusted slightly for light theme)
+
+    // (Timeline processing, Investigation progress dialogs, and settings dialogs
+    // remain mostly structurally the same but their styles have been removed to let
+    // CSS take over, or adjusted slightly for light theme)
 
     private void startTimelineExtraction() {
-        if (currentCase == null || currentCase.getCaseId() == null) return;
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
         String caseId = currentCase.getCaseId();
-        
+
         // Use default alert dialog stylings for brevity, rely on global CSS
         client.startTimelineProcessingAsync(caseId).thenAccept(status -> {
             Platform.runLater(() -> {
-               refreshGraphData();
+                refreshGraphData();
             });
         });
     }
 
     private void startInvestigation() {
-        if (currentCase == null || currentCase.getCaseId() == null) return;
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
         String caseId = currentCase.getCaseId();
-        
+
         client.startProcessingAsync(caseId).thenAccept(status -> {
             Platform.runLater(() -> {
-               refreshGraphData();
+                refreshGraphData();
             });
         });
     }
 
     private void showSettingsDialog() {
-        if (currentCase == null) return;
-        
+        if (currentCase == null)
+            return;
+
         Dialog<LlmConfigDto> dialog = new Dialog<>();
         dialog.setTitle("Settings");
         dialog.setHeaderText("Update Case Settings");
-        
+
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         dialogPane.setStyle("-fx-background-color: #ffffff;");
-        
+
         // Quick dummy layout for settings to apply light theme
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(20));
-        
+
         TextField baseUrl = new TextField();
         PasswordField apiKey = new PasswordField();
-        
+
         if (currentCase.getLlmConfig() != null) {
-            if (currentCase.getLlmConfig().getBaseUrl() != null) baseUrl.setText(currentCase.getLlmConfig().getBaseUrl());
-            if (currentCase.getLlmConfig().getApiKey() != null) apiKey.setText(currentCase.getLlmConfig().getApiKey());
+            if (currentCase.getLlmConfig().getBaseUrl() != null)
+                baseUrl.setText(currentCase.getLlmConfig().getBaseUrl());
+            if (currentCase.getLlmConfig().getApiKey() != null)
+                apiKey.setText(currentCase.getLlmConfig().getApiKey());
         }
-        
+
         grid.add(new Label("Base URL:"), 0, 0);
         grid.add(baseUrl, 1, 0);
         grid.add(new Label("API Key:"), 0, 1);
         grid.add(apiKey, 1, 1);
-        
+
         dialogPane.setContent(grid);
-        
+
         dialog.setResultConverter(button -> {
             if (button == ButtonType.OK) {
-                LlmConfigDto config = currentCase.getLlmConfig() != null ? currentCase.getLlmConfig() : new LlmConfigDto();
+                LlmConfigDto config = currentCase.getLlmConfig() != null ? currentCase.getLlmConfig()
+                        : new LlmConfigDto();
                 config.setBaseUrl(baseUrl.getText());
                 config.setApiKey(apiKey.getText());
                 return config;
             }
             return null;
         });
-        
+
         dialog.showAndWait().ifPresent(config -> {
             client.updateLlmConfigAsync(currentCase.getCaseId(), config);
         });

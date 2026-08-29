@@ -3,7 +3,6 @@ package com.sherlock.ui.view;
 import com.sherlock.ui.SherlockBackendClient;
 import com.sherlock.ui.model.CaseDto;
 import com.sherlock.ui.model.LlmConfigDto;
-import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,17 +10,18 @@ import javafx.scene.control.*;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
 import javafx.stage.FileChooser;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.concurrent.CompletableFuture;
+
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 
 public class InitialView extends BorderPane {
 
@@ -44,10 +44,9 @@ public class InitialView extends BorderPane {
     private final ProgressIndicator loadingIndicator = new ProgressIndicator();
 
     private final VBox historyContainer = new VBox(6);
-    
-    // Background animation
-    private double gradientOffset = 0;
-    private final Region animatedBg = new Region();
+
+    // Background video
+    private MediaView backgroundVideoView;
 
     public InitialView(SherlockBackendClient client, Consumer<CaseDto> onCaseLockedIn) {
         this.client = client;
@@ -55,53 +54,47 @@ public class InitialView extends BorderPane {
 
         getStyleClass().add("root");
 
-        // Set up the animated placeholder background
-        setupAnimatedBackground();
+        // Set up the video background
+        setupVideoBackground();
 
-        ScrollPane mainScroll = new ScrollPane(buildMainLayout());
-        mainScroll.setFitToWidth(true);
-        mainScroll.setPrefWidth(720);
-        mainScroll.setMaxWidth(720);
-        mainScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-        
-        Region rightSpacer = new Region();
-        HBox.setHgrow(rightSpacer, Priority.ALWAYS);
-        
-        HBox splitLayout = new HBox(mainScroll, rightSpacer);
+        VBox mainLayout = buildMainLayout();
 
-        StackPane rootStack = new StackPane(animatedBg, splitLayout);
+        StackPane rootStack = new StackPane();
+        if (backgroundVideoView != null) {
+            rootStack.getChildren().add(backgroundVideoView);
+        } else {
+            Region fallbackBg = new Region();
+            fallbackBg.setStyle("-fx-background-color: #f8fafc;");
+            rootStack.getChildren().add(fallbackBg);
+        }
+        rootStack.getChildren().add(mainLayout);
+
         setCenter(rootStack);
 
         loadRecentCases();
-        startBackgroundAnimation();
     }
-    
-    private void setupAnimatedBackground() {
-        animatedBg.getStyleClass().add("animated-bg");
-    }
-    
-    private void startBackgroundAnimation() {
-        AnimationTimer timer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                gradientOffset += 0.002;
-                if (gradientOffset > 1.0) gradientOffset = 0;
-                
-                double x1 = 0.5 + Math.sin(gradientOffset * Math.PI * 2) * 0.5;
-                double y1 = 0.5 + Math.cos(gradientOffset * Math.PI * 2) * 0.5;
-                
-                LinearGradient gradient = new LinearGradient(
-                        x1, y1, 1.0 - x1, 1.0 - y1, 
-                        true, CycleMethod.NO_CYCLE,
-                        new Stop(0, Color.web("#fdfbfb")),
-                        new Stop(0.5, Color.web("#e2e8f0")),
-                        new Stop(1, Color.web("#fdfbfb"))
-                );
-                
-                animatedBg.setBackground(new Background(new BackgroundFill(gradient, CornerRadii.EMPTY, Insets.EMPTY)));
+
+    private void setupVideoBackground() {
+        try {
+            URL resourceUrl = getClass().getResource("/BG_video.mp4");
+            if (resourceUrl != null) {
+                Media media = new Media(resourceUrl.toExternalForm());
+                MediaPlayer mediaPlayer = new MediaPlayer(media);
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                mediaPlayer.setMute(true);
+
+                backgroundVideoView = new MediaView(mediaPlayer);
+                backgroundVideoView.setPreserveRatio(false); // Stretch to fill
+                backgroundVideoView.fitWidthProperty().bind(this.widthProperty());
+                backgroundVideoView.fitHeightProperty().bind(this.heightProperty());
+
+                mediaPlayer.play();
+            } else {
+                System.err.println("Could not find BG_video.mp4 in resources.");
             }
-        };
-        timer.start();
+        } catch (Exception e) {
+            System.err.println("Failed to load background video: " + e.getMessage());
+        }
     }
 
     public void loadRecentCases() {
@@ -115,7 +108,8 @@ public class InitialView extends BorderPane {
                 for (CaseDto c : cases) {
                     HBox row = new HBox(8);
                     row.setAlignment(Pos.CENTER_LEFT);
-                    row.setStyle("-fx-background-color: rgba(255, 255, 255, 0.8); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
+                    row.setStyle(
+                            "-fx-background-color: rgba(255, 255, 255, 0.8); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
 
                     VBox info = new VBox(2);
                     Label nameLbl = new Label(c.getCaseName() + " (" + c.getCaseId() + ")");
@@ -156,14 +150,17 @@ public class InitialView extends BorderPane {
                         String numStr = upper.substring(5).replaceAll("[^0-9]", "");
                         if (!numStr.isEmpty()) {
                             int n = Integer.parseInt(numStr);
-                            if (n > maxNum) maxNum = n;
+                            if (n > maxNum)
+                                maxNum = n;
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             }
         }
         String nextId = String.format("CASE-%03d", maxNum + 1);
-        if (caseNameField.getText() == null || caseNameField.getText().isBlank() || caseNameField.getText().matches("(?i)CASE-\\d+")) {
+        if (caseNameField.getText() == null || caseNameField.getText().isBlank()
+                || caseNameField.getText().matches("(?i)CASE-\\d+")) {
             caseNameField.setText(nextId);
         }
     }
@@ -178,14 +175,15 @@ public class InitialView extends BorderPane {
         header.setAlignment(Pos.CENTER_LEFT);
         Label logo = new Label("✨");
         logo.setStyle("-fx-font-size: 28px;");
-        
+
         VBox titleBox = new VBox(0);
         Label title = new Label("Sherlock");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         Label subTitle = new Label("AI INVESTIGATION INTELLIGENCE");
-        subTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1px;");
+        subTitle.setStyle(
+                "-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1px;");
         titleBox.getChildren().addAll(title, subTitle);
-        
+
         header.getChildren().addAll(logo, titleBox);
 
         // 2. Top Grid (Welcome Card + Case Card)
@@ -204,6 +202,7 @@ public class InitialView extends BorderPane {
 
         topGrid.add(welcomeCard, 0, 0);
         topGrid.add(caseCard, 1, 0);
+        VBox.setVgrow(topGrid, Priority.ALWAYS);
 
         // 3. Settings Card (LLM Configuration)
         VBox settingsCard = buildSettingsCard();
@@ -213,6 +212,7 @@ public class InitialView extends BorderPane {
 
         // 5. Recent Cases / History Section
         VBox historyCard = buildHistorySection();
+        VBox.setVgrow(historyCard, Priority.ALWAYS);
 
         layout.getChildren().addAll(header, topGrid, settingsCard, actionBox, historyCard);
         return layout;
@@ -222,7 +222,8 @@ public class InitialView extends BorderPane {
         VBox card = new VBox(12);
         card.getStyleClass().add("glass-panel");
         card.setPadding(new Insets(20));
-        card.setPrefHeight(260);
+        card.setMaxHeight(Double.MAX_VALUE);
+        GridPane.setVgrow(card, Priority.ALWAYS);
 
         HBox titleRow = new HBox(8);
         titleRow.setAlignment(Pos.CENTER_LEFT);
@@ -237,9 +238,12 @@ public class InitialView extends BorderPane {
 
         VBox bulletPoints = new VBox(12);
         bulletPoints.setPadding(new Insets(10, 0, 0, 0));
-        bulletPoints.getChildren().add(createBullet("🫧", "Converts raw case evidence into an interactive, explainable Knowledge Graph."));
-        bulletPoints.getChildren().add(createBullet("📚", "Automatic chunking, entity extraction, relationship discovery, and timeline reconstruction."));
-        bulletPoints.getChildren().add(createBullet("🔍", "Grounded reasoning with source document citations and evidence provenance."));
+        bulletPoints.getChildren().add(
+                createBullet("🫧", "Converts raw case evidence into an interactive, explainable Knowledge Graph."));
+        bulletPoints.getChildren().add(createBullet("📚",
+                "Automatic chunking, entity extraction, relationship discovery, and timeline reconstruction."));
+        bulletPoints.getChildren()
+                .add(createBullet("🔍", "Grounded reasoning with source document citations and evidence provenance."));
 
         card.getChildren().addAll(titleRow, subTitle, bulletPoints);
         return card;
@@ -260,13 +264,14 @@ public class InitialView extends BorderPane {
         VBox card = new VBox(12);
         card.getStyleClass().add("glass-panel");
         card.setPadding(new Insets(20));
-        card.setPrefHeight(260);
+        card.setMaxHeight(Double.MAX_VALUE);
+        GridPane.setVgrow(card, Priority.ALWAYS);
 
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("📁");
         icon.setStyle("-fx-font-size: 16px;");
-        
+
         Label title = new Label("New / Open Case");
         title.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         headerRow.getChildren().addAll(icon, title);
@@ -311,7 +316,7 @@ public class InitialView extends BorderPane {
         VBox card = new VBox(12);
         card.getStyleClass().add("glass-panel");
         card.setPadding(new Insets(20));
-        
+
         HBox titleRow = new HBox(8);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🔌");
@@ -378,8 +383,7 @@ public class InitialView extends BorderPane {
                 "deepseek-chat",
                 "llama-3.3-70b-versatile",
                 "mistral-large-latest",
-                "ollama/llama3"
-        );
+                "ollama/llama3");
         modelCombo.setValue("gpt-4o-mini");
         modelCombo.setMaxWidth(Double.MAX_VALUE);
 
@@ -390,7 +394,8 @@ public class InitialView extends BorderPane {
         Label providerLabel = new Label("Provider Name");
         providerLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
-        providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama", "Custom");
+        providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama",
+                "Custom");
         providerCombo.setValue("OpenAI");
         providerCombo.setMaxWidth(Double.MAX_VALUE);
 
@@ -519,8 +524,9 @@ public class InitialView extends BorderPane {
         historyContainer.setPadding(new Insets(4));
         ScrollPane scroll = new ScrollPane(historyContainer);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(140);
+        scroll.setMaxHeight(Double.MAX_VALUE);
         scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
 
         section.getChildren().addAll(header, scroll);
         return section;
@@ -550,9 +556,9 @@ public class InitialView extends BorderPane {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Select Case Evidence Files");
         chooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Evidence Files", "*.txt", "*.pdf", "*.png", "*.jpg", "*.doc", "*.docx", "*.json", "*.csv"),
-                new FileChooser.ExtensionFilter("All Files", "*.*")
-        );
+                new FileChooser.ExtensionFilter("Evidence Files", "*.txt", "*.pdf", "*.png", "*.jpg", "*.doc", "*.docx",
+                        "*.json", "*.csv"),
+                new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = chooser.showOpenMultipleDialog(getScene() != null ? getScene().getWindow() : null);
         if (files != null && !files.isEmpty()) {
             addFiles(files);
@@ -573,13 +579,15 @@ public class InitialView extends BorderPane {
         for (File file : selectedFiles) {
             HBox badge = new HBox(6);
             badge.setAlignment(Pos.CENTER_LEFT);
-            badge.setStyle("-fx-background-color: #ffffff; -fx-padding: 4px 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);");
+            badge.setStyle(
+                    "-fx-background-color: #ffffff; -fx-padding: 4px 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);");
 
             Label name = new Label(file.getName());
             name.setStyle("-fx-font-size: 11px; -fx-text-fill: #475569; -fx-font-weight: 600;");
 
             Button removeBtn = new Button("✕");
-            removeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 4px; -fx-cursor: hand;");
+            removeBtn.setStyle(
+                    "-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 4px; -fx-cursor: hand;");
             removeBtn.setOnAction(e -> {
                 selectedFiles.remove(file);
                 updateFileBadges();
@@ -615,10 +623,12 @@ public class InitialView extends BorderPane {
         client.createCaseAsync(caseName, caseName, llmConfig)
                 .thenCompose(createdCase -> {
                     if (!selectedFiles.isEmpty()) {
-                        Platform.runLater(() -> statusLabel.setText("Uploading " + selectedFiles.size() + " files to data/" + createdCase.getCaseId() + "..."));
+                        Platform.runLater(() -> statusLabel.setText("Uploading " + selectedFiles.size()
+                                + " files to data/" + createdCase.getCaseId() + "..."));
                         return client.uploadFilesAsync(createdCase.getCaseId(), selectedFiles)
                                 .thenCompose(uploaded -> {
-                                    Platform.runLater(() -> statusLabel.setText("Triggering Python extraction pipeline..."));
+                                    Platform.runLater(
+                                            () -> statusLabel.setText("Triggering Python extraction pipeline..."));
                                     return client.startProcessingAsync(uploaded.getCaseId()).thenApply(p -> uploaded);
                                 });
                     }
@@ -648,7 +658,8 @@ public class InitialView extends BorderPane {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Sherlock Terms & Conditions");
         alert.setHeaderText("Evidence Handling & Privacy Protocol");
-        alert.setContentText("Sherlock processes evidence locally on your workstation. Document metadata, entities, and relationships are stored in your local data directory. If an external LLM provider is configured, document chunks are transmitted securely to your chosen provider for inference according to their respective API terms.");
+        alert.setContentText(
+                "Sherlock processes evidence locally on your workstation. Document metadata, entities, and relationships are stored in your local data directory. If an external LLM provider is configured, document chunks are transmitted securely to your chosen provider for inference according to their respective API terms.");
         alert.showAndWait();
     }
 }
