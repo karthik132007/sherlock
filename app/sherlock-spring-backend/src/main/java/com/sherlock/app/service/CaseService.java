@@ -31,8 +31,7 @@ public class CaseService {
     private static final Logger log = LoggerFactory.getLogger(CaseService.class);
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            ".txt", ".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".json", ".csv"
-    );
+            ".txt", ".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".json", ".csv");
 
     private final AppProperties appProperties;
     private final Neo4jGraphService neo4jGraphService;
@@ -84,8 +83,7 @@ public class CaseService {
                     caseDirectory.toString(),
                     dataDirectory.toString(),
                     LocalDateTime.now(),
-                    "READY"
-            );
+                    "READY");
             response.setLlmConfig(request.getLlmConfig());
             writeMetadata(caseDirectory, response);
             return response;
@@ -111,12 +109,15 @@ public class CaseService {
                         String numStr = name.substring(5).replaceAll("[^0-9]", "");
                         if (!numStr.isEmpty()) {
                             int val = Integer.parseInt(numStr);
-                            if (val > maxNum) maxNum = val;
+                            if (val > maxNum)
+                                maxNum = val;
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             }
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
 
         return String.format("CASE-%03d", maxNum + 1);
     }
@@ -209,7 +210,8 @@ public class CaseService {
 
         CaseResponse response = readCaseMetadata(caseDirectory);
         if (response == null) {
-            response = new CaseResponse(caseId, caseId, caseDirectory.toString(), dataDirectory.toString(), LocalDateTime.now(), "FILES_UPLOADED");
+            response = new CaseResponse(caseId, caseId, caseDirectory.toString(), dataDirectory.toString(),
+                    LocalDateTime.now(), "FILES_UPLOADED");
         }
         response.setStatus("FILES_UPLOADED");
         updateFileListInResponse(response, dataDirectory);
@@ -223,14 +225,17 @@ public class CaseService {
 
         if (Files.exists(dataDirectory) && Files.isDirectory(dataDirectory)) {
             try (var stream = Files.list(dataDirectory);
-                 java.io.BufferedWriter writer = Files.newBufferedWriter(warehouseFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    java.io.BufferedWriter writer = Files.newBufferedWriter(warehouseFile, StandardCharsets.UTF_8,
+                            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
 
                 List<Path> files = stream
                         .filter(Files::isRegularFile)
-                        .sorted(Comparator.comparing(Path::getFileName))
+                        .sorted(Comparator.comparing(p -> {
+                            Path name = p.getFileName();
+                            return name != null ? name.toString() : "";
+                        }))
                         .collect(Collectors.toList());
 
-                long totalBytes = 0;
                 for (Path file : files) {
                     String fileName = file.getFileName().toString();
 
@@ -266,7 +271,7 @@ public class CaseService {
                 return warehouseFile.toString();
             }
         }
-        
+
         return warehouseFile.toString();
     }
 
@@ -584,7 +589,9 @@ public class CaseService {
         if (Files.exists(graphDataFile)) {
             try {
                 JsonNode root = objectMapper.readTree(graphDataFile.toFile());
-                JsonNode itemsNode = root.isArray() ? root : (root.has("graph") ? root.get("graph") : (root.has("mappings") ? root.get("mappings") : null));
+                JsonNode itemsNode = root.isArray() ? root
+                        : (root.has("graph") ? root.get("graph")
+                                : (root.has("mappings") ? root.get("mappings") : null));
                 if (itemsNode != null && itemsNode.isArray()) {
                     for (JsonNode item : itemsNode) {
                         String relId = item.has("relation_id") ? item.get("relation_id").asText() : "";
@@ -597,18 +604,21 @@ public class CaseService {
                         String sourceName = "";
                         JsonNode srcNode = item.get("source");
                         if (srcNode != null) {
-                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText() : srcNode.asText();
+                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText()
+                                    : srcNode.asText();
                             ensureNodeExists(srcNode, nodeMap, nodes);
                         }
 
                         String targetName = "";
                         JsonNode tgtNode = item.get("target");
                         if (tgtNode != null) {
-                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText() : tgtNode.asText();
+                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText()
+                                    : tgtNode.asText();
                             ensureNodeExists(tgtNode, nodeMap, nodes);
                         }
 
-                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation, targetName);
+                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation,
+                                targetName);
                         edge.setConfidence(conf);
                         edge.setEvidenceText(evidence);
                         edge.setSourceFile(sourceFile);
@@ -622,7 +632,9 @@ public class CaseService {
         } else if (Files.exists(relationsFile)) {
             try {
                 JsonNode root = objectMapper.readTree(relationsFile.toFile());
-                JsonNode itemsNode = root.isArray() ? root : (root.has("relations") ? root.get("relations") : (root.has("relationships") ? root.get("relationships") : null));
+                JsonNode itemsNode = root.isArray() ? root
+                        : (root.has("relations") ? root.get("relations")
+                                : (root.has("relationships") ? root.get("relationships") : null));
                 if (itemsNode != null && itemsNode.isArray()) {
                     for (JsonNode item : itemsNode) {
                         String source = item.has("source") ? item.get("source").asText() : "";
@@ -632,7 +644,8 @@ public class CaseService {
                         String evidence = item.has("evidence_text") ? item.get("evidence_text").asText() : "";
                         String sourceFile = item.has("source_file") ? item.get("source_file").asText() : "";
                         String chunkId = item.has("chunk_id") ? item.get("chunk_id").asText() : "";
-                        String relId = item.has("relation_id") ? item.get("relation_id").asText() : "rel_" + (edges.size() + 1);
+                        String relId = item.has("relation_id") ? item.get("relation_id").asText()
+                                : "rel_" + (edges.size() + 1);
 
                         GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, source, relation, target);
                         edge.setConfidence(conf);
@@ -680,6 +693,7 @@ public class CaseService {
         return resp;
     }
 
+    @SuppressWarnings("null")
     public ChatResponse chatWithSherlock(String caseId, ChatRequest request) {
         String query = request.getQuery() != null ? request.getQuery().trim() : "";
         String qLower = query.toLowerCase(Locale.ROOT);
@@ -735,7 +749,8 @@ public class CaseService {
                     String timestamp = ev.getTimestamp() != null ? ev.getTimestamp() : "";
                     String combined = (title + " " + description + " " + timestamp).toLowerCase(Locale.ROOT);
                     for (var n : relevantNodes) {
-                        if (n.getName() != null && combined.contains(n.getName().toLowerCase(Locale.ROOT))) return true;
+                        if (n.getName() != null && combined.contains(n.getName().toLowerCase(Locale.ROOT)))
+                            return true;
                     }
                     return relevantNodes.isEmpty() && !qLower.isEmpty() && combined.contains(qLower);
                 })
@@ -759,7 +774,8 @@ public class CaseService {
 
             if (!available.isEmpty()) {
                 cypherQuery = ollamaService.generateCypherQuery(caseId, query, model);
-                if (cypherQuery != null && !cypherQuery.isBlank() && neo4jGraphService != null && neo4jGraphService.isConnected()) {
+                if (cypherQuery != null && !cypherQuery.isBlank() && neo4jGraphService != null
+                        && neo4jGraphService.isConnected()) {
                     cypherResults = neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
                 }
             }
@@ -773,7 +789,8 @@ public class CaseService {
             if (cypherQuery != null && !cypherQuery.isBlank()) {
                 answer.append("```cypher\n// Generated CQL for Neo4j\n").append(cypherQuery).append("\n```\n\n");
                 if (!cypherResults.isEmpty()) {
-                    answer.append("**Neo4j Query Matches (").append(cypherResults.size()).append(" records found):**\n");
+                    answer.append("**Neo4j Query Matches (").append(cypherResults.size())
+                            .append(" records found):**\n");
                     for (int i = 0; i < Math.min(cypherResults.size(), 5); i++) {
                         answer.append("• `").append(cypherResults.get(i).toString()).append("`\n");
                     }
@@ -796,10 +813,12 @@ public class CaseService {
             if (!relevantEdges.isEmpty()) {
                 answer.append("\n**Key Relationships & Evidence:**\n");
                 for (var edge : relevantEdges.stream().limit(6).collect(Collectors.toList())) {
-                    answer.append("• **").append(edge.getSource()).append("** —[`").append(edge.getRelation()).append("`]-> **")
+                    answer.append("• **").append(edge.getSource()).append("** —[`").append(edge.getRelation())
+                            .append("`]-> **")
                             .append(edge.getTarget()).append("**");
                     if (edge.getConfidence() != null) {
-                        answer.append(" (Confidence: ").append(String.format("%.0f%%", edge.getConfidence() * 100)).append(")");
+                        answer.append(" (Confidence: ").append(String.format("%.0f%%", edge.getConfidence() * 100))
+                                .append(")");
                     }
                     answer.append("\n");
                     if (edge.getEvidenceText() != null && !edge.getEvidenceText().isBlank()) {
@@ -828,10 +847,13 @@ public class CaseService {
             answer.append("Here is an overview of the current case knowledge graph (").append(graph.getNodes().size())
                     .append(" entities, ").append(graph.getEdges().size()).append(" relationships):\n\n");
             answer.append("• **Primary Entities**: ");
-            answer.append(graph.getNodes().stream().limit(8).map(GraphDataResponse.Node::getName).collect(Collectors.joining(", ")));
-            answer.append("\n\nYou can ask about specific people (e.g. *\"Who is Arjun?\"* or *\"Show calls involving Rose\"*) or examine timeline occurrences.");
+            answer.append(graph.getNodes().stream().limit(8).map(GraphDataResponse.Node::getName)
+                    .collect(Collectors.joining(", ")));
+            answer.append(
+                    "\n\nYou can ask about specific people (e.g. *\"Who is Arjun?\"* or *\"Show calls involving Rose\"*) or examine timeline occurrences.");
         } else {
-            answer.append("No processed graph data found for this case yet. Please upload evidence documents and click **Let's Lock in with SHERLOCK** to trigger entity and relationship extraction.");
+            answer.append(
+                    "No processed graph data found for this case yet. Please upload evidence documents and click **Let's Lock in with SHERLOCK** to trigger entity and relationship extraction.");
         }
 
         response.setAnswer(answer.toString());
@@ -841,8 +863,11 @@ public class CaseService {
         return response;
     }
 
-    private void ensureNodeExists(JsonNode nodeJson, Map<String, GraphDataResponse.Node> nodeMap, List<GraphDataResponse.Node> nodes) {
-        if (nodeJson == null) return;
+    @SuppressWarnings("unchecked")
+    private void ensureNodeExists(JsonNode nodeJson, Map<String, GraphDataResponse.Node> nodeMap,
+            List<GraphDataResponse.Node> nodes) {
+        if (nodeJson == null)
+            return;
         String name = nodeJson.isObject() && nodeJson.has("name") ? nodeJson.get("name").asText() : nodeJson.asText();
         String id = nodeJson.isObject() && nodeJson.has("id") ? nodeJson.get("id").asText() : slugify(name);
         String type = nodeJson.isObject() && nodeJson.has("type") ? nodeJson.get("type").asText() : "ENTITY";
@@ -853,7 +878,8 @@ public class CaseService {
                 try {
                     Map<String, Object> data = objectMapper.convertValue(nodeJson.get("data"), Map.class);
                     n.setData(data);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             nodes.add(n);
             nodeMap.put(name.toLowerCase(Locale.ROOT), n);
@@ -866,7 +892,8 @@ public class CaseService {
             throw new IllegalArgumentException("Case id must not be empty");
         }
         Path caseDirectory = rootDir.resolve(caseId).normalize();
-        // Guard against path traversal (e.g. caseId = "../other-case" or absolute paths)
+        // Guard against path traversal (e.g. caseId = "../other-case" or absolute
+        // paths)
         if (!caseDirectory.startsWith(rootDir) || caseDirectory.equals(rootDir)) {
             throw new IllegalArgumentException("Invalid case id: " + caseId);
         }
@@ -877,16 +904,18 @@ public class CaseService {
         // 1. Explicit configuration wins
         if (appProperties.getPythonScriptPath() != null && !appProperties.getPythonScriptPath().isBlank()) {
             File f = new File(appProperties.getPythonScriptPath());
-            if (f.exists()) return f.getAbsolutePath();
+            if (f.exists())
+                return f.getAbsolutePath();
             log.warn("Configured sherlock.python-script-path does not exist: {}", appProperties.getPythonScriptPath());
         }
 
         // 2. Search upward from the current working directory (covers running the
-        //    backend from the repo root, app/sherlock-spring-backend, or any nested dir)
+        // backend from the repo root, app/sherlock-spring-backend, or any nested dir)
         Path cur = Paths.get("").toAbsolutePath();
         for (Path p = cur; p != null; p = p.getParent()) {
             Path candidate = p.resolve("main.py");
-            if (Files.exists(candidate)) return candidate.toAbsolutePath().toString();
+            if (Files.exists(candidate))
+                return candidate.toAbsolutePath().toString();
         }
 
         // 3. Search relative to where the application classes/jar live
@@ -895,9 +924,11 @@ public class CaseService {
                     CaseService.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath();
             for (Path p = codeLocation; p != null; p = p.getParent()) {
                 Path candidate = p.resolve("main.py");
-                if (Files.exists(candidate)) return candidate.toAbsolutePath().toString();
+                if (Files.exists(candidate))
+                    return candidate.toAbsolutePath().toString();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         log.warn("main.py could not be located automatically; falling back to relative 'main.py'");
         return "main.py";
@@ -918,7 +949,7 @@ public class CaseService {
                     : scriptDir.resolve(".venv").resolve("bin").resolve("python");
             if (Files.exists(venvPython)
                     && (configured == null || configured.isBlank()
-                        || configured.equals("python3") || configured.equals("python"))) {
+                            || configured.equals("python3") || configured.equals("python"))) {
                 log.info("Using project virtualenv Python (.venv): {}", venvPython.toAbsolutePath());
                 return venvPython.toAbsolutePath().toString();
             }
@@ -928,7 +959,7 @@ public class CaseService {
                     : scriptDir.resolve("venv").resolve("bin").resolve("python");
             if (Files.exists(venvPythonNoDot)
                     && (configured == null || configured.isBlank()
-                        || configured.equals("python3") || configured.equals("python"))) {
+                            || configured.equals("python3") || configured.equals("python"))) {
                 log.info("Using project virtualenv Python (venv): {}", venvPythonNoDot.toAbsolutePath());
                 return venvPythonNoDot.toAbsolutePath().toString();
             }
@@ -961,8 +992,7 @@ public class CaseService {
                     caseDirectory.toString(),
                     caseDirectory.resolve("data").toString(),
                     LocalDateTime.now(),
-                    "READY"
-            );
+                    "READY");
             updateFileListInResponse(fallback, caseDirectory.resolve("data"));
             return fallback;
         }
@@ -986,7 +1016,8 @@ public class CaseService {
                         .collect(Collectors.toList());
                 response.setFiles(files);
                 response.setFileCount(files.size());
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
     }
 
@@ -1037,7 +1068,8 @@ public class CaseService {
                         }
                     }
                 }
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
 
         Path graphDataFile = processedDir.resolve("graph_data.json");
@@ -1056,18 +1088,21 @@ public class CaseService {
                         String sourceName = "";
                         JsonNode srcNode = item.get("source");
                         if (srcNode != null) {
-                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText() : srcNode.asText();
+                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText()
+                                    : srcNode.asText();
                             ensureNodeExists(srcNode, nodeMap, nodes);
                         }
 
                         String targetName = "";
                         JsonNode tgtNode = item.get("target");
                         if (tgtNode != null) {
-                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText() : tgtNode.asText();
+                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText()
+                                    : tgtNode.asText();
                             ensureNodeExists(tgtNode, nodeMap, nodes);
                         }
 
-                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation, targetName);
+                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation,
+                                targetName);
                         edge.setConfidence(conf);
                         edge.setEvidenceText(evidence);
                         edge.setSourceFile(sourceFile);
@@ -1075,7 +1110,8 @@ public class CaseService {
                         edges.add(edge);
                     }
                 }
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
 
         return new GraphDataResponse(caseId, nodes, edges);
@@ -1107,7 +1143,8 @@ public class CaseService {
     }
 
     private String slugify(String text) {
-        if (text == null) return "entity";
+        if (text == null)
+            return "entity";
         return text.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_");
     }
 }

@@ -2,7 +2,6 @@ package com.sherlock.app.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sherlock.app.config.AppProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,12 +20,10 @@ public class OllamaService {
 
     private static final Logger log = LoggerFactory.getLogger(OllamaService.class);
 
-    private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
-    public OllamaService(AppProperties appProperties) {
-        this.appProperties = appProperties;
+    public OllamaService() {
         this.objectMapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(4))
@@ -74,11 +71,12 @@ public class OllamaService {
             String selectedModel = (model != null && !model.isBlank()) ? model : "gpt-oss:120b-cloud";
             Map<String, Object> payload = Map.of(
                     "model", selectedModel,
-                    "system", systemPrompt != null ? systemPrompt : "You are Sherlock, an AI investigation intelligence assistant.",
+                    "system",
+                    systemPrompt != null ? systemPrompt
+                            : "You are Sherlock, an AI investigation intelligence assistant.",
                     "prompt", prompt,
                     "stream", false,
-                    "options", Map.of("temperature", 0.1)
-            );
+                    "options", Map.of("temperature", 0.1));
 
             String bodyJson = objectMapper.writeValueAsString(payload);
 
@@ -106,11 +104,15 @@ public class OllamaService {
      * Generate a Cypher query (CQL) from natural language using Ollama
      */
     public String generateCypherQuery(String caseId, String userQuestion, String model) {
-        String systemPrompt = "You are a Neo4j Cypher Query Generator for the Sherlock Investigation Knowledge Graph.\n" +
+        String systemPrompt = "You are a Neo4j Cypher Query Generator for the Sherlock Investigation Knowledge Graph.\n"
+                +
                 "Graph Schema:\n" +
-                "- Nodes have label based on type (:Person, :Location, :Phone, :Document, :Event, :Organization, :Entity).\n" +
-                "- Node properties: id, name, type, project_id, confidence, mentions, data (JSON string with attributes).\n" +
-                "- Relationship properties: relation_id, confidence, evidence_text, source_file, chunk_id, project_id.\n" +
+                "- Nodes have label based on type (:Person, :Location, :Phone, :Document, :Event, :Organization, :Entity).\n"
+                +
+                "- Node properties: id, name, type, project_id, confidence, mentions, data (JSON string with attributes).\n"
+                +
+                "- Relationship properties: relation_id, confidence, evidence_text, source_file, chunk_id, project_id.\n"
+                +
                 "- Crucial: Every query MUST filter by project_id = '" + caseId + "'.\n" +
                 "Output ONLY the valid Cypher query without markdown formatting, quotes, or conversational text.";
 

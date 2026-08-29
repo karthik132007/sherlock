@@ -1,328 +1,329 @@
-"""
-engine/crud.py — Neo4j CRUD & Ingestion for Sherlock Knowledge Graph.
+"""Neo4j Aura CRUD helpers for Sherlock graph data.
 
-Supports both:
-1. Direct Bolt connection if `neo4j` Python driver is installed.
-2. Standard HTTP Cypher Transactional API (http://localhost:7474/db/neo4j/tx/commit)
-   using Python's built-in urllib.request (zero extra dependencies required).
-
-Schema (per AGENTS.md §13):
-  Nodes: (:Label {id, name, type, confidence, mentions, data, aliases, source_files, chunk_ids, project_id})
-  Relationships: (:[RELATION_TYPE] {relation_id, confidence, evidence_text, source_file, chunk_id, project_id})
+The module reads credentials from the repository ``.env`` file when available.
+Supported variables are ``NEO4J_URI``/``AURA_URI``/``DB_URI``,
+``NEO4J_USERNAME``/``DB_USERNAME``, ``NEO4J_PASSWORD``/``DB_PASSWORD``,
+and optional ``NEO4J_DATABASE``/``DB_DATABASE``.
 """
 
 from __future__ import annotations
 
-import base64
+import argparse
 import json
-import logging
 import os
-import re
-import urllib.error
-import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-logger = logging.getLogger(__name__)
-
-# Defaults matching docker-compose.yml and application.properties
-DEFAULT_NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-DEFAULT_NEO4J_HTTP_URL = os.getenv("NEO4J_HTTP_URL", "http://localhost:7474")
-DEFAULT_NEO4J_USER = os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j"))
-DEFAULT_NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
-DEFAULT_NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 
-def sanitize_label(label: Optional[str]) -> str:
-    """Sanitize entity type to a valid Cypher label."""
-    if not label or not label.strip():
-        return "Entity"
-    clean = re.sub(r"[^a-zA-Z0-9_]", "", label.strip())
-    if not clean:
-        return "Entity"
-    if clean[0].isdigit():
-        clean = "L_" + clean
-    return clean[0].upper() + clean[1:].lower()
+def _load_dotenv() -> None:
+	"""Load simple KEY=VALUE entries without requiring python-dotenv."""
+	env_path = Path(__file__).resolve().parent.parent / ".env"
+	if not env_path.exists():
+		return
+	for line in env_path.read_text(encoding="utf-8").splitlines():
+		line = line.strip()
+		if not line or line.startswith("#") or "=" not in line:
+			continue
+		key, value = line.split("=", 1)
+		key = key.strip()
+		value = value.strip().strip('"').strip("'")
+		os.environ.setdefault(key, value)
 
 
-def sanitize_relation(rel: Optional[str]) -> str:
-    """Sanitize relationship type to a valid uppercase Cypher relationship identifier."""
-    if not rel or not rel.strip():
-        return "RELATED_TO"
-    clean = re.sub(r"[^A-Za-z0-9_]", "_", rel.strip()).upper()
-    clean = re.sub(r"_+", "_", clean).strip("_")
-    if not clean:
-        return "RELATED_TO"
-    if clean[0].isdigit():
-        clean = "R_" + clean
-    return clean
+def _first_env(*names: str) -> Optional[str]:
+	return next((os.getenv(name) for name in names if os.getenv(name)), None)
 
 
-def _http_cypher_request(
-    statements: List[Dict[str, Any]],
-    http_url: str = DEFAULT_NEO4J_HTTP_URL,
-    user: str = DEFAULT_NEO4J_USER,
-    password: str = DEFAULT_NEO4J_PASSWORD,
-    database: str = DEFAULT_NEO4J_DATABASE,
-    timeout: float = 10.0,
-) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Execute Cypher transactional statements via HTTP API.
-    Endpoint: {http_url}/db/{database}/tx/commit
-    """
-    endpoint = f"{http_url.rstrip('/')}/db/{database}/tx/commit"
-    payload = json.dumps({"statements": statements}).encode("utf-8")
-
-    auth_str = f"{user}:{password}"
-    auth_header = "Basic " + base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
-
-    req = urllib.request.Request(
-        endpoint,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json;charset=UTF-8",
-            "Authorization": auth_header,
-        },
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            data = json.loads(body)
-            errors = data.get("errors", [])
-            if errors:
-                err_msg = "; ".join(e.get("message", "Unknown error") for e in errors)
-                return False, None, err_msg
-            return True, data, None
-    except urllib.error.HTTPError as e:
-        err_body = ""
-        try:
-            err_body = e.read().decode("utf-8")
-        except Exception:
-            pass
-        return False, None, f"HTTP Error {e.code}: {e.reason} ({err_body})"
-    except urllib.error.URLError as e:
-        return False, None, f"Connection failed: {e.reason}"
-    except Exception as e:
-        return False, None, str(e)
+def _env_flag(*names: str) -> Optional[bool]:
+	value = _first_env(*names)
+	if value is None:
+		return None
+	return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
-def check_neo4j_connection(
-    http_url: str = DEFAULT_NEO4J_HTTP_URL,
-    user: str = DEFAULT_NEO4J_USER,
-    password: str = DEFAULT_NEO4J_PASSWORD,
-    database: str = DEFAULT_NEO4J_DATABASE,
-) -> bool:
-    """Check whether Neo4j instance is reachable."""
-    success, _, _ = _http_cypher_request(
-        statements=[{"statement": "RETURN 1 AS ping"}],
-        http_url=http_url,
-        user=user,
-        password=password,
-        database=database,
-        timeout=3.0,
-    )
-    return success
+def _driver_class():
+	try:
+		from neo4j import GraphDatabase
+	except ImportError as exc:
+		raise RuntimeError("Install the Neo4j Python driver with: pip install neo4j") from exc
+	return GraphDatabase
 
 
-def sync_graph_to_neo4j(
-    project_path_or_id: str | Path,
-    entities: List[Dict[str, Any]],
-    mappings_or_relations: List[Dict[str, Any]],
-    http_url: str = DEFAULT_NEO4J_HTTP_URL,
-    user: str = DEFAULT_NEO4J_USER,
-    password: str = DEFAULT_NEO4J_PASSWORD,
-    database: str = DEFAULT_NEO4J_DATABASE,
-    verbose: bool = True,
-) -> bool:
-    """
-    Ingest extracted entities and relationships into Neo4j Community database.
-    """
-    if isinstance(project_path_or_id, Path):
-        case_id = project_path_or_id.name
-    else:
-        case_id = Path(str(project_path_or_id)).name
+def _json_value(value: Any) -> str:
+	return json.dumps(value if value is not None else {}, ensure_ascii=False)
 
-    if not entities and not mappings_or_relations:
-        if verbose:
-            print("[Sherlock Neo4j] Nothing to sync (empty graph)")
-        return False
 
-    # 1. Create constraint / index if not exists (in separate DDL transaction)
-    _http_cypher_request(
-        statements=[{
-            "statement": "CREATE CONSTRAINT IF NOT EXISTS FOR (n:Entity) REQUIRE (n.id, n.project_id) IS UNIQUE"
-        }],
-        http_url=http_url,
-        user=user,
-        password=password,
-        database=database,
-    )
+def _node_properties(node: Mapping[str, Any], project_id: str) -> Dict[str, Any]:
+	properties = dict(node)
+	properties["project_id"] = project_id
+	if isinstance(properties.get("data"), (dict, list)):
+		properties["data"] = _json_value(properties["data"])
+	for key in ("source_files", "chunk_ids", "aliases"):
+		if isinstance(properties.get(key), list):
+			properties[key] = [str(item) for item in properties[key]]
+	return properties
 
-    # 2. Prepare node merge statements
-    statements: List[Dict[str, Any]] = []
-    for entity in entities:
-        ent_id = entity.get("id") or entity.get("name", "unknown")
-        name = entity.get("name") or ent_id
-        ent_type = entity.get("type", "ENTITY")
-        label = sanitize_label(ent_type)
-        confidence = float(entity.get("confidence", 1.0) or 1.0)
-        mentions = int(entity.get("mentions", 1) or 1)
-        data_map = entity.get("data", {})
-        data_json = json.dumps(data_map, ensure_ascii=False) if isinstance(data_map, dict) else "{}"
-        aliases = entity.get("aliases", [])
-        source_files = entity.get("source_files", [])
-        chunk_ids = entity.get("chunk_ids", [])
 
-        cypher_node = (
-            f"MERGE (n:{label}:Entity {{id: $id, project_id: $caseId}}) "
-            "SET n.name = $name, "
-            "    n.type = $type, "
-            "    n.confidence = $confidence, "
-            "    n.mentions = $mentions, "
-            "    n.data = $data, "
-            "    n.aliases = $aliases, "
-            "    n.source_files = $source_files, "
-            "    n.chunk_ids = $chunk_ids"
-        )
-        statements.append({
-            "statement": cypher_node,
-            "parameters": {
-                "id": str(ent_id),
-                "caseId": str(case_id),
-                "name": str(name),
-                "type": str(ent_type),
-                "confidence": confidence,
-                "mentions": mentions,
-                "data": data_json,
-                "aliases": aliases,
-                "source_files": source_files,
-                "chunk_ids": chunk_ids,
-            },
-        })
+def _entity_id(entity: Mapping[str, Any]) -> str:
+	if entity.get("id"):
+		return str(entity["id"])
+	name = str(entity.get("name", "entity")).strip().lower()
+	entity_type = str(entity.get("type", "entity")).strip().lower()
+	slug = "_".join(part for part in name.replace("-", " ").split() if part)
+	return f"{entity_type}_{slug or 'unknown'}"
 
-    # 3. Prepare relationship merge statements
-    for idx, item in enumerate(mappings_or_relations):
-        # Support both enriched mapping (source is dict) and raw relation (source is string)
-        src_raw = item.get("source")
-        tgt_raw = item.get("target")
 
-        src_id = (src_raw.get("id") if isinstance(src_raw, dict) else None) or (src_raw.get("name") if isinstance(src_raw, dict) else str(src_raw or ""))
-        tgt_id = (tgt_raw.get("id") if isinstance(tgt_raw, dict) else None) or (tgt_raw.get("name") if isinstance(tgt_raw, dict) else str(tgt_raw or ""))
-        src_name = (src_raw.get("name") if isinstance(src_raw, dict) else str(src_raw or ""))
-        tgt_name = (tgt_raw.get("name") if isinstance(tgt_raw, dict) else str(tgt_raw or ""))
+def _records_from_json(path: Path, keys: Tuple[str, ...]) -> List[Dict[str, Any]]:
+	with path.open("r", encoding="utf-8-sig") as file:
+		payload = json.load(file)
+	if isinstance(payload, list):
+		return [item for item in payload if isinstance(item, dict)]
+	if isinstance(payload, dict):
+		for key in keys:
+			if isinstance(payload.get(key), list):
+				return [item for item in payload[key] if isinstance(item, dict)]
+	return []
 
-        rel_type = sanitize_relation(item.get("relation", "RELATED_TO"))
-        rel_id = item.get("relation_id") or f"rel_{idx+1}"
-        confidence = float(item.get("confidence", 1.0) or 1.0)
-        evidence = item.get("evidence_text") or ""
-        source_file = item.get("source_file") or ""
-        chunk_id = item.get("chunk_id") or ""
 
-        cypher_rel = (
-            "MATCH (s {project_id: $caseId}) WHERE s.id = $srcId OR s.name = $srcName OR s.id = $srcName "
-            "MATCH (t {project_id: $caseId}) WHERE t.id = $tgtId OR t.name = $tgtName OR t.id = $tgtName "
-            f"MERGE (s)-[r:{rel_type} {{relation_id: $relId, project_id: $caseId}}]->(t) "
-            "SET r.confidence = $confidence, "
-            "    r.evidence_text = $evidence, "
-            "    r.source_file = $sourceFile, "
-            "    r.chunk_id = $chunkId"
-        )
-        statements.append({
-            "statement": cypher_rel,
-            "parameters": {
-                "caseId": str(case_id),
-                "srcId": str(src_id),
-                "srcName": str(src_name),
-                "tgtId": str(tgt_id),
-                "tgtName": str(tgt_name),
-                "relId": str(rel_id),
-                "confidence": confidence,
-                "evidence": str(evidence),
-                "sourceFile": str(source_file),
-                "chunkId": str(chunk_id),
-            },
-        })
+def _find_input_file(data_dir: Path, filename: str) -> Optional[Path]:
+	direct = data_dir / filename
+	if direct.is_file():
+		return direct
+	for candidate_dir in (data_dir / "processed", data_dir.parent / "processed"):
+		candidate = candidate_dir / filename
+		if candidate.is_file():
+			return candidate
+	return next((path for path in data_dir.rglob(filename) if path.is_file()), None)
 
-    # Execute in batches against Neo4j
-    batch_size = 100
-    all_success = True
-    last_err = None
-    for i in range(0, len(statements), batch_size):
-        chunk_stmts = statements[i : i + batch_size]
-        success, _, err_msg = _http_cypher_request(
-            statements=chunk_stmts,
-            http_url=http_url,
-            user=user,
-            password=password,
-            database=database,
-        )
-        if not success:
-            all_success = False
-            last_err = err_msg
 
-    if all_success:
-        if verbose:
-            print(f"[Sherlock Neo4j] Successfully ingested {len(entities)} nodes and {len(mappings_or_relations)} edges into Neo4j for case: {case_id}")
-        return True
-    else:
-        if verbose:
-            print(f"[Sherlock Neo4j] Ingestion failed: {last_err}")
-        return False
+def load_graph_files(data_dir: str | Path) -> Tuple[str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+	"""Load processed entities and relationships from a case or data directory."""
+	root = Path(data_dir).expanduser().resolve()
+	entities_path = _find_input_file(root, "entities.json")
+	if entities_path is None:
+		raise FileNotFoundError(f"entities.json not found in {root}")
+	entities = _records_from_json(entities_path, ("entities",))
+	with entities_path.open("r", encoding="utf-8-sig") as file:
+		entities_payload = json.load(file)
+	project_id = entities_path.parent.name
+	if entities_path.parent.name == "processed":
+		project_id = entities_path.parent.parent.name
+	elif entities_path.parent == root:
+		project_id = root.name
+
+	relationships: List[Dict[str, Any]] = []
+	if isinstance(entities_payload, dict):
+		for key in ("relationships", "relations"):
+			if isinstance(entities_payload.get(key), list):
+				relationships = [item for item in entities_payload[key] if isinstance(item, dict)]
+				break
+	for filename in ("relations.json", "relationships.json", "graph_data.json"):
+		relations_path = entities_path.parent / filename
+		if not relationships and relations_path.is_file():
+			relationships = _records_from_json(relations_path, ("relationships", "relations", "graph"))
+			break
+	return project_id, entities, relationships
+
+
+def _endpoint_id(endpoint: Any, entities_by_key: Mapping[str, Mapping[str, Any]]) -> Optional[str]:
+	if isinstance(endpoint, Mapping):
+		endpoint_id = endpoint.get("id")
+		endpoint_name = endpoint.get("name")
+	else:
+		endpoint_id = endpoint
+		endpoint_name = endpoint
+	for value in (endpoint_id, endpoint_name):
+		if value is not None and str(value).lower() in entities_by_key:
+			return str(entities_by_key[str(value).lower()]["id"])
+	return None
+
+
+def build_relationships(
+	entities: List[Dict[str, Any]], relationships: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+	"""Convert raw relationship endpoints into CRUD-ready entity IDs."""
+	entities_by_key: Dict[str, Mapping[str, Any]] = {}
+	for entity in entities:
+		entity["id"] = _entity_id(entity)
+		keys = [entity["id"], entity.get("name", ""), *entity.get("aliases", [])]
+		for key in keys:
+			if key:
+				entities_by_key[str(key).lower()] = entity
+
+	result: List[Dict[str, Any]] = []
+	for index, relationship in enumerate(relationships, start=1):
+		source_id = _endpoint_id(relationship.get("source"), entities_by_key)
+		target_id = _endpoint_id(relationship.get("target"), entities_by_key)
+		if not source_id or not target_id:
+			continue
+		item = dict(relationship)
+		item["source"] = {"id": source_id}
+		item["target"] = {"id": target_id}
+		item.setdefault("relation_id", item.get("id") or f"rel_{index:03d}")
+		result.append(item)
+	return result
+
+
+class Neo4jStore:
+	"""Small parameterized CRUD wrapper around a Neo4j Aura database."""
+
+	def __init__(
+		self,
+		uri: Optional[str] = None,
+		username: Optional[str] = None,
+		password: Optional[str] = None,
+		database: Optional[str] = None,
+		tls_verify: Optional[bool] = None,
+	) -> None:
+		_load_dotenv()
+		self.uri = uri or _first_env("NEO4J_URI", "AURA_URI", "DB_URI")
+		self.username = username or _first_env("NEO4J_USERNAME", "NEO4J_USER", "DB_USERNAME")
+		self.password = password or _first_env("NEO4J_PASSWORD", "DB_PASSWORD")
+		self.database = database or _first_env("NEO4J_DATABASE", "DB_DATABASE")
+		self.tls_verify = tls_verify if tls_verify is not None else _env_flag("NEO4J_TLS_VERIFY")
+		missing = [name for name, value in (("NEO4J_URI", self.uri), ("NEO4J_USERNAME", self.username), ("NEO4J_PASSWORD", self.password)) if not value]
+		if missing:
+			raise ValueError(f"Missing Neo4j settings: {', '.join(missing)}. Add them to .env or pass them explicitly.")
+		connection_uri = self.uri
+		if self.tls_verify is False and connection_uri.startswith("neo4j+s://"):
+			connection_uri = connection_uri.replace("neo4j+s://", "neo4j+ssc://", 1)
+		self._driver = _driver_class().driver(connection_uri, auth=(self.username, self.password))
+
+	def verify_connection(self) -> bool:
+		self._driver.verify_connectivity()
+		return True
+
+	def close(self) -> None:
+		self._driver.close()
+
+	def create_node(self, project_id: str, node: Mapping[str, Any]) -> Dict[str, Any]:
+		properties = _node_properties(node, project_id)
+		query = """
+		MERGE (n:Entity {project_id: $project_id, id: $id})
+		SET n = $properties
+		RETURN n
+		"""
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id, id=str(node["id"]), properties=properties).single()
+		return dict(record["n"]) if record else {}
+
+	def get_node(self, project_id: str, node_id: str) -> Optional[Dict[str, Any]]:
+		query = "MATCH (n:Entity {project_id: $project_id, id: $node_id}) RETURN n"
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id, node_id=node_id).single()
+		return dict(record["n"]) if record else None
+
+	def update_node(self, project_id: str, node_id: str, fields: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+		properties = dict(fields)
+		if isinstance(properties.get("data"), (dict, list)):
+			properties["data"] = _json_value(properties["data"])
+		query = """
+		MATCH (n:Entity {project_id: $project_id, id: $node_id})
+		SET n += $properties
+		RETURN n
+		"""
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id, node_id=node_id, properties=properties).single()
+		return dict(record["n"]) if record else None
+
+	def delete_node(self, project_id: str, node_id: str) -> bool:
+		query = "MATCH (n:Entity {project_id: $project_id, id: $node_id}) DETACH DELETE n RETURN count(n) AS deleted"
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id, node_id=node_id).single()
+		return bool(record and record["deleted"])
+
+	def create_relationship(self, project_id: str, relationship: Mapping[str, Any]) -> Dict[str, Any]:
+		source = relationship.get("source", {})
+		target = relationship.get("target", {})
+		source_id = source.get("id") if isinstance(source, Mapping) else source
+		target_id = target.get("id") if isinstance(target, Mapping) else target
+		if not source_id or not target_id or not relationship.get("relation_id"):
+			raise ValueError("A relationship requires relation_id, source.id, and target.id")
+		properties = {key: value for key, value in relationship.items() if key not in ("source", "target")}
+		properties["project_id"] = project_id
+		query = """
+		MATCH (source:Entity {project_id: $project_id, id: $source_id})
+		MATCH (target:Entity {project_id: $project_id, id: $target_id})
+		MERGE (source)-[r:RELATED {project_id: $project_id, relation_id: $relation_id}]->(target)
+		SET r = $properties
+		RETURN r, source.id AS source_id, target.id AS target_id
+		"""
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id, source_id=source_id, target_id=target_id, relation_id=relationship["relation_id"], properties=properties).single()
+		if not record:
+			raise ValueError(f"Relationship endpoints not found: {source_id} -> {target_id}")
+		result = dict(record["r"])
+		result.update(source=record["source_id"], target=record["target_id"])
+		return result
+
+	def get_graph(self, project_id: str) -> Dict[str, List[Dict[str, Any]]]:
+		node_query = "MATCH (n:Entity {project_id: $project_id}) RETURN n ORDER BY n.id"
+		relation_query = """
+		MATCH (source:Entity {project_id: $project_id})-[r:RELATED {project_id: $project_id}]->(target:Entity {project_id: $project_id})
+		RETURN r, source.id AS source, target.id AS target ORDER BY r.relation_id
+		"""
+		with self._driver.session(database=self.database) as session:
+			nodes = [dict(record["n"]) for record in session.run(node_query, project_id=project_id)]
+			relations = []
+			for record in session.run(relation_query, project_id=project_id):
+				relation = dict(record["r"])
+				relation.update(source=record["source"], target=record["target"])
+				relations.append(relation)
+		return {"entities": nodes, "graph": relations}
+
+	def upsert_graph(self, project_id: str, graph_payload: Mapping[str, Any]) -> Dict[str, int]:
+		entities = graph_payload.get("entities", [])
+		mappings = graph_payload.get("graph", [])
+		for entity in entities:
+			self.create_node(project_id, entity)
+		for mapping in mappings:
+			self.create_relationship(project_id, mapping)
+		return {"entities": len(entities), "relationships": len(mappings)}
+
+	def load_and_insert(self, data_dir: str | Path, project_id: Optional[str] = None) -> Dict[str, Any]:
+		"""Read entities/relations JSON from data_dir and insert them into Aura."""
+		loaded_project, entities, relationships = load_graph_files(data_dir)
+		effective_project = project_id or loaded_project
+		for entity in entities:
+			entity["id"] = _entity_id(entity)
+			self.create_node(effective_project, entity)
+		mappings = build_relationships(entities, relationships)
+		for mapping in mappings:
+			self.create_relationship(effective_project, mapping)
+		return {
+			"project_id": effective_project,
+			"entities": len(entities),
+			"relationships": len(mappings),
+		}
+
+	def delete_project(self, project_id: str) -> int:
+		query = "MATCH (n {project_id: $project_id}) DETACH DELETE n RETURN count(n) AS deleted"
+		with self._driver.session(database=self.database) as session:
+			record = session.run(query, project_id=project_id).single()
+		return int(record["deleted"]) if record else 0
+
+
+def connect() -> Neo4jStore:
+	"""Create a store from the local environment."""
+	return Neo4jStore()
+
+
+def main() -> None:
+	parser = argparse.ArgumentParser(description="Load Sherlock entities and relationships into Neo4j Aura")
+	parser.add_argument("--data", help="Directory containing entities.json and optional relations.json")
+	parser.add_argument("--project", help="Override the project id used for inserted records")
+	args = parser.parse_args()
+	store = connect()
+	try:
+		store.verify_connection()
+		print(f"Connected to Neo4j database '{store.database or 'Aura home database'}'")
+		if not args.data:
+			parser.error("--data is required")
+		result = store.load_and_insert(args.data, args.project)
+		print(f"project={result['project_id']} entities={result['entities']} relationships={result['relationships']}")
+	finally:
+		store.close()
 
 
 if __name__ == "__main__":
-    import argparse
-    import sys
-
-    parser = argparse.ArgumentParser(description="Sherlock — Sync case graph to Neo4j database")
-    parser.add_argument("--project", required=True, help="Path to Sherlock case directory (e.g. ~/Documents/Sherlock/rose)")
-    parser.add_argument("--http-url", default=DEFAULT_NEO4J_HTTP_URL, help="Neo4j HTTP URL (default: http://localhost:7474)")
-    parser.add_argument("--user", default=DEFAULT_NEO4J_USER, help="Neo4j username (default: neo4j)")
-    parser.add_argument("--password", default=DEFAULT_NEO4J_PASSWORD, help="Neo4j password (default: password)")
-    args = parser.parse_args()
-
-    case_path = Path(args.project).expanduser().resolve()
-    processed = case_path / "processed"
-    ent_path = processed / "entities.json"
-    graph_path = processed / "graph_data.json"
-    if not graph_path.exists():
-        graph_path = processed / "graph.json"
-
-    if not ent_path.exists():
-        print(f"Error: {ent_path} does not exist", file=sys.stderr)
-        sys.exit(1)
-
-    with ent_path.open("r", encoding="utf-8") as f:
-        ent_data = json.load(f)
-    entities = ent_data.get("entities", [])
-
-    mappings = []
-    if graph_path.exists():
-        with graph_path.open("r", encoding="utf-8") as f:
-            graph_d = json.load(f)
-        mappings = graph_d.get("graph", graph_d.get("relationships", []))
-    else:
-        rel_path = processed / "relations.json"
-        if rel_path.exists():
-            with rel_path.open("r", encoding="utf-8") as f:
-                rel_d = json.load(f)
-            mappings = rel_d.get("relationships", rel_d.get("relations", []))
-
-    print(f"Syncing case '{case_path.name}' to Neo4j ({len(entities)} nodes, {len(mappings)} edges)...")
-    ok = sync_graph_to_neo4j(
-        project_path_or_id=case_path,
-        entities=entities,
-        mappings_or_relations=mappings,
-        http_url=args.http_url,
-        user=args.user,
-        password=args.password,
-        verbose=True,
-    )
-    if ok:
-        print("Migration to Neo4j completed successfully!")
-    else:
-        print("Migration failed!")
-        sys.exit(1)
+	main()

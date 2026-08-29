@@ -11,7 +11,6 @@ import com.sherlock.app.service.OllamaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -36,13 +35,14 @@ class CaseControllerTest {
         appProperties.setBaseDirectory(tempDir.toString());
         appProperties.getNeo4j().setEnabled(false);
         Neo4jGraphService neo4jGraphService = new Neo4jGraphService(appProperties);
-        OllamaService ollamaService = new OllamaService(appProperties);
+        OllamaService ollamaService = new OllamaService();
         CaseService caseService = new CaseService(appProperties, neo4jGraphService, ollamaService);
         CaseController caseController = new CaseController(caseService);
         mockMvc = MockMvcBuilders.standaloneSetup(caseController).build();
         objectMapper = new ObjectMapper();
     }
 
+    @SuppressWarnings("null")
     @Test
     void testCreateCaseEndpoint() throws Exception {
         CaseRequest request = new CaseRequest("Operation Test");
@@ -50,8 +50,8 @@ class CaseControllerTest {
         request.setLlmConfig(new LlmConfigRequest("openai", "gpt-4o-mini", "sk-123", "", 128000, 0.1));
 
         mockMvc.perform(post("/api/cases")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.caseId").value("operation_test_100"))
                 .andExpect(jsonPath("$.caseName").value("Operation Test"));
