@@ -19,11 +19,11 @@ public class TimelinePanel extends ScrollPane {
         this.onGenerateTimelineRequested = onGenerateTimelineRequested;
         container = new VBox();
         container.setPadding(new Insets(20));
-        container.setStyle("-fx-background-color: #0b0e14;");
+        container.setStyle("-fx-background-color: #ffffff;");
 
         setFitToWidth(true);
         setContent(container);
-        setStyle("-fx-background: #0b0e14; -fx-border-color: transparent; -fx-control-inner-background: #0b0e14;");
+        setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; -fx-control-inner-background: #ffffff;");
         
         showPlaceholder();
     }
@@ -38,7 +38,8 @@ public class TimelinePanel extends ScrollPane {
         placeholder.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14px;");
         
         Button generateBtn = new Button("⏳ Extract Timeline");
-        generateBtn.setStyle("-fx-background-color: #38bdf8; -fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-background-radius: 6px;");
+        generateBtn.getStyleClass().add("primary-button");
+        generateBtn.setStyle("-fx-font-weight: bold; -fx-padding: 8px 16px; -fx-background-radius: 6px;");
         generateBtn.setOnAction(e -> {
             if (onGenerateTimelineRequested != null) {
                 onGenerateTimelineRequested.run();
@@ -70,7 +71,6 @@ public class TimelinePanel extends ScrollPane {
     private HBox buildEventNode(TimelineEventDto.TimelineEventItem item, boolean isLast) {
         HBox row = new HBox();
         
-        // Left: Timestamp
         VBox timeBox = new VBox();
         timeBox.setPrefWidth(120);
         timeBox.setMinWidth(120);
@@ -78,16 +78,15 @@ public class TimelinePanel extends ScrollPane {
         timeBox.setPadding(new Insets(5, 15, 0, 0));
         
         Label timeLabel = new Label(item.getTimestamp() != null && !item.getTimestamp().isBlank() ? item.getTimestamp() : "Unknown");
-        timeLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 12px;");
+        timeLabel.setStyle("-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;");
         timeLabel.setWrapText(true);
         timeBox.getChildren().add(timeLabel);
 
-        // Center: Timeline graphics
         VBox graphicsBox = new VBox();
         graphicsBox.setAlignment(Pos.TOP_CENTER);
         graphicsBox.setPrefWidth(20);
         
-        Circle dot = new Circle(6, Color.web("#38bdf8"));
+        Circle dot = new Circle(6, Color.web("#3b82f6"));
         
         VBox.setMargin(dot, new Insets(8, 0, 0, 0));
         graphicsBox.getChildren().add(dot);
@@ -95,7 +94,7 @@ public class TimelinePanel extends ScrollPane {
         if (!isLast) {
             Region line = new Region();
             line.setPrefWidth(2);
-            line.setStyle("-fx-background-color: #1e293b;");
+            line.setStyle("-fx-background-color: #cbd5e1;");
             VBox.setVgrow(line, Priority.ALWAYS);
             VBox.setMargin(line, new Insets(4, 0, 0, 0));
             graphicsBox.getChildren().add(line);
@@ -105,23 +104,22 @@ public class TimelinePanel extends ScrollPane {
             graphicsBox.getChildren().add(spacer);
         }
 
-        // Right: Content card
         VBox contentBox = new VBox(8);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
         contentBox.setPadding(new Insets(0, 10, 25, 15));
         
         VBox card = new VBox(6);
-        card.setStyle("-fx-background-color: #161e2e; -fx-background-radius: 8px; -fx-border-color: #1e293b; -fx-border-radius: 8px; -fx-padding: 12px;");
+        card.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-padding: 12px;");
         
         String mainText = item.getTitle() != null && !item.getTitle().isBlank() ? item.getTitle() : (item.getEvent() != null ? item.getEvent() : "Event");
         Label titleLabel = new Label(mainText);
-        titleLabel.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: bold; -fx-font-size: 14px;");
+        titleLabel.setStyle("-fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-font-size: 14px;");
         titleLabel.setWrapText(true);
         card.getChildren().add(titleLabel);
         
         if (item.getDescription() != null && !item.getDescription().isBlank() && !item.getDescription().equals(mainText)) {
             Label descText = new Label(item.getDescription());
-            descText.setStyle("-fx-text-fill: #cbd5e1; -fx-font-size: 13px;");
+            descText.setStyle("-fx-text-fill: #334155; -fx-font-size: 13px;");
             descText.setWrapText(true);
             card.getChildren().add(descText);
         }
@@ -132,7 +130,7 @@ public class TimelinePanel extends ScrollPane {
             tags.setVgap(6);
             for (String entity : item.getEntitiesInvolved()) {
                 Label tag = new Label(entity);
-                tag.setStyle("-fx-background-color: rgba(59, 130, 246, 0.15); -fx-text-fill: #60a5fa; -fx-font-size: 11px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+                tag.setStyle("-fx-background-color: rgba(59, 130, 246, 0.1); -fx-text-fill: #1d4ed8; -fx-font-size: 11px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
                 tags.getChildren().add(tag);
             }
             card.getChildren().add(tags);

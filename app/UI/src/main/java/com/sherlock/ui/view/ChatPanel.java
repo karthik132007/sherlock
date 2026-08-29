@@ -12,6 +12,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.Color;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,64 +34,55 @@ public class ChatPanel extends VBox {
     public ChatPanel(SherlockBackendClient client) {
         this.client = client;
 
-        getStyleClass().add("dark-panel");
+        getStyleClass().add("glass-panel");
         setPadding(new Insets(16));
-        setSpacing(10);
-        setPrefWidth(360);
-        setMinWidth(320);
+        setSpacing(12);
 
         // Header
         HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
-        Label title = new Label("Chat Window");
-        title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+        
+        Label icon = new Label("🤖");
+        Label title = new Label("Sherlock Assistant");
+        title.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label status = new Label("Sherlock AI");
-        status.setStyle(
-                "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 2px 8px; -fx-background-radius: 10px;");
+        HBox status = new HBox(4);
+        status.setAlignment(Pos.CENTER);
+        Circle dot = new Circle(3, Color.web("#10b981"));
+        Label statusLbl = new Label("Ready");
+        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 10px; -fx-font-weight: bold;");
+        status.getChildren().addAll(dot, statusLbl);
+        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-padding: 4px 8px; -fx-background-radius: 12px;");
 
-        header.getChildren().addAll(title, spacer, status);
+        header.getChildren().addAll(icon, title, spacer, status);
 
-        // Provider Selector Bar
-        HBox providerRow = new HBox(6);
-        providerRow.setAlignment(Pos.CENTER_LEFT);
-        Label providerIcon = new Label("🔌 Provider:");
-        providerIcon.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #94a3b8;");
-
-        providerSelector.setStyle(
-                "-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #a78bfa; -fx-background-radius: 6px;");
-        providerSelector.setMaxWidth(120);
+        // Config Row
+        HBox configRow = new HBox(8);
+        configRow.setAlignment(Pos.CENTER_LEFT);
+        
+        providerSelector.setStyle("-fx-font-size: 10px; -fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-border-radius: 4px;");
+        providerSelector.setMaxWidth(100);
         providerSelector.getItems().addAll("Ollama", "OpenAI", "DeepSeek", "OpenRouter", "Groq", "Mistral", "Custom");
         providerSelector.setValue("Ollama");
         providerSelector.setOnAction(e -> applyProviderDefaults(providerSelector.getValue()));
 
-        providerRow.getChildren().addAll(providerIcon, providerSelector);
-
-        // Model Selector Bar
-        HBox modelRow = new HBox(6);
-        modelRow.setAlignment(Pos.CENTER_LEFT);
-        Label modelIcon = new Label("🤖 Model:");
-        modelIcon.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #94a3b8;");
-
         modelSelector.setEditable(true);
-        modelSelector.setStyle(
-                "-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-background-radius: 6px;");
+        modelSelector.setStyle("-fx-font-size: 10px; -fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-border-radius: 4px;");
         modelSelector.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(modelSelector, Priority.ALWAYS);
 
-        // Populate models for the default provider (Ollama)
         applyProviderDefaults(providerSelector.getValue());
 
-        modelRow.getChildren().addAll(modelIcon, modelSelector);
+        configRow.getChildren().addAll(providerSelector, modelSelector);
 
         // Quick suggestions
         FlowPane suggestions = buildQuickSuggestions();
 
         // Message List
-        messageContainer.setPadding(new Insets(8));
+        messageContainer.setPadding(new Insets(4, 8, 4, 8));
         messageContainer.setFillWidth(true);
 
         scrollPane.setContent(messageContainer);
@@ -98,58 +91,46 @@ public class ChatPanel extends VBox {
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        scrollPane.getStyleClass().add("edge-to-edge");
 
-        // Auto scroll to bottom
         messageContainer.heightProperty().addListener((obs, oldVal, newVal) -> scrollPane.setVvalue(1.0));
 
         // Input Area
-        typingIndicator.setMaxSize(18, 18);
+        typingIndicator.setMaxSize(16, 16);
         typingIndicator.setVisible(false);
 
-        inputField.setPromptText("Type your message...");
+        inputField.setPromptText("Ask about the evidence...");
+        inputField.getStyleClass().add("text-field");
         HBox.setHgrow(inputField, Priority.ALWAYS);
         inputField.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ENTER) {
-                sendMessage();
-            }
+            if (e.getCode() == KeyCode.ENTER) sendMessage();
         });
 
         sendButton.getStyleClass().add("primary-button");
-        sendButton.setStyle("-fx-padding: 8px 14px; -fx-font-size: 13px;");
+        sendButton.setStyle("-fx-padding: 6px 12px; -fx-font-size: 12px;");
         sendButton.setOnAction(e -> sendMessage());
 
         HBox inputRow = new HBox(8, inputField, sendButton);
         inputRow.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(header, providerRow, modelRow, suggestions, scrollPane, inputRow);
+        getChildren().addAll(header, configRow, suggestions, scrollPane, inputRow);
 
-        // Initial greeting
-        addSherlockMessage(
-                "Greetings. I am Sherlock, your investigation intelligence assistant. Ask me questions about persons of interest, call logs, witness statements, or chronological occurrences.");
+        addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. How may I assist your investigation?");
     }
 
     public void setCaseId(String caseId) {
         this.currentCaseId = caseId;
         messageContainer.getChildren().clear();
-        addSherlockMessage("Case **" + caseId
-                + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
+        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized.");
     }
 
-    /**
-     * Populates the model selector based on the chosen provider. When Ollama is
-     * selected, the available local models are fetched from the backend (the
-     * equivalent of `ollama list`); other providers get their conventional
-     * default model lists.
-     */
     private void applyProviderDefaults(String provider) {
-        if (provider == null || provider.isBlank()) {
-            return;
-        }
+        if (provider == null || provider.isBlank()) return;
 
         if ("Ollama".equalsIgnoreCase(provider)) {
             modelSelector.getItems().clear();
             modelSelector.setValue(null);
-            modelSelector.setPromptText("Loading Ollama models...");
+            modelSelector.setPromptText("Loading...");
             client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
                 if (models != null && !models.isEmpty()) {
                     modelSelector.getItems().setAll(models);
@@ -159,8 +140,8 @@ public class ChatPanel extends VBox {
                 } else {
                     modelSelector.getItems().clear();
                     modelSelector.setValue(null);
-                    modelSelector.setDisable(false); // Enable manual typing even if Ollama is off
-                    modelSelector.setPromptText("Type model (e.g., llama3.1)");
+                    modelSelector.setDisable(false);
+                    modelSelector.setPromptText("Type model (e.g. llama3)");
                 }
             }));
             return;
@@ -175,13 +156,12 @@ public class ChatPanel extends VBox {
             modelSelector.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
             modelSelector.setValue("llama-3.3-70b-versatile");
         } else if ("OpenRouter".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct");
+            modelSelector.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet");
             modelSelector.setValue("openai/gpt-4o-mini");
         } else if ("Mistral".equalsIgnoreCase(provider)) {
             modelSelector.getItems().setAll("mistral-large-latest", "mistral-small-latest");
             modelSelector.setValue("mistral-large-latest");
         } else {
-            // OpenAI / Custom
             modelSelector.getItems().setAll("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
             modelSelector.setValue("gpt-4o-mini");
         }
@@ -189,20 +169,17 @@ public class ChatPanel extends VBox {
 
     private FlowPane buildQuickSuggestions() {
         FlowPane pane = new FlowPane(6, 6);
-        pane.getChildren().add(createSuggestionPill("Show calls related to Arjun"));
-        pane.getChildren().add(createSuggestionPill("What are the key timeline events?"));
-        pane.getChildren().add(createSuggestionPill("Who was near Rose?"));
+        pane.getChildren().add(createSuggestionPill("Key timeline events?"));
+        pane.getChildren().add(createSuggestionPill("Who was near the victim?"));
+        pane.getChildren().add(createSuggestionPill("Summarize motives."));
         return pane;
     }
 
     private Button createSuggestionPill(String query) {
         Button btn = new Button(query);
-        btn.setStyle(
-                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;");
-        btn.setOnMouseEntered(e -> btn.setStyle(
-                "-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
-        btn.setOnMouseExited(e -> btn.setStyle(
-                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
+        btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #0f172a; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #cbd5e1; -fx-border-radius: 12px;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;"));
         btn.setOnAction(e -> {
             inputField.setText(query);
             sendMessage();
@@ -212,8 +189,7 @@ public class ChatPanel extends VBox {
 
     private void sendMessage() {
         String query = inputField.getText() != null ? inputField.getText().trim() : "";
-        if (query.isBlank())
-            return;
+        if (query.isBlank()) return;
 
         addUserMessage(query);
         inputField.clear();
@@ -222,7 +198,7 @@ public class ChatPanel extends VBox {
         typingIndicator.setVisible(true);
 
         if (currentCaseId == null || currentCaseId.isBlank()) {
-            addSherlockMessage("Please select or create a case first to query the knowledge graph.");
+            addSherlockMessage("Please select or create a case first.");
             sendButton.setDisable(false);
             typingIndicator.setVisible(false);
             return;
@@ -237,14 +213,14 @@ public class ChatPanel extends VBox {
                     if (resp != null && resp.getAnswer() != null) {
                         addSherlockMessage(resp.getAnswer());
                     } else {
-                        addSherlockMessage("No specific evidence found matching your query.");
+                        addSherlockMessage("No specific evidence found.");
                     }
                 }))
                 .exceptionally(ex -> {
                     Platform.runLater(() -> {
                         sendButton.setDisable(false);
                         typingIndicator.setVisible(false);
-                        addSherlockMessage("Investigation Query Failed: " + ex.getMessage());
+                        addSherlockMessage("Query Failed: " + ex.getMessage());
                     });
                     return null;
                 });
@@ -253,50 +229,51 @@ public class ChatPanel extends VBox {
     public void addUserMessage(String text) {
         VBox bubble = new VBox(4);
         bubble.getStyleClass().add("chat-bubble-user");
-        bubble.setMaxWidth(280);
+        bubble.setMaxWidth(260);
 
         Label userLbl = new Label("You");
-        userLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #bfdbfe;");
+        userLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.8);");
 
         Label content = new Label(text);
         content.setWrapText(true);
-        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffffff;");
+        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffffff; -fx-line-spacing: 2px;");
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.getStyleClass().add("chat-timestamp");
-        time.setStyle("-fx-text-fill: #bfdbfe;");
+        time.setStyle("-fx-font-size: 9px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
+        time.setMaxWidth(Double.MAX_VALUE);
 
         bubble.getChildren().addAll(userLbl, content, time);
 
         HBox row = new HBox(bubble);
         row.setAlignment(Pos.CENTER_RIGHT);
+        row.setPadding(new Insets(4, 0, 4, 0));
         messageContainer.getChildren().add(row);
     }
 
     public void addSherlockMessage(String text) {
-        VBox bubble = new VBox(6);
+        VBox bubble = new VBox(4);
         bubble.getStyleClass().add("chat-bubble-sherlock");
-        bubble.setMaxWidth(300);
+        bubble.setMaxWidth(280);
 
         HBox header = new HBox(6);
         header.setAlignment(Pos.CENTER_LEFT);
-        Label icon = new Label("🕵️");
-        icon.setStyle("-fx-font-size: 12px;");
+        Label icon = new Label("✨");
         Label sherlockLbl = new Label("Sherlock");
-        sherlockLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #60a5fa;");
+        sherlockLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
         header.getChildren().addAll(icon, sherlockLbl);
 
         Label content = new Label(text);
         content.setWrapText(true);
-        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #e2e8f0; -fx-line-spacing: 2px;");
+        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #334155; -fx-line-spacing: 2px;");
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.getStyleClass().add("chat-timestamp");
+        time.setStyle("-fx-font-size: 9px; -fx-text-fill: #94a3b8;");
 
         bubble.getChildren().addAll(header, content, time);
 
         HBox row = new HBox(bubble);
         row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(4, 0, 4, 0));
         messageContainer.getChildren().add(row);
     }
 }

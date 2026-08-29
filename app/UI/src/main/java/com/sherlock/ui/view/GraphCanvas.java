@@ -21,7 +21,6 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class GraphCanvas extends StackPane {
 
@@ -32,8 +31,14 @@ public class GraphCanvas extends StackPane {
         CIRCULAR("⭕ Circular");
 
         private final String label;
-        LayoutMode(String label) { this.label = label; }
-        public String getLabel() { return label; }
+
+        LayoutMode(String label) {
+            this.label = label;
+        }
+
+        public String getLabel() {
+            return label;
+        }
     }
 
     private final Canvas canvas = new Canvas(400, 300);
@@ -72,32 +77,28 @@ public class GraphCanvas extends StackPane {
     private TextField searchField;
 
     public GraphCanvas() {
-        setStyle("-fx-background-color: #0b0e14; -fx-background-radius: 10px; -fx-border-color: #1e293b; -fx-border-radius: 10px; -fx-border-width: 1px;");
+        setStyle(
+                "-fx-background-color: #ffffff; -fx-background-radius: 10px; -fx-border-color: #e2e8f0; -fx-border-radius: 10px; -fx-border-width: 1px;");
         setMinSize(300, 200);
 
-        // Bind canvas dimensions to StackPane
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
 
         widthProperty().addListener((obs, oldVal, newVal) -> render());
         heightProperty().addListener((obs, oldVal, newVal) -> render());
 
-        // Top-Left Filter & Search Overlay
         VBox searchFilterOverlay = buildSearchFilterOverlay();
         StackPane.setAlignment(searchFilterOverlay, Pos.TOP_LEFT);
         StackPane.setMargin(searchFilterOverlay, new Insets(12));
 
-        // Top-Right Toolbar
         HBox toolbar = buildToolbar();
         StackPane.setAlignment(toolbar, Pos.TOP_RIGHT);
         StackPane.setMargin(toolbar, new Insets(12));
 
-        // Bottom-Left Minimap
         VBox minimapBox = buildMinimap();
         StackPane.setAlignment(minimapBox, Pos.BOTTOM_LEFT);
         StackPane.setMargin(minimapBox, new Insets(12));
 
-        // Bottom-Right Legend
         HBox legendBox = buildLegend();
         StackPane.setAlignment(legendBox, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(legendBox, new Insets(12));
@@ -107,11 +108,11 @@ public class GraphCanvas extends StackPane {
         setupMouseHandlers();
         setupMinimapHandlers();
 
-        // Physics & Animation Loop
         renderLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (isSimulating && currentLayout == LayoutMode.FORCE_DIRECTED && simulationTicks < 350 && !nodes.isEmpty()) {
+                if (isSimulating && currentLayout == LayoutMode.FORCE_DIRECTED && simulationTicks < 350
+                        && !nodes.isEmpty()) {
                     stepPhysics();
                     simulationTicks++;
                 }
@@ -134,24 +135,17 @@ public class GraphCanvas extends StackPane {
         searchQuery = "";
 
         if (data != null) {
-            if (data.getNodes() != null) {
-                nodes.addAll(data.getNodes());
-            }
-            if (data.getEdges() != null) {
-                edges.addAll(data.getEdges());
-            }
+            if (data.getNodes() != null) nodes.addAll(data.getNodes());
+            if (data.getEdges() != null) edges.addAll(data.getEdges());
         }
 
         if (nodes.isEmpty()) {
-            zoom = 1.0;
-            panX = 0;
-            panY = 0;
+            zoom = 1.0; panX = 0; panY = 0;
             isSimulating = false;
             render();
             return;
         }
 
-        // Build lookup map & compute connection degree for each node
         for (NodeDto n : nodes) {
             if (n.getId() != null) nodeLookup.put(n.getId().toLowerCase(Locale.ROOT), n);
             if (n.getName() != null) nodeLookup.put(n.getName().toLowerCase(Locale.ROOT), n);
@@ -183,7 +177,6 @@ public class GraphCanvas extends StackPane {
 
         switch (mode) {
             case DEGREE_HIERARCHY -> {
-                // Top-down hierarchy: Most connected nodes at the top layer
                 List<NodeDto> sorted = new ArrayList<>(nodes);
                 sorted.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
 
@@ -204,13 +197,11 @@ public class GraphCanvas extends StackPane {
                     NodeDto n = sorted.get(i);
                     n.setX(startX + col * spacingX + (Math.random() - 0.5) * 20);
                     n.setY(startY + tier * tierHeight + (Math.random() - 0.5) * 20);
-                    n.setVx(0);
-                    n.setVy(0);
+                    n.setVx(0); n.setVy(0);
                 }
                 isSimulating = false;
             }
             case RADIAL_HUB -> {
-                // Centrality hub: Nodes with highest degree placed in central circle, others placed on outer concentric rings
                 List<NodeDto> sorted = new ArrayList<>(nodes);
                 sorted.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
 
@@ -231,8 +222,7 @@ public class GraphCanvas extends StackPane {
                         n.setX(cx + outerRadius * Math.cos(angle) + (Math.random() - 0.5) * 30);
                         n.setY(cy + outerRadius * Math.sin(angle) + (Math.random() - 0.5) * 30);
                     }
-                    n.setVx(0);
-                    n.setVy(0);
+                    n.setVx(0); n.setVy(0);
                 }
                 isSimulating = false;
             }
@@ -243,8 +233,7 @@ public class GraphCanvas extends StackPane {
                     double angle = (2 * Math.PI * i) / Math.max(1, nodes.size());
                     n.setX(cx + radius * Math.cos(angle));
                     n.setY(cy + radius * Math.sin(angle));
-                    n.setVx(0);
-                    n.setVy(0);
+                    n.setVx(0); n.setVy(0);
                 }
                 isSimulating = false;
             }
@@ -255,14 +244,12 @@ public class GraphCanvas extends StackPane {
                     double angle = (2 * Math.PI * i) / Math.max(1, nodes.size());
                     n.setX(cx + radius * Math.cos(angle) + (Math.random() - 0.5) * 60);
                     n.setY(cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 60);
-                    n.setVx(0);
-                    n.setVy(0);
+                    n.setVx(0); n.setVy(0);
                 }
                 simulationTicks = 0;
                 isSimulating = true;
             }
         }
-
         fitToView();
     }
 
@@ -271,7 +258,6 @@ public class GraphCanvas extends StackPane {
         this.selectedNode = node;
         this.selectedEdge = null;
 
-        // Center on the selected node
         double canvasW = Math.max(120, canvas.getWidth());
         double canvasH = Math.max(120, canvas.getHeight());
         panX = (canvasW / 2) - node.getX() * zoom;
@@ -284,9 +270,9 @@ public class GraphCanvas extends StackPane {
     private VBox buildSearchFilterOverlay() {
         VBox overlay = new VBox(6);
         overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        overlay.setStyle("-fx-background-color: rgba(15, 23, 42, 0.90); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 0, 3);");
+        overlay.setStyle(
+                "-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 3);");
 
-        // Search Field Row
         HBox searchRow = new HBox(6);
         searchRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -295,7 +281,8 @@ public class GraphCanvas extends StackPane {
 
         searchField = new TextField();
         searchField.setPromptText("Search entity / connection...");
-        searchField.setStyle("-fx-font-size: 11px; -fx-background-color: #1e293b; -fx-text-fill: #ffffff; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
+        searchField.setStyle(
+                "-fx-font-size: 11px; -fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
         searchField.textProperty().addListener((obs, oldV, newV) -> {
             searchQuery = newV != null ? newV.trim().toLowerCase(Locale.ROOT) : "";
             render();
@@ -315,11 +302,10 @@ public class GraphCanvas extends StackPane {
 
         searchRow.getChildren().addAll(searchIcon, searchField, clearSearchBtn);
 
-        // Filter Pills Row
         HBox filterRow = new HBox(4);
         filterRow.setAlignment(Pos.CENTER_LEFT);
 
-        String[] types = {"ALL", "PERSON", "LOCATION", "ORG", "DOC", "PHONE", "EVENT"};
+        String[] types = { "ALL", "PERSON", "LOCATION", "ORG", "DOC", "PHONE", "EVENT" };
         for (String t : types) {
             Button pill = new Button(t);
             pill.getStyleClass().add("filter-pill");
@@ -342,9 +328,9 @@ public class GraphCanvas extends StackPane {
 
     private void updateFilterPillStyle(Button pill, boolean isSelected) {
         if (isSelected) {
-            pill.setStyle("-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+            pill.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: #ffffff; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
         } else {
-            pill.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 9px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+            pill.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #64748b; -fx-font-size: 9px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
         }
     }
 
@@ -352,9 +338,9 @@ public class GraphCanvas extends StackPane {
         HBox toolbar = new HBox(6);
         toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         toolbar.setAlignment(Pos.CENTER_RIGHT);
-        toolbar.setStyle("-fx-background-color: rgba(18, 24, 36, 0.90); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        toolbar.setStyle(
+                "-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
 
-        // Layout Dropdown
         ComboBox<LayoutMode> layoutCombo = new ComboBox<>();
         layoutCombo.getItems().addAll(LayoutMode.values());
         layoutCombo.setValue(LayoutMode.FORCE_DIRECTED);
@@ -372,7 +358,7 @@ public class GraphCanvas extends StackPane {
                 setText(empty || item == null ? null : item.getLabel());
             }
         });
-        layoutCombo.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-font-size: 10px; -fx-font-weight: bold; -fx-pref-width: 140px; -fx-background-radius: 6px;");
+        layoutCombo.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #0284c7; -fx-font-size: 10px; -fx-font-weight: bold; -fx-pref-width: 140px; -fx-background-radius: 6px;");
         layoutCombo.setOnAction(e -> applyLayout(layoutCombo.getValue()));
 
         Button selectBtn = new Button("↖");
@@ -411,18 +397,12 @@ public class GraphCanvas extends StackPane {
         Button zoomInBtn = new Button("＋");
         zoomInBtn.setTooltip(new Tooltip("Zoom In"));
         zoomInBtn.getStyleClass().add("tool-button");
-        zoomInBtn.setOnAction(e -> {
-            zoom = Math.min(3.5, zoom * 1.2);
-            render();
-        });
+        zoomInBtn.setOnAction(e -> { zoom = Math.min(3.5, zoom * 1.2); render(); });
 
         Button zoomOutBtn = new Button("－");
         zoomOutBtn.setTooltip(new Tooltip("Zoom Out"));
         zoomOutBtn.getStyleClass().add("tool-button");
-        zoomOutBtn.setOnAction(e -> {
-            zoom = Math.max(0.15, zoom / 1.2);
-            render();
-        });
+        zoomOutBtn.setOnAction(e -> { zoom = Math.max(0.15, zoom / 1.2); render(); });
 
         Button fitBtn = new Button("⛶");
         fitBtn.setTooltip(new Tooltip("Fit Graph to Screen"));
@@ -441,10 +421,10 @@ public class GraphCanvas extends StackPane {
     private VBox buildMinimap() {
         VBox box = new VBox(4);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.90); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
 
         Label title = new Label("Minimap (Interactive)");
-        title.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
 
         minimapCanvas.setWidth(130);
         minimapCanvas.setHeight(85);
@@ -457,10 +437,10 @@ public class GraphCanvas extends StackPane {
         HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.90); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: #e2e8f0; -fx-border-radius: 6px; -fx-border-width: 1px;");
 
         Label title = new Label("ENTITIES:");
-        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
         box.getChildren().add(title);
 
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
@@ -478,7 +458,7 @@ public class GraphCanvas extends StackPane {
         row.setAlignment(Pos.CENTER_LEFT);
         Circle dot = new Circle(3, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #94a3b8;");
+        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b;");
         row.getChildren().addAll(dot, label);
         return row;
     }
@@ -573,19 +553,14 @@ public class GraphCanvas extends StackPane {
             isMinimapDragging = true;
             panFromMinimap(e.getX(), e.getY());
         });
-
         minimapCanvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, e -> {
-            if (isMinimapDragging) {
-                panFromMinimap(e.getX(), e.getY());
-            }
+            if (isMinimapDragging) panFromMinimap(e.getX(), e.getY());
         });
-
         minimapCanvas.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> isMinimapDragging = false);
     }
 
     private void panFromMinimap(double mx, double my) {
         if (nodes.isEmpty()) return;
-
         double mw = minimapCanvas.getWidth();
         double mh = minimapCanvas.getHeight();
 
@@ -620,11 +595,7 @@ public class GraphCanvas extends StackPane {
 
     public void fitToView() {
         if (nodes.isEmpty()) {
-            zoom = 1.0;
-            panX = 0;
-            panY = 0;
-            render();
-            return;
+            zoom = 1.0; panX = 0; panY = 0; render(); return;
         }
 
         double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
@@ -680,7 +651,6 @@ public class GraphCanvas extends StackPane {
                     double force = (repulsion / (dist * dist));
                     double fx = (dx / dist) * force;
                     double fy = (dy / dist) * force;
-
                     n1.setVx(n1.getVx() - fx);
                     n1.setVy(n1.getVy() - fy);
                     n2.setVx(n2.getVx() + fx);
@@ -750,7 +720,6 @@ public class GraphCanvas extends StackPane {
         gc.translate(panX, panY);
         gc.scale(zoom, zoom);
 
-        // Determine highlighted / connected neighborhood
         Set<NodeDto> activeNeighbors = new HashSet<>();
         Set<EdgeDto> activeEdges = new HashSet<>();
         NodeDto focusNode = selectedNode != null ? selectedNode : hoveredNode;
@@ -770,7 +739,6 @@ public class GraphCanvas extends StackPane {
             }
         }
 
-        // Draw Edges
         for (EdgeDto edge : edges) {
             NodeDto src = getNode(edge.getSource());
             NodeDto tgt = getNode(edge.getTarget());
@@ -778,13 +746,11 @@ public class GraphCanvas extends StackPane {
                 boolean isEdgeSelected = (edge == selectedEdge);
                 boolean isEdgeHovered = (edge == hoveredEdge);
                 boolean isEdgeActive = focusNode == null || activeEdges.contains(edge) || isEdgeSelected || isEdgeHovered;
-
                 double opacity = isEdgeActive ? 1.0 : 0.12;
                 drawEdge(gc, src, tgt, edge, isEdgeSelected, isEdgeHovered, opacity);
             }
         }
 
-        // Sort nodes so HIGHER DEGREE (more connections) NODES ARE DRAWN ON TOP (highest z-order)
         List<NodeDto> renderList = new ArrayList<>(nodes);
         renderList.sort(Comparator.comparingInt(this::getNodeDegree));
 
@@ -793,17 +759,13 @@ public class GraphCanvas extends StackPane {
             boolean isHov = (node == hoveredNode);
             boolean isMatchSearch = matchesSearch(node);
             boolean isMatchFilter = matchesFilter(node);
-
-            boolean isDimmed = !isMatchFilter || (!searchQuery.isEmpty() && !isMatchSearch)
-                    || (focusNode != null && !activeNeighbors.contains(node));
-
+            boolean isDimmed = !isMatchFilter || (!searchQuery.isEmpty() && !isMatchSearch) || (focusNode != null && !activeNeighbors.contains(node));
             double opacity = isDimmed ? 0.18 : 1.0;
             drawNode(gc, node, isSel, isHov, isMatchSearch && !searchQuery.isEmpty(), opacity);
         }
 
         gc.restore();
 
-        // Draw hover tooltip on top
         if (hoveredNode != null && draggedNode == null) {
             drawNodeTooltip(gc, hoveredNode);
         }
@@ -840,7 +802,7 @@ public class GraphCanvas extends StackPane {
     }
 
     private void drawGrid(GraphicsContext gc, double w, double h) {
-        gc.setStroke(Color.web("#141b27"));
+        gc.setStroke(Color.web("#f1f5f9"));
         gc.setLineWidth(1.0);
         double gridSize = 32.0 * zoom;
         double startX = (panX % gridSize + gridSize) % gridSize;
@@ -873,7 +835,7 @@ public class GraphCanvas extends StackPane {
         double endX = x2 - (dx / dist) * (radiusTgt + 6);
         double endY = y2 - (dy / dist) * (radiusTgt + 6);
 
-        Color baseColor = isSelected ? Color.web("#60A5FA") : isHovered ? Color.web("#93C5FD") : Color.web("#334155");
+        Color baseColor = isSelected ? Color.web("#2563EB") : isHovered ? Color.web("#60A5FA") : Color.web("#94A3B8");
         Color strokeColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), opacity);
 
         double lineWidth = isSelected ? 3.2 : isHovered ? 2.4 : 1.5;
@@ -881,10 +843,8 @@ public class GraphCanvas extends StackPane {
         gc.setStroke(strokeColor);
         gc.setLineWidth(lineWidth);
         gc.strokeLine(startX, startY, endX, endY);
-
         drawArrowHead(gc, startX, startY, endX, endY, strokeColor);
 
-        // Edge label badge
         if (opacity > 0.3) {
             double midX = (startX + endX) / 2;
             double midY = (startY + endY) / 2;
@@ -894,14 +854,14 @@ public class GraphCanvas extends StackPane {
             double textWidth = relLabel.length() * 5.5 + 12;
             double textHeight = 16;
 
-            Color badgeBg = isSelected ? Color.web("#1E3A8A") : Color.web("#161F30");
+            Color badgeBg = isSelected ? Color.web("#dbeafe") : Color.web("#f1f5f9");
             gc.setFill(Color.color(badgeBg.getRed(), badgeBg.getGreen(), badgeBg.getBlue(), opacity));
             gc.setStroke(strokeColor);
             gc.setLineWidth(1.0);
             gc.fillRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
             gc.strokeRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
 
-            Color textCol = isSelected ? Color.web("#FFFFFF") : Color.web("#94A3B8");
+            Color textCol = isSelected ? Color.web("#1e40af") : Color.web("#475569");
             gc.setFill(Color.color(textCol.getRed(), textCol.getGreen(), textCol.getBlue(), opacity));
             gc.setTextAlign(TextAlignment.CENTER);
             gc.fillText(relLabel, midX, midY + 3.5);
@@ -915,15 +875,13 @@ public class GraphCanvas extends StackPane {
 
         double sin = Math.sin(angle);
         double cos = Math.cos(angle);
-
         double p1x = x2 - arrowLength * cos + arrowWidth * sin;
         double p1y = y2 - arrowLength * sin - arrowWidth * cos;
-
         double p2x = x2 - arrowLength * cos - arrowWidth * sin;
         double p2y = y2 - arrowLength * sin + arrowWidth * cos;
 
         gc.setFill(color);
-        gc.fillPolygon(new double[]{x2, p1x, p2x}, new double[]{y2, p1y, p2y}, 3);
+        gc.fillPolygon(new double[] { x2, p1x, p2x }, new double[] { y2, p1y, p2y }, 3);
     }
 
     private void drawNode(GraphicsContext gc, NodeDto node, boolean isSelected, boolean isHovered, boolean isSearchMatch, double opacity) {
@@ -933,7 +891,6 @@ public class GraphCanvas extends StackPane {
         int degree = getNodeDegree(node);
         Color typeColor = getTypeColor(node.getType());
 
-        // 1. Prominent Outer Glow for High-Degree Hub Nodes (or selected/matched)
         if (degree >= 3 && opacity > 0.5) {
             Color glowColor = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.18 + Math.min(0.25, degree * 0.03));
             gc.setFill(glowColor);
@@ -955,45 +912,37 @@ public class GraphCanvas extends StackPane {
             gc.strokeOval(x - radius - 4, y - radius - 4, (radius + 4) * 2, (radius + 4) * 2);
         }
 
-        // 2. Node Body
-        gc.setFill(Color.color(0.06, 0.09, 0.16, opacity));
+        gc.setFill(Color.color(1.0, 1.0, 1.0, opacity));
         gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
 
         gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
         gc.setLineWidth(isSelected ? 3.2 : degree >= 3 ? 2.5 : 2.0);
         gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
 
-        // 3. Node Symbol
         String symbol = getTypeSymbol(node.getType());
         gc.setFont(Font.font("System", FontWeight.BOLD, 15));
-        Color symColor = typeColor.brighter();
+        Color symColor = typeColor.darker();
         gc.setFill(Color.color(symColor.getRed(), symColor.getGreen(), symColor.getBlue(), opacity));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(symbol, x, y - 5);
 
-        // 4. Node Label
         String label = node.getName() != null ? node.getName() : "Entity";
-        if (label.length() > 16) {
-            label = label.substring(0, 14) + "..";
-        }
+        if (label.length() > 16) label = label.substring(0, 14) + "..";
         gc.setFont(Font.font("System", FontWeight.BOLD, 10.5));
-        gc.setFill(Color.color(0.92, 0.94, 0.96, opacity));
+        gc.setFill(Color.color(0.06, 0.09, 0.16, opacity));
         gc.fillText(label, x, y + 14);
 
-        // 5. Connection Count Badge for Top Connected Nodes
         if (degree > 0 && opacity > 0.4) {
             double badgeX = x + radius * 0.70;
             double badgeY = y - radius * 0.70;
             double bR = 9.0;
-
-            gc.setFill(Color.web("#1E293B"));
+            gc.setFill(Color.web("#F8FAFC"));
             gc.fillOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
-            gc.setStroke(degree >= 4 ? Color.web("#38BDF8") : Color.web("#64748B"));
+            gc.setStroke(degree >= 4 ? Color.web("#0284C7") : Color.web("#94A3B8"));
             gc.setLineWidth(1.2);
             gc.strokeOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
-
             gc.setFont(Font.font("System", FontWeight.BOLD, 8.5));
-            gc.setFill(degree >= 4 ? Color.web("#38BDF8") : Color.web("#CBD5E1"));
+            gc.setFill(degree >= 4 ? Color.web("#0284C7") : Color.web("#475569"));
             gc.fillText(String.valueOf(degree), badgeX, badgeY + 3.0);
         }
     }
@@ -1017,18 +966,18 @@ public class GraphCanvas extends StackPane {
         double tx = Math.max(10, Math.min(canvas.getWidth() - w - 10, screenX - w / 2));
         double ty = Math.max(10, screenY - h);
 
-        gc.setFill(Color.web("#0F172A", 0.95));
+        gc.setFill(Color.web("#ffffff", 0.95));
         gc.fillRoundRect(tx, ty, w, h, 8, 8);
-        gc.setStroke(Color.web("#38BDF8"));
+        gc.setStroke(Color.web("#cbd5e1"));
         gc.setLineWidth(1.2);
         gc.strokeRoundRect(tx, ty, w, h, 8, 8);
 
-        gc.setFill(Color.web("#FFFFFF"));
+        gc.setFill(Color.web("#0f172a"));
         gc.setTextAlign(TextAlignment.LEFT);
         gc.fillText(title, tx + 10, ty + 16);
 
         gc.setFont(Font.font("System", FontWeight.NORMAL, 9.5));
-        gc.setFill(Color.web("#94A3B8"));
+        gc.setFill(Color.web("#64748b"));
         gc.fillText(stats, tx + 10, ty + 32);
     }
 
@@ -1038,7 +987,7 @@ public class GraphCanvas extends StackPane {
         double mh = minimapCanvas.getHeight();
         mgc.clearRect(0, 0, mw, mh);
 
-        mgc.setFill(Color.web("#0D131F"));
+        mgc.setFill(Color.web("#f8fafc"));
         mgc.fillRect(0, 0, mw, mh);
 
         if (nodes.isEmpty()) return;
@@ -1060,14 +1009,13 @@ public class GraphCanvas extends StackPane {
         double offX = (mw - spanX * scale) / 2 - minX * scale;
         double offY = (mh - spanY * scale) / 2 - minY * scale;
 
-        mgc.setStroke(Color.web("#1E293B"));
+        mgc.setStroke(Color.web("#cbd5e1"));
         mgc.setLineWidth(1.0);
         for (EdgeDto edge : edges) {
             NodeDto src = getNode(edge.getSource());
             NodeDto tgt = getNode(edge.getTarget());
             if (src != null && tgt != null) {
-                mgc.strokeLine(src.getX() * scale + offX, src.getY() * scale + offY,
-                        tgt.getX() * scale + offX, tgt.getY() * scale + offY);
+                mgc.strokeLine(src.getX() * scale + offX, src.getY() * scale + offY, tgt.getX() * scale + offX, tgt.getY() * scale + offY);
             }
         }
 
@@ -1100,7 +1048,6 @@ public class GraphCanvas extends StackPane {
         double worldX = (screenX - panX) / zoom;
         double worldY = (screenY - panY) / zoom;
 
-        // Search in reverse order so top-drawn nodes get hit first
         List<NodeDto> searchOrder = new ArrayList<>(nodes);
         searchOrder.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
 
@@ -1108,9 +1055,7 @@ public class GraphCanvas extends StackPane {
             double dx = worldX - n.getX();
             double dy = worldY - n.getY();
             double r = getNodeRadius(n);
-            if (dx * dx + dy * dy <= r * r) {
-                return n;
-            }
+            if (dx * dx + dy * dy <= r * r) return n;
         }
         return null;
     }
@@ -1124,9 +1069,7 @@ public class GraphCanvas extends StackPane {
             NodeDto tgt = getNode(edge.getTarget());
             if (src != null && tgt != null) {
                 double dist = pointToLineSegmentDistance(worldX, worldY, src.getX(), src.getY(), tgt.getX(), tgt.getY());
-                if (dist < 12.0) {
-                    return edge;
-                }
+                if (dist < 12.0) return edge;
             }
         }
         return null;
@@ -1155,7 +1098,6 @@ public class GraphCanvas extends StackPane {
     private double getNodeRadius(NodeDto n) {
         int mentions = n.getMentions() != null ? n.getMentions() : 1;
         int degree = getNodeDegree(n);
-        // Base radius 36, grows with degree and mentions
         return Math.min(56.0, 36.0 + Math.min(12.0, degree * 2.5) + Math.log(mentions + 1) * 2.5);
     }
 
@@ -1187,7 +1129,15 @@ public class GraphCanvas extends StackPane {
         };
     }
 
-    public void setOnNodeSelected(Consumer<NodeDto> onNodeSelected) { this.onNodeSelected = onNodeSelected; }
-    public void setOnEdgeSelected(Consumer<EdgeDto> onEdgeSelected) { this.onEdgeSelected = onEdgeSelected; }
-    public void setOnSelectionCleared(Runnable onSelectionCleared) { this.onSelectionCleared = onSelectionCleared; }
+    public void setOnNodeSelected(Consumer<NodeDto> onNodeSelected) {
+        this.onNodeSelected = onNodeSelected;
+    }
+
+    public void setOnEdgeSelected(Consumer<EdgeDto> onEdgeSelected) {
+        this.onEdgeSelected = onEdgeSelected;
+    }
+
+    public void setOnSelectionCleared(Runnable onSelectionCleared) {
+        this.onSelectionCleared = onSelectionCleared;
+    }
 }

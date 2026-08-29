@@ -56,7 +56,8 @@ public class Neo4jGraphService {
         if (driver == null) {
             initDriver();
         }
-        if (driver == null) return false;
+        if (driver == null)
+            return false;
 
         try {
             driver.verifyConnectivity();
@@ -76,13 +77,15 @@ public class Neo4jGraphService {
 
         boolean connected = isConnected();
         status.put("connected", connected);
-        status.put("message", connected ? "Connected to Neo4j" : "Neo4j is offline or unreachable (falling back to JSON graph files)");
+        status.put("message", connected ? "Connected to Neo4j"
+                : "Neo4j is offline or unreachable (falling back to JSON graph files)");
         return status;
     }
 
     /**
      * Fetch graph data directly from Neo4j for a given caseId
      */
+    @SuppressWarnings("null")
     public GraphDataResponse fetchGraphFromNeo4j(String caseId) {
         if (!isConnected()) {
             return null;
@@ -120,23 +123,28 @@ public class Neo4jGraphService {
                 }
                 if (!rec.get("aliases").isNull()) {
                     try {
-                        node.setAliases(rec.get("aliases").asList(Value::asString));
-                    } catch (Exception ignored) {}
+                        node.setAliases(rec.get("aliases").asList(v -> v.asString()));
+                    } catch (Exception ignored) {
+                    }
                 }
                 if (!rec.get("sourceFiles").isNull()) {
                     try {
-                        node.setSourceFiles(rec.get("sourceFiles").asList(Value::asString));
-                    } catch (Exception ignored) {}
+                        node.setSourceFiles(rec.get("sourceFiles").asList(v -> v.asString()));
+                    } catch (Exception ignored) {
+                    }
                 }
                 if (!rec.get("chunkIds").isNull()) {
                     try {
-                        node.setChunkIds(rec.get("chunkIds").asList(Value::asString));
-                    } catch (Exception ignored) {}
+                        node.setChunkIds(rec.get("chunkIds").asList(v -> v.asString()));
+                    } catch (Exception ignored) {
+                    }
                 }
                 if (!rec.get("data").isNull()) {
                     String dataStr = rec.get("data").asString("{}");
                     try {
-                        node.setData(objectMapper.readValue(dataStr, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+                        node.setData(objectMapper.readValue(dataStr,
+                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+                                }));
                     } catch (Exception ignored) {
                         node.setData(Map.of("raw", dataStr));
                     }
@@ -163,24 +171,31 @@ public class Neo4jGraphService {
                 String relType = rec.get("relType").asString("RELATED_TO");
 
                 GraphDataResponse.Edge edge = new GraphDataResponse.Edge(sourceName, relType, targetName);
-                if (!rec.get("relId").isNull()) edge.setRelationId(rec.get("relId").asString());
-                if (!rec.get("confidence").isNull()) edge.setConfidence(rec.get("confidence").asDouble());
-                if (!rec.get("evidenceText").isNull()) edge.setEvidenceText(rec.get("evidenceText").asString());
-                if (!rec.get("sourceFile").isNull()) edge.setSourceFile(rec.get("sourceFile").asString());
-                if (!rec.get("chunkId").isNull()) edge.setChunkId(rec.get("chunkId").asString());
+                if (!rec.get("relId").isNull())
+                    edge.setRelationId(rec.get("relId").asString());
+                if (!rec.get("confidence").isNull())
+                    edge.setConfidence(rec.get("confidence").asDouble());
+                if (!rec.get("evidenceText").isNull())
+                    edge.setEvidenceText(rec.get("evidenceText").asString());
+                if (!rec.get("sourceFile").isNull())
+                    edge.setSourceFile(rec.get("sourceFile").asString());
+                if (!rec.get("chunkId").isNull())
+                    edge.setChunkId(rec.get("chunkId").asString());
 
                 edges.add(edge);
 
                 // Add source / target nodes if not yet registered
                 if (!nodeMap.containsKey(sourceName.toLowerCase(Locale.ROOT))) {
                     String sType = rec.get("sourceType").asString("ENTITY");
-                    GraphDataResponse.Node sNode = new GraphDataResponse.Node(rec.get("sourceId").asString(sourceName), sourceName, sType);
+                    GraphDataResponse.Node sNode = new GraphDataResponse.Node(rec.get("sourceId").asString(sourceName),
+                            sourceName, sType);
                     nodes.add(sNode);
                     nodeMap.put(sourceName.toLowerCase(Locale.ROOT), sNode);
                 }
                 if (!nodeMap.containsKey(targetName.toLowerCase(Locale.ROOT))) {
                     String tType = rec.get("targetType").asString("ENTITY");
-                    GraphDataResponse.Node tNode = new GraphDataResponse.Node(rec.get("targetId").asString(targetName), targetName, tType);
+                    GraphDataResponse.Node tNode = new GraphDataResponse.Node(rec.get("targetId").asString(targetName),
+                            targetName, tType);
                     nodes.add(tNode);
                     nodeMap.put(targetName.toLowerCase(Locale.ROOT), tNode);
                 }
@@ -219,17 +234,18 @@ public class Neo4jGraphService {
                         if (node.getData() != null) {
                             try {
                                 dataJson = objectMapper.writeValueAsString(node.getData());
-                            } catch (JsonProcessingException ignored) {}
+                            } catch (JsonProcessingException ignored) {
+                            }
                         }
 
                         String safeType = sanitizeLabel(node.getType() != null ? node.getType() : "Entity");
 
                         String nodeCypher = String.format(
                                 "MERGE (n:%s {id: $id, project_id: $caseId}) " +
-                                "ON CREATE SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds " +
-                                "ON MATCH SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds",
-                                safeType
-                        );
+                                        "ON CREATE SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds "
+                                        +
+                                        "ON MATCH SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds",
+                                safeType);
 
                         tx.run(nodeCypher, Values.parameters(
                                 "id", node.getId() != null ? node.getId() : node.getName(),
@@ -241,26 +257,28 @@ public class Neo4jGraphService {
                                 "data", dataJson,
                                 "aliases", node.getAliases() != null ? node.getAliases() : List.of(),
                                 "sourceFiles", node.getSourceFiles() != null ? node.getSourceFiles() : List.of(),
-                                "chunkIds", node.getChunkIds() != null ? node.getChunkIds() : List.of()
-                        ));
+                                "chunkIds", node.getChunkIds() != null ? node.getChunkIds() : List.of()));
                     }
                 }
 
                 // Merge Relationships
                 if (graphData.getEdges() != null) {
                     for (GraphDataResponse.Edge edge : graphData.getEdges()) {
-                        String safeRel = sanitizeRelation(edge.getRelation() != null ? edge.getRelation() : "RELATED_TO");
+                        String safeRel = sanitizeRelation(
+                                edge.getRelation() != null ? edge.getRelation() : "RELATED_TO");
 
                         String relCypher = String.format(
                                 "MATCH (s) WHERE (s.name = $source OR s.id = $source) AND s.project_id = $caseId " +
-                                "MATCH (t) WHERE (t.name = $target OR t.id = $target) AND t.project_id = $caseId " +
-                                "MERGE (s)-[r:%s {relation_id: $relId, project_id: $caseId}]->(t) " +
-                                "ON CREATE SET r.confidence = $confidence, r.evidence_text = $evidenceText, r.source_file = $sourceFile, r.chunk_id = $chunkId " +
-                                "ON MATCH SET r.confidence = $confidence, r.evidence_text = $evidenceText, r.source_file = $sourceFile, r.chunk_id = $chunkId",
-                                safeRel
-                        );
+                                        "MATCH (t) WHERE (t.name = $target OR t.id = $target) AND t.project_id = $caseId "
+                                        +
+                                        "MERGE (s)-[r:%s {relation_id: $relId, project_id: $caseId}]->(t) " +
+                                        "ON CREATE SET r.confidence = $confidence, r.evidence_text = $evidenceText, r.source_file = $sourceFile, r.chunk_id = $chunkId "
+                                        +
+                                        "ON MATCH SET r.confidence = $confidence, r.evidence_text = $evidenceText, r.source_file = $sourceFile, r.chunk_id = $chunkId",
+                                safeRel);
 
-                        String relId = edge.getRelationId() != null ? edge.getRelationId() : UUID.randomUUID().toString();
+                        String relId = edge.getRelationId() != null ? edge.getRelationId()
+                                : UUID.randomUUID().toString();
 
                         tx.run(relCypher, Values.parameters(
                                 "source", edge.getSource(),
@@ -270,8 +288,7 @@ public class Neo4jGraphService {
                                 "confidence", edge.getConfidence() != null ? edge.getConfidence() : 1.0,
                                 "evidenceText", edge.getEvidenceText() != null ? edge.getEvidenceText() : "",
                                 "sourceFile", edge.getSourceFile() != null ? edge.getSourceFile() : "",
-                                "chunkId", edge.getChunkId() != null ? edge.getChunkId() : ""
-                        ));
+                                "chunkId", edge.getChunkId() != null ? edge.getChunkId() : ""));
                     }
                 }
                 return null;
@@ -312,9 +329,11 @@ public class Neo4jGraphService {
     }
 
     private String sanitizeLabel(String label) {
-        if (label == null || label.isBlank()) return "Entity";
+        if (label == null || label.isBlank())
+            return "Entity";
         String clean = label.replaceAll("[^a-zA-Z0-9_]", "");
-        if (clean.isEmpty()) return "Entity";
+        if (clean.isEmpty())
+            return "Entity";
         // Cypher identifiers cannot start with a digit
         if (Character.isDigit(clean.charAt(0))) {
             clean = "L_" + clean;
@@ -323,9 +342,11 @@ public class Neo4jGraphService {
     }
 
     private String sanitizeRelation(String rel) {
-        if (rel == null || rel.isBlank()) return "RELATED_TO";
+        if (rel == null || rel.isBlank())
+            return "RELATED_TO";
         String clean = rel.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_]", "_");
-        if (clean.isEmpty()) return "RELATED_TO";
+        if (clean.isEmpty())
+            return "RELATED_TO";
         // Cypher identifiers cannot start with a digit
         if (Character.isDigit(clean.charAt(0))) {
             clean = "R_" + clean;
@@ -342,7 +363,8 @@ public class Neo4jGraphService {
         if (driver != null) {
             try {
                 driver.close();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 }
