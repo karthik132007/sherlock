@@ -1,0 +1,75 @@
+{
+  "_comment": "Sherlock per-case LLM config — place a copy as <case_folder>/llm.json (created by UI). Supports many providers via OpenAI-compatible SDK.",
+  "provider_examples": {
+    "openai": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "api_key": "sk-...",
+      "context_window": 128000,
+      "temperature": 0.1,
+      "_base_url_default": "https://api.openai.com/v1"
+    },
+    "openrouter": {
+      "provider": "openrouter",
+      "model": "openai/gpt-4o-mini",
+      "api_key": "sk-or-...",
+      "context_window": 200000,
+      "temperature": 0.1,
+      "_base_url_default": "https://openrouter.ai/api/v1",
+      "_note": "OpenRouter forwards to OpenAI/DeepSeek/etc via one key"
+    },
+    "deepseek": {
+      "provider": "deepseek",
+      "model": "deepseek-chat",
+      "api_key": "sk-deepseek-...",
+      "context_window": 64000,
+      "temperature": 0.1,
+      "_base_url_default": "https://api.deepseek.com/v1"
+    },
+    "groq": {
+      "provider": "groq",
+      "model": "llama-3.3-70b-versatile",
+      "api_key": "gsk_...",
+      "context_window": 128000,
+      "_base_url_default": "https://api.groq.com/openai/v1"
+    },
+    "together": {
+      "provider": "together",
+      "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      "api_key": "tgp_...",
+      "_base_url_default": "https://api.together.xyz/v1"
+    },
+    "mistral": {
+      "provider": "mistral",
+      "model": "mistral-large-latest",
+      "api_key": "mistral-...",
+      "_base_url_default": "https://api.mistral.ai/v1"
+    },
+    "ollama_local": {
+      "provider": "ollama",
+      "model": "llama3.1",
+      "api_key": "ollama",
+      "base_url": "http://localhost:11434/v1",
+      "context_window": 128000
+    },
+    "custom_openai_compatible": {
+      "provider": "custom",
+      "model": "gpt-4o-mini",
+      "api_key": "sk-...",
+      "base_url": "https://your-proxy.example.com/v1",
+      "context_window": 500000
+    }
+  },
+  "active_config_example": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "api_key": "sk-...",
+    "base_url": null,
+    "context_window": 128000,
+    "temperature": 0.1,
+    "extra_headers": {},
+    "extra_body": {}
+  },
+  "flexible_keys": "All keys accept aliases: provider/provider_name/llm_provider, model/model_name/llm_model, api_key/apiKey/key/token, base_url/baseUrl/api_base, context_window/contextWindow/max_tokens",
+  "priority": "1) <case>/llm.json  2) env vars (OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, GROQ_API_KEY, LLM_API)  3) CLI --model/--context-window overrides"
+}

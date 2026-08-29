@@ -61,9 +61,12 @@ Sherlock consists of two primary components:
                │
                ▼
 ┌───────────────────────────┐
-│          Neo4j            │
+│   File-based Graph        │
+│  (processed/ + Neo4j next)│
 │                           │
-│ Knowledge Graph Database  │
+│ relations.json            │
+│ graph_data.json           │
+│  → Neo4j (future)         │
 └───────────────────────────┘
 ```
 
@@ -112,11 +115,13 @@ Create:
 Documents/
 └── Sherlock/
     └── Operation Rose/
-        ├── data/
-        ├── processed/
-        ├── graph/
-        └── warehouse.txt
+        ├── data/           # raw .txt evidence (copied)
+        ├── processed/      # chunks.json, entities.json, relations.json, graph_data.json
+        ├── llm.json        # per-case LLM config (provider/model/api_key) — written by UI
+        └── warehouse.txt   # combined source-boundaried text
 ```
+
+`graph/` is reserved for future Neo4j/visualization; current MVP uses `processed/` only.
 
 The folder name should be based on the case/project name provided by the user.
 
@@ -225,49 +230,57 @@ Python is responsible for:
 ```text
 warehouse.txt
        ↓
+Token-window check (vs LLM context window, e.g. 500k) → decide batched vs single-call
+       ↓
 Document Parsing
        ↓
-Chunking
+Chunking (semantic, per-source provenance)
        ↓
-Entity Extraction
+Entity Extraction (batched LLM, 20 chunks/batch, dedup via previous-batch context)
        ↓
-Relationship Extraction
+Relationship Extraction (batched LLM, grounded on entities with data)
        ↓
-Graph Construction
+Graph Construction (node-relation-node mapping with embedded data → relation_id)
        ↓
-Neo4j
+File-based Graph (processed/relations.json + graph_data.json) → Neo4j (future)
 ```
 
-The Python engine should be modular.
+The Python engine is modular but intentionally flat for hackathon speed.
 
-Recommended structure:
+Actual structure (implemented):
 
 ```text
-python_engine/
-├── main.py
-├── config.py
+./
+├── main.py                          # warehouse → token check → chunking → optional --extract
+├── llm.json.example                 # per-provider template (see §5.1)
 │
-├── ingestion/
-│   └── warehouse_reader.py
-│
-├── processing/
-│   ├── chunker.py
-│   └── cleaner.py
-│
-├── extraction/
-│   ├── entity_extractor.py
-│   ├── relationship_extractor.py
-│   └── llm_extractor.py
-│
-├── graph/
-│   ├── graph_builder.py
-│   └── neo4j_client.py
-│
-└── models/
-    └── schemas.py
+├── engine/
+│   ├── chunk.py                     # semantic chunking, warehouse source parsing
+│   ├── llm.py                       # LLM client (multi-provider), token estimate, batching, merge/dedup, graph mappings
+│   ├── prompts.py                   # prompts for entity / relation / graph mapping (with data field)
+│   ├── entity_extraction.py         # orchestrates entity → relation → graph, writes processed/*.json
+│   ├── graph_builder.py             # deterministic + LLM graph mapping: relation_id : node1 relation node2
+│   └── crud.py                      # (reserved for Neo4j CRUD, currently empty)
 ```
 
-Do not combine everything into one massive Python file.
+Do not combine everything into one massive Python file, but do not over-split either.
+
+## 5.1 LLM Configuration — per-case `llm.json`
+
+The UI collects LLM settings and writes `<case>/llm.json`. Python never hard-codes keys.
+
+```json
+{
+  "provider": "openai | openrouter | deepseek | groq | together | mistral | ollama | custom",
+  "model": "gpt-4o-mini",
+  "api_key": "sk-...",
+  "base_url": "https://api.openai.com/v1",
+  "context_window": 128000,
+  "temperature": 0.1
+}
+```
+
+Flexible keys accepted (`provider`/`provider_name`, `model`/`model_name`, `api_key`/`apiKey`/`key`, `base_url`/`baseUrl`). `engine/llm.py:PROVIDER_REGISTRY` maps each provider to its default `base_url` and `context_window` (e.g. `openai 128k`, `openrouter 200k`, `deepseek 64k`, `ollama http://localhost:11434/v1`). Priority: `<case>/llm.json` → env (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, `LLM_API`) → CLI `--model`/`--context-window` overrides. All providers are OpenAI-compatible via `openai.OpenAI` SDK; `extra_headers` (e.g. OpenRouter `HTTP-Referer`) are injected automatically. `main.py` and `entity_extraction.py` resolve config via `load_llm_config(project_path)` and log the masked source.
 
 ---
 
@@ -286,53 +299,36 @@ The system must preserve:
 * Character position or chunk number
 * Chunk text
 
-Example chunk:
+Example chunk (as written by `engine/chunk.py:501`):
 
 ```json
 {
   "chunk_id": "fir_001_chunk_03",
   "source_file": "fir.txt",
   "chunk_index": 3,
-  "text": "..."
+  "text": "...",
+  "metadata": {
+    "char_start": 0,
+    "char_end": 1200,
+    "warehouse_char_start": 134,
+    "warehouse_char_end": 1334,
+    "char_length": 1200
+  }
 }
 ```
 
-## Small data strategy
+Implemented chunking (`engine/chunk.py`) is **semantic** (sentence split → TF-IDF cosine → percentile breakpoint) with char-based defaults `DEFAULT_CHUNK_SIZE=1200` / `DEFAULT_OVERLAP=200` (≈300 tokens), configurable via `main.py --chunk-size`/`--overlap`.
 
-If the case data is below a configurable threshold:
+## Token-window / batching strategy (replaces small vs large thresholds)
 
-```text
-CASE_TEXT_SIZE < SMALL_CASE_THRESHOLD
-```
-
-Use a lightweight extraction approach.
-
-Example:
-
-* spaCy NER
-* Rule-based extraction
-* Limited LLM calls only when necessary
-
-The goal is to reduce unnecessary LLM usage.
-
-## Large data strategy
-
-If the case is larger:
+After `warehouse.txt` is loaded, `engine/llm.py` estimates tokens (`tiktoken` if available else `max(chars/4, words*1.33)`) and compares to the LLM `context_window` from `llm.json` (see §5.1, default 128k–500k per provider).
 
 ```text
-CASE_TEXT_SIZE >= SMALL_CASE_THRESHOLD
+estimated_tokens <= context_window → strategy=batched (20 chunks/batch with previous-batch dedup) or single_call if --single-call
+estimated_tokens >  context_window → strategy=batched (forced, 20 chunks/batch)
 ```
 
-Use chunking with overlap.
-
-Example initial configuration:
-
-```text
-Chunk Size: 1000–1500 tokens
-Overlap: 150–250 tokens
-```
-
-Exact values should remain configurable.
+Batched mode sends `20` chunks per LLM call and includes `previous_entities`/`previous_relationships` so the LLM must reuse canonical names (`Rose Mathew` not `Rose M.`) and skip duplicate `(source,relation,target)`. Local `merge_entities()` also collapses aliases (`R. Mathew` / `Rose M.` / `Arjun D.` / `A. Dev`) via first-name + surname-initial matching and merges `data` fields. Final decision is logged with `batches_needed = ceil(chunks/20)` and saved in `processed/chunks.json` already handles per-source provenance via warehouse marker parsing (`SOURCE_FILE:` / `END_SOURCE:`).
 
 ---
 
@@ -377,56 +373,58 @@ PHONE_NUMBER
 
 Example:
 
-Input:
+Input (chunk `fir_001_chunk_03`):
 
 ```text
 Rose Mathew was found dead in her apartment in Anna Nagar.
 ```
 
-Extract:
+Extract (via `engine/prompts.py` + `engine/llm.py:extract_entities_batched`, 20 chunks/batch):
 
 ```json
 [
   {
+    "id": "person_rose_mathew",
     "name": "Rose Mathew",
     "type": "PERSON",
-    "confidence": 0.98
+    "confidence": 0.98,
+    "source_file": "fir.txt",
+    "chunk_id": "fir_001_chunk_03",
+    "aliases": ["R. Mathew", "Rose M."],
+    "data": {"age": 27, "occupation": "Freelance Graphic Designer", "phone": "+91-90000-10001", "address": "Flat 3B, Green View Apartments"},
+    "mentions": 1
   },
   {
+    "id": "location_anna_nagar",
     "name": "Anna Nagar",
     "type": "LOCATION",
-    "confidence": 0.99
+    "confidence": 0.99,
+    "source_file": "fir.txt",
+    "chunk_id": "fir_001_chunk_03",
+    "aliases": [],
+    "data": {"city": "Chennai", "type": "neighbourhood"},
+    "mentions": 1
   }
 ]
 ```
 
-Each extracted entity must retain provenance.
-
-Example:
-
-```json
-{
-  "name": "Rose Mathew",
-  "type": "PERSON",
-  "confidence": 0.98,
-  "source_file": "fir.txt",
-  "chunk_id": "fir_001_chunk_03"
-}
-```
+Each extracted entity retains provenance **and rich `data`**. The LLM is prompted (`ENTITY_SYSTEM_PROMPT`) to return `data` as a JSON object with relevant attributes (PERSON → age/occupation/phone/address; LOCATION → city/address; DOCUMENT → reference; etc., or `{}` if none). `engine/llm.py:make_entity_id` creates deterministic `id` (`type_lower + "_" + slug`), and `merge_entities()` collapses aliases (`Rose M.`/`R. Mathew` → `Rose Mathew`) and unions `data` fields.
 
 ---
 
 # 9. Relationship Extraction
 
-Relationships should be extracted separately.
+Relationships are extracted in a **second batched stage** grounded on the already-extracted entities **with data**.
 
-Example input:
+Example input (chunk `witness_001_chunk_02` + entities `Rose Mathew {data}`, `Ananya Joseph {data}`):
 
 ```text
 Rose Mathew was friends with Ananya Joseph.
 ```
 
-Output:
+`engine/prompts.py:build_relationship_prompt` sends `KNOWN ENTITIES: [{id, name, type, data}]` + previous batch relations for dedup.
+
+Output (`processed/relations.json` via `engine/llm.py:extract_relationships_batched`):
 
 ```json
 {
@@ -435,9 +433,12 @@ Output:
   "target": "Ananya Joseph",
   "confidence": 0.95,
   "source_file": "witness_statement.txt",
-  "chunk_id": "witness_001_chunk_02"
+  "chunk_id": "witness_001_chunk_02",
+  "evidence_text": "Rose Mathew was friends with Ananya Joseph"
 }
 ```
+
+Raw relations are stored in both `processed/relations.json` (spec name) and `processed/relationships.json` (compat).
 
 Initial relationship types can include:
 
@@ -500,7 +501,7 @@ Ananya Joseph
 
 However, nodes and relationships must contain useful metadata.
 
-Example node:
+Example node (as stored in `processed/entities.json`):
 
 ```json
 {
@@ -508,31 +509,44 @@ Example node:
   "name": "Rose Mathew",
   "type": "PERSON",
   "confidence": 0.98,
-  "source_files": [
-    "fir.txt",
-    "postmortem_report.txt"
-  ],
+  "source_files": ["fir.txt", "postmortem_report.txt"],
+  "chunk_ids": ["fir_001_chunk_03"],
+  "aliases": ["R. Mathew", "Rose M."],
+  "data": {"age": 27, "occupation": "Freelance Graphic Designer", "phone": "+91-90000-10001"},
   "mentions": 14
 }
 ```
 
-Example relationship:
+Raw relationship (`processed/relations.json`):
 
 ```json
 {
-  "source": "person_rose_mathew",
-  "target": "person_ananya_joseph",
-  "type": "FRIEND_OF",
+  "source": "Rose Mathew",
+  "relation": "FRIEND_OF",
+  "target": "Ananya Joseph",
   "confidence": 0.95,
-  "evidence": [
-    {
-      "source_file": "witness_statement.txt",
-      "chunk_id": "witness_001_chunk_02",
-      "text": "..."
-    }
-  ]
+  "source_file": "witness_statement.txt",
+  "chunk_id": "witness_001_chunk_02",
+  "evidence_text": "Rose Mathew was friends with Ananya Joseph"
 }
 ```
+
+Enriched mapping (`processed/graph_data.json` via `engine/graph_builder.py:build_graph_mappings`):
+
+```json
+{
+  "relation_id": "rel_001",
+  "source": {"id": "person_rose_mathew", "name": "Rose Mathew", "type": "PERSON", "data": {"age": 27}, "source_files": ["fir.txt"], "chunk_ids": ["fir_001_chunk_03"], "aliases": ["R. Mathew"]},
+  "relation": "FRIEND_OF",
+  "target": {"id": "person_ananya_joseph", "name": "Ananya Joseph", "type": "PERSON", "data": {}},
+  "confidence": 0.95,
+  "evidence_text": "Rose Mathew was friends with Ananya Joseph",
+  "source_file": "witness_statement.txt",
+  "chunk_id": "witness_001_chunk_02"
+}
+```
+
+Deterministic mapping is default; `engine/llm.py:create_graph_mappings_via_llm` + `engine/prompts.py:GRAPH_MAPPING_SYSTEM_PROMPT` can also generate mappings via LLM (fallback to deterministic if LLM returns invalid).
 
 ---
 
@@ -600,16 +614,25 @@ Do not build a complex probabilistic reasoning engine.
 
 ---
 
-# 13. Neo4j Storage
+# 13. Graph Storage (file-first, Neo4j next)
 
-After extraction, store the graph in Neo4j.
+Current MVP is **file-based**; Neo4j is the next step and shares the same schema.
 
-Example conceptual structure:
+After extraction, `engine/graph_builder.py:save_graph_outputs()` writes:
 
 ```text
-(:Person {name: "Rose Mathew"})
+{project}/processed/relations.json   # raw relations (spec name)
+{project}/processed/relationships.json # compat alias
+{project}/processed/graph_data.json  # enriched mappings: relation_id : node{data} relation node{data}
+{project}/processed/graph.json       # alias of graph_data.json
+```
+
+Example conceptual Neo4j structure (future):
+
+```text
+(:Person {name: "Rose Mathew", id: "person_rose_mathew"})
         │
-        │ [:FRIEND_OF]
+        │ [:FRIEND_OF {confidence: 0.95}]
         │
         ▼
 (:Person {name: "Ananya Joseph"})
@@ -618,28 +641,31 @@ Example conceptual structure:
 Nodes should include:
 
 ```text
-id
+id            # person_rose_mathew (engine/llm.py:make_entity_id)
 name
 type
 confidence
-project_id
-mention_count
-source_count
+data          # JSON metadata (age, occupation, phone, address, ...)
+project_id    # case folder name — isolates cases
+mention_count # mentions across chunks
+source_files  # ["fir.txt", ...]
+chunk_ids
+aliases
 ```
 
 Relationships should include:
 
 ```text
-type
+relation_id   # rel_001
+type / relation # FRIEND_OF
 confidence
 project_id
-source_file
+source_file   # provenance
 chunk_id
+evidence_text
 ```
 
-Every graph record must belong to a specific project.
-
-Do not mix data between cases.
+Every graph record must belong to a specific project (`project` field in JSON, `project_id` in Neo4j). Do not mix data between cases. `engine/crud.py` is reserved for Neo4j CRUD (currently empty).
 
 ---
 
@@ -698,7 +724,7 @@ EXTRACT RELATIONSHIPS
      ↓
 BUILD GRAPH
      ↓
-STORE IN NEO4J
+STORE IN FILE (graph_data.json) → Neo4j (next)
      ↓
 VISUALIZE GRAPH
 ```
@@ -804,14 +830,15 @@ Save intermediate JSON outputs in:
 {project_name}/processed/
 ```
 
-Example:
+Example (as implemented):
 
 ```text
 processed/
-├── chunks.json
-├── entities.json
-├── relationships.json
-└── graph_data.json
+├── chunks.json          # 235 chunks with warehouse offsets
+├── entities.json        # {id,name,type,confidence,source_files,chunk_ids,aliases,data,mentions}
+├── relations.json       # raw relations (spec) + relationships.json alias
+├── graph_data.json      # enriched: relation_id : node{data} relation node{data} (+ graph.json alias)
+└── llm.json             # per-case config (if case folder, or llm.json.example at root)
 ```
 
 This will make debugging dramatically easier.
@@ -830,7 +857,7 @@ For the first milestone, Sherlock is successful if:
 6. Python processes the warehouse.
 7. Entities are extracted.
 8. Relationships are extracted.
-9. Data is stored in Neo4j.
+9. Data is stored in file (`processed/graph_data.json` → Neo4j next).
 10. A graph can be visualized.
 11. Clicking a node shows its underlying extracted information.
 
