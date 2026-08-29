@@ -54,6 +54,7 @@ public class SherlockJavaFxApp extends Application {
     }
 
     private void onNewCaseRequested() {
+        initialView.loadRecentCases();
         scene.setRoot(initialView);
     }
 }

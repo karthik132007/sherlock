@@ -35,7 +35,6 @@ public class InitialView extends BorderPane {
     private final ComboBox<String> modelCombo = new ComboBox<>();
     private final CheckBox termsCheckBox = new CheckBox("Accept our Terms and conditions");
     private final Button proceedBtn = new Button("Let's Lock in with SHERLOCK");
-    private final Button quickOpenBtn = new Button("⚡ Open Workspace Directly");
     private final Label statusLabel = new Label();
     private final ProgressIndicator loadingIndicator = new ProgressIndicator();
 
@@ -61,7 +60,7 @@ public class InitialView extends BorderPane {
         client.listCasesAsync().thenAccept(cases -> Platform.runLater(() -> {
             historyContainer.getChildren().clear();
             if (cases.isEmpty()) {
-                Label empty = new Label("No previous cases found in Documents/Sherlock.");
+                Label empty = new Label("No cases found in project data directory.");
                 empty.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-style: italic;");
                 historyContainer.getChildren().add(empty);
             } else {
@@ -94,7 +93,31 @@ public class InitialView extends BorderPane {
                     historyContainer.getChildren().add(row);
                 }
             }
+            updateSuggestedCaseId(cases);
         })).exceptionally(ex -> null);
+    }
+
+    private void updateSuggestedCaseId(List<CaseDto> cases) {
+        int maxNum = 0;
+        for (CaseDto c : cases) {
+            String id = c.getCaseId();
+            if (id != null) {
+                String upper = id.toUpperCase();
+                if (upper.startsWith("CASE-") || upper.startsWith("CASE_")) {
+                    try {
+                        String numStr = upper.substring(5).replaceAll("[^0-9]", "");
+                        if (!numStr.isEmpty()) {
+                            int n = Integer.parseInt(numStr);
+                            if (n > maxNum) maxNum = n;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        String nextId = String.format("CASE-%03d", maxNum + 1);
+        if (caseNameField.getText() == null || caseNameField.getText().isBlank() || caseNameField.getText().matches("(?i)CASE-\\d+")) {
+            caseNameField.setText(nextId);
+        }
     }
 
     private VBox buildMainLayout() {
@@ -139,7 +162,7 @@ public class InitialView extends BorderPane {
         // 3. Settings Card (LLM Configuration)
         VBox settingsCard = buildSettingsCard();
 
-        // 4. Action Row (Lock-in Button + Direct Open + Terms)
+        // 4. Action Row (Lock-in Button + Terms)
         VBox actionBox = buildActionBox();
 
         // 5. Recent Cases / History Section
@@ -307,11 +330,49 @@ public class InitialView extends BorderPane {
 
         providerCombo.setOnAction(e -> {
             String p = providerCombo.getValue();
-            if ("DeepSeek".equalsIgnoreCase(p)) modelCombo.setValue("deepseek-chat");
-            else if ("Groq".equalsIgnoreCase(p)) modelCombo.setValue("llama-3.3-70b-versatile");
-            else if ("OpenRouter".equalsIgnoreCase(p)) modelCombo.setValue("openai/gpt-4o-mini");
-            else if ("Ollama".equalsIgnoreCase(p)) modelCombo.setValue("ollama/llama3");
-            else if ("OpenAI".equalsIgnoreCase(p)) modelCombo.setValue("gpt-4o-mini");
+            if ("Ollama".equalsIgnoreCase(p)) {
+                apiKeyField.setDisable(true);
+                apiKeyField.setText("");
+                apiKeyField.setPromptText("Local Ollama (No API Key Required)");
+                keyLabel.setText("API Key (Zero-key Local Ollama Mode)");
+                modelLabel.setText("Ollama Local Model (from `ollama list`)");
+
+                client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
+                    if (models != null && !models.isEmpty()) {
+                        modelCombo.getItems().setAll(models);
+                        modelCombo.setValue(models.get(0));
+                        modelCombo.setDisable(false);
+                    } else {
+                        modelCombo.getItems().clear();
+                        modelCombo.setPromptText("No Ollama models found");
+                        modelCombo.setValue(null);
+                        modelCombo.setDisable(true);
+                    }
+                }));
+            } else {
+                apiKeyField.setDisable(false);
+                apiKeyField.setPromptText("sk-... (required for cloud provider)");
+                keyLabel.setText("Provide API key");
+                modelLabel.setText("Model Name");
+                modelCombo.setDisable(false);
+
+                if ("DeepSeek".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("deepseek-chat", "deepseek-coder");
+                    modelCombo.setValue("deepseek-chat");
+                } else if ("Groq".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
+                    modelCombo.setValue("llama-3.3-70b-versatile");
+                } else if ("OpenRouter".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct");
+                    modelCombo.setValue("openai/gpt-4o-mini");
+                } else if ("Mistral".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("mistral-large-latest", "mistral-small-latest");
+                    modelCombo.setValue("mistral-large-latest");
+                } else {
+                    modelCombo.getItems().setAll("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
+                    modelCombo.setValue("gpt-4o-mini");
+                }
+            }
         });
 
         providerBox.getChildren().addAll(providerLabel, providerCombo);
@@ -338,18 +399,8 @@ public class InitialView extends BorderPane {
 
         proceedBtn.getStyleClass().add("primary-button");
         proceedBtn.setMaxWidth(Double.MAX_VALUE);
-        proceedBtn.setPrefHeight(40);
-        proceedBtn.setOnAction(e -> handleProceed(false));
-
-        quickOpenBtn.getStyleClass().add("secondary-button");
-        quickOpenBtn.setStyle("-fx-font-size: 13px; -fx-padding: 8px 16px; -fx-border-color: #3b82f6;");
-        quickOpenBtn.setMaxWidth(Double.MAX_VALUE);
-        quickOpenBtn.setOnAction(e -> handleProceed(true));
-
-        HBox btnRow = new HBox(12, proceedBtn, quickOpenBtn);
-        btnRow.setAlignment(Pos.CENTER);
-        HBox.setHgrow(proceedBtn, Priority.ALWAYS);
-        HBox.setHgrow(quickOpenBtn, Priority.ALWAYS);
+        proceedBtn.setPrefHeight(44);
+        proceedBtn.setOnAction(e -> handleProceed());
 
         HBox termsRow = new HBox(8);
         termsRow.setAlignment(Pos.CENTER);
@@ -372,7 +423,7 @@ public class InitialView extends BorderPane {
         HBox statusRow = new HBox(8, loadingIndicator, statusLabel);
         statusRow.setAlignment(Pos.CENTER);
 
-        box.getChildren().addAll(btnRow, termsRow, statusRow);
+        box.getChildren().addAll(proceedBtn, termsRow, statusRow);
         return box;
     }
 
@@ -385,7 +436,7 @@ public class InitialView extends BorderPane {
         header.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🕒");
         icon.setStyle("-fx-font-size: 14px;");
-        Label title = new Label("Recent Sherlock Cases");
+        Label title = new Label("Recent Sherlock Cases (in project data/ folder)");
         title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
 
         Region sp = new Region();
@@ -472,7 +523,7 @@ public class InitialView extends BorderPane {
         }
     }
 
-    private void handleProceed(boolean directOpen) {
+    private void handleProceed() {
         String caseName = caseNameField.getText() != null ? caseNameField.getText().trim() : "";
         if (caseName.isBlank()) {
             statusLabel.setText("Please specify a case name or ID.");
@@ -485,9 +536,8 @@ public class InitialView extends BorderPane {
         }
 
         statusLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #38bdf8;");
-        statusLabel.setText(directOpen ? "Opening workspace for " + caseName + "..." : "Locking in with SHERLOCK...");
+        statusLabel.setText("Locking in with SHERLOCK...");
         proceedBtn.setDisable(true);
-        quickOpenBtn.setDisable(true);
         loadingIndicator.setVisible(true);
 
         LlmConfigDto llmConfig = new LlmConfigDto();
@@ -498,21 +548,17 @@ public class InitialView extends BorderPane {
         client.createCaseAsync(caseName, caseName, llmConfig)
                 .thenCompose(createdCase -> {
                     if (!selectedFiles.isEmpty()) {
-                        Platform.runLater(() -> statusLabel.setText("Uploading " + selectedFiles.size() + " files..."));
+                        Platform.runLater(() -> statusLabel.setText("Uploading " + selectedFiles.size() + " files to data/" + createdCase.getCaseId() + "..."));
                         return client.uploadFilesAsync(createdCase.getCaseId(), selectedFiles)
                                 .thenCompose(uploaded -> {
-                                    if (!directOpen) {
-                                        Platform.runLater(() -> statusLabel.setText("Triggering Python extraction pipeline..."));
-                                        return client.startProcessingAsync(uploaded.getCaseId()).thenApply(p -> uploaded);
-                                    }
-                                    return CompletableFuture.completedFuture(uploaded);
+                                    Platform.runLater(() -> statusLabel.setText("Triggering Python extraction pipeline..."));
+                                    return client.startProcessingAsync(uploaded.getCaseId()).thenApply(p -> uploaded);
                                 });
                     }
                     return CompletableFuture.completedFuture(createdCase);
                 })
                 .thenAccept(finalCase -> Platform.runLater(() -> {
                     proceedBtn.setDisable(false);
-                    quickOpenBtn.setDisable(false);
                     loadingIndicator.setVisible(false);
                     statusLabel.setText("");
                     loadRecentCases();
@@ -523,7 +569,6 @@ public class InitialView extends BorderPane {
                 .exceptionally(ex -> {
                     Platform.runLater(() -> {
                         proceedBtn.setDisable(false);
-                        quickOpenBtn.setDisable(false);
                         loadingIndicator.setVisible(false);
                         statusLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #f87171;");
                         statusLabel.setText("Error: " + ex.getMessage());
@@ -536,7 +581,7 @@ public class InitialView extends BorderPane {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Sherlock Terms & Conditions");
         alert.setHeaderText("Evidence Handling & Privacy Protocol");
-        alert.setContentText("Sherlock processes evidence locally on your workstation. Document metadata, entities, and relationships are stored in your local Documents/Sherlock directory. If an external LLM provider is configured, document chunks are transmitted securely to your chosen provider for inference according to their respective API terms.");
+        alert.setContentText("Sherlock processes evidence locally on your workstation. Document metadata, entities, and relationships are stored in your local data directory. If an external LLM provider is configured, document chunks are transmitted securely to your chosen provider for inference according to their respective API terms.");
         alert.showAndWait();
     }
 }

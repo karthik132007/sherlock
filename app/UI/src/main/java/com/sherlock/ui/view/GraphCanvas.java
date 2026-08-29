@@ -75,9 +75,9 @@ public class GraphCanvas extends StackPane {
         StackPane.setMargin(minimapBox, new Insets(14));
 
         // Bottom-right Legend
-        VBox legendBox = buildLegend();
+        HBox legendBox = buildLegend();
         StackPane.setAlignment(legendBox, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(legendBox, new Insets(14));
+        StackPane.setMargin(legendBox, new Insets(8));
 
         getChildren().addAll(canvas, toolbar, minimapBox, legendBox);
 
@@ -225,49 +225,32 @@ public class GraphCanvas extends StackPane {
         return box;
     }
 
-    private VBox buildLegend() {
-        VBox box = new VBox(5);
+    private HBox buildLegend() {
+        HBox box = new HBox(8);
+        box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 3px 8px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
 
-        HBox header = new HBox(6);
-        header.setAlignment(Pos.CENTER_LEFT);
-        Label title = new Label("Legend");
-        title.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+        Label title = new Label("LEGEND:");
+        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+        box.getChildren().add(title);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
+        box.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
+        box.getChildren().add(legendItem(Color.web("#10B981"), "Doc"));
+        box.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
+        box.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
+        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Org"));
 
-        Button toggleBtn = new Button("▾");
-        toggleBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 2px; -fx-cursor: hand;");
-
-        header.getChildren().addAll(title, spacer, toggleBtn);
-
-        VBox itemsBox = new VBox(4);
-        itemsBox.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
-        itemsBox.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
-        itemsBox.getChildren().add(legendItem(Color.web("#10B981"), "Document / Transcript"));
-        itemsBox.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
-        itemsBox.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
-        itemsBox.getChildren().add(legendItem(Color.web("#8B5CF6"), "Organization"));
-
-        toggleBtn.setOnAction(e -> {
-            boolean isVisible = itemsBox.isVisible();
-            itemsBox.setVisible(!isVisible);
-            itemsBox.setManaged(!isVisible);
-            toggleBtn.setText(isVisible ? "▸" : "▾");
-        });
-
-        box.getChildren().addAll(header, itemsBox);
         return box;
     }
 
     private HBox legendItem(Color color, String text) {
-        HBox row = new HBox(6);
+        HBox row = new HBox(3);
         row.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(4, color);
+        Circle dot = new Circle(3, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 10px; -fx-text-fill: #cbd5e1;");
+        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #94a3b8;");
         row.getChildren().addAll(dot, label);
         return row;
     }

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GraphDataResponse {
@@ -113,6 +114,13 @@ public class GraphDataResponse {
         private Map<String, Object> metadata = new HashMap<>();
 
         public Edge() {}
+
+        public Edge(String source, String relation, String target) {
+            this.relationId = "rel_" + UUID.randomUUID().toString().substring(0, 8);
+            this.source = source;
+            this.relation = relation;
+            this.target = target;
+        }
 
         public Edge(String relationId, String source, String relation, String target) {
             this.relationId = relationId;

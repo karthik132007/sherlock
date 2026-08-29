@@ -1,0 +1,148 @@
+CASE: Operation Rose | CASE ID: SHRLK-ROSE-2026-001
+VICTIM: Rose Mathew (27) — Freelance Graphic Designer
+RESIDENCE: Flat 3B, Green View Apartments, 12/45 3rd Main Road, Anna Nagar West, Chennai — 600040
+INCIDENT DATE: 14 April 2026 | DISCOVERY: 14 April 2026 18:30 | POLICE ARRIVAL: 19:05
+ESTIMATED TIME OF DEATH: 15:30 — 17:30 IST (Postmortem window, see 04_postmortem_report.txt)
+
+
+AUTHORITATIVE TIMELINE — All other documents must be consistent with this timeline.
+Timestamps in IST (UTC+5:30). Source reliability tagged.
+
+--------------------------------------------------------------------------------
+PHASE 1: TEN DAYS BEFORE INCIDENT (04 APR — 13 APR 2026)
+--------------------------------------------------------------------------------
+
+[04 APR 2026]
+11:30 [CONFIRMED] Rose M., Ananya Joseph, and Meera Krishnan attend guided relaxation / meditation session at Meera's residence, Flat 7C, Shanti Apartments, 22/8 Lattice Bridge Road, Adyar, Chennai. Duration ~90 mins. Witnessed by all three. Meera K. leads session.
+13:15 [CONFIRMED] Rose and Ananya have lunch at Adyar Bakery, Adyar.
+18:20 [CONFIRMED - MESSAGE] Rose Mathew -> Ananya Joseph (+91-90000-10001 -> +91-90000-10004): "Meera's session today was intense... she kept telling me to 'let go' and I felt weirdly pressured. Not sure how I feel about it."
+20:10 [LIKELY - CLAIMED BY MEERA] Meera notes in personal journal (recovered later via digital forensics metadata shows file "session_reflection_04apr.docx" created 04APR 20:10): "Rose responded well but was resistant to suggestion."
+
+[05 APR 2026]
+10:15 [CONFIRMED - MESSAGE] Arjun Dev -> Rose Mathew: "Hey Rose, are you free today? Wanted to meet. I was thinking we could talk properly."
+10:22 [CONFIRMED - MESSAGE] Rose Mathew -> Arjun Dev: "Hey Arjun, busy with work today. Maybe another time."
+18:30 [CONFIRMED - WITNESS + FINANCIAL] Group gathering at Café Mocha, Besant Nagar. Present: Rose Mathew, Ananya Joseph, Vikram Rao, Arjun Dev. Arjun arrives 18:45, leaves 20:10. Bill paid by Vikram Rao via UPI (Rs 2,340). Conversations include occult rumors (Vikram discusses meditation/ritual beliefs). Rose leaves 19:40 with Ananya.
+20:55 [CONFIRMED - MESSAGE] Rose -> Ananya: "Did you notice how Arjun was staring at me the whole time at Besant Nagar? I'm tired of this."
+
+[06 APR 2026]
+14:00 [CONFIRMED - CALL LOG] Outgoing call: Rose Mathew -> Arjun Dev (Duration 06:12). Argument. Arjun pressures Rose to accept relationship. Rose rejects. Arjun says: "You'll regret pushing me away like this." Call ends with Rose hanging up.
+14:40 [CONFIRMED - MESSAGE] Arjun Dev -> Rose Mathew: "Sorry I raised my voice. I just care about you so much."
+15:05 [CONFIRMED - MESSAGE] Rose Mathew -> Arjun Dev: "Please stop. I have told you I don't want this. Give me space."
+16:40 [CONFIRMED - FINANCIAL + MEDICAL] Rose visits Dr. Shalini Clinic, Anna Nagar (CCTV + receipt). Consultation for anxiety/sleeplessness. Prescribed Alprazolam 0.5mg x 10 tablets. UPI payment Rs 600 to Clinic (Ref: CLINIC_SHALINI_060426). Pharmacy dispense at Anna Nagar MedPlus (Bill #MP-AN-6621).
+17:30 [LIKELY] Rose returns home.
+19:10 [CONFIRMED - CALL] Ananya Joseph -> Rose Mathew (Duration 08:22) — Rose describes anxiety, fear of Arjun, discomfort with Meera's sessions.
+
+[07 APR 2026]
+09:15 [CONFIRMED - DIGITAL FORENSICS] Rose's laptop browser history (Chrome):
+    09:15:23 search "psychological manipulation signs"
+    09:18:41 search "how to deal with controlling friend"
+    09:22:05 search "coercive control friendship"
+    09:35:11 visits psychologytoday.com article
+20:30 [CONFIRMED - MESSAGE] Meera Krishnan -> Rose Mathew: "You seemed tense the other day, R. Mathew. We can do a private relaxation session tomorrow? Just you and me, more focused. Might help with your sleep."
+21:05 [CONFIRMED - MESSAGE] Rose Mathew -> Meera Krishnan: "Maybe. Let me think about it. Thanks Meera K."
+21:40 [CONFIRMED - MESSAGE] Rose Mathew -> Ananya Joseph: "Meera wants another session. I said maybe but I'm not sure I want to go."
+
+[08 APR 2026]
+17:00 [CONFIRMED] Private session: Meera Krishnan + Rose Mathew at Meera's Adyar flat. Duration ~75 mins. Techniques: guided imagery, breathing, suggestion. No witnesses.
+18:30 [CONFIRMED - MESSAGE] Rose Mathew -> Ananya Joseph: "Meera kept saying I need to 'let go of resistance' and trust her completely, it felt weird. She said I'm too guarded."
+21:10 [UNVERIFIED - MEERA'S CLAIM LATER] Meera later claims Rose was "very receptive" and thanked her.
+22:00 [CONFIRMED - DIGITAL] Rose laptop creates draft document "journal_08apr.txt" (recovered, not deleted): "Felt uncomfortable after today. Meera means well but I felt pressured."
+
+[09 APR 2026]
+11:40 [CONFIRMED - LOCATION + CCTV] Rose has client meeting at The Brew Room, Nungambakkam (GPS + CCTV). Arjun Dev unexpectedly appears 12:05. Short argument. Arjun leaves 12:18. CCTV corroborates.
+12:30 [CONFIRMED - MESSAGE] Rose -> Ananya: "Arjun showed up at my client meeting in Nungambakkam. This is getting too much. He said he was 'just passing by' but how did he know I was there?"
+12:45 [CONFIRMED - MESSAGE] Arjun Dev -> Rose: "I was in Nungambakkam for work. Didn't know you'd be there. Sorry if I made you uncomfortable."
+15:25 [LIKELY - WITNESS] Colleague witness (Priya S., Nungambakkam) sees Rose crying after call.
+
+[10 APR 2026]
+10:30 [CONFIRMED - DIGITAL + MESSAGE] Second private session: Meera + Rose at Adyar. Rose attends reluctantly after Meera messages 09:15 "Don't cancel please". Session ~60 mins.
+16:20 [CONFIRMED - CCTV] CAM-BN-03 Besant Nagar / CAM-AP-01 Anna Nagar 3rd Main: Vikram Rao seen near Green View Apartments, Anna Nagar. Footage shows Vikram entering building, visiting Flat 2A (friend Priya Menon, corroborated). DURATION at building: 16:20-16:48. This is Innocent Explanation #1 but initially looks suspicious.
+16:22 [CONFIRMED - DIGITAL FORENSICS - DELETED FILE] Laptop: File "meera_session_notes_10apr.txt" created 16:22, deleted 16:35, recovered via forensics. Content: "Don't know how to say no to Meera. She says I overthink. She told me to repeat 'I trust you' and I did but felt scared after. Want to stop but don't want to hurt her."
+19:30 [CONFIRMED - MESSAGE] Rose Mathew -> Meera Krishnan: "Hi Meera, I don't think I want to continue sessions, need space to think. Hope you understand."
+19:45 [CONFIRMED - MESSAGE] Meera Krishnan -> Rose Mathew: "I understand you feel that way Rose M., but discomfort is part of growth. Take your time."
+20:10 [CONFIRMED - MESSAGE] Rose -> Ananya: "I told Meera I need a break. She was nice about it but I felt guilty."
+
+[11 APR 2026]
+14:05 [CONFIRMED - CALL LOG] Arjun Dev -> Rose Mathew (Duration 00:42) — Rose hangs up quickly.
+14:10 [CONFIRMED - MESSAGE] Arjun Dev -> Rose: "Please pick up. We need to talk."
+22:14 [CONFIRMED - MESSAGE - THREATENING APPEARS] Arjun Dev -> Rose Mathew: "You'll regret ignoring me, Rose. You can't just cut me off like this. You know how much I've done for you."
+22:30 [CONFIRMED - MESSAGE] Rose -> Ananya (forwarding Arjun's message screenshot): "See this? From Arjun. I'm really scared now. He has never said it like this before."
+
+[12 APR 2026]
+09:40 [CONFIRMED - WITNESS] Argument between Rose and Vikram Rao at gathering in Besant Nagar (at Vikram's studio, 4/21 Beach Road). Topic: Vikram's comments on karma/fate. Rose says she feels judged. Witness: Ananya + Meera present. Vikram says: "Karma will catch you if you play with energies you don't understand" — rumour origin, but context was astrology discussion, not threat.
+11:00 [CONFIRMED - LOCATION] Rose travels to T. Nagar for shopping.
+18:00 [CONFIRMED - FINANCIAL - MISLEADING CLUE] UPI Transaction: Rose Mathew -> Vikram Rao (UPI IDs: rose.m@okicici -> vikram.rao.art@okhdfc) Amount Rs 1,500.00. Reference: "art print - beach series #042" (Invoice VR-042 exists). Misleadingly appears as occult-related payment.
+18:20 [CONFIRMED - CCTV - Nungambakkam] Arjun Dev captured at Nungambakkam High Road ATM (CAM-NM-07) withdrawing cash.
+21:05 [CONFIRMED - CALL LOG] Rose Mathew -> Ananya Joseph (Duration 12:14). Rose privately shares fear of Arjun, discomfort with Meera, and that Vikram "freaked me out today but maybe I'm overthinking". Ananya advises to distance.
+
+[13 APR 2026]
+10:00 [LIKELY - LOCATION - CLAIMED] Rose visits Marina Beach alone (claimed to Ananya, witness sighting by beach vendor UNVERIFIED).
+11:00 [CONFIRMED - FINANCIAL] UPI Payment: Rose at Murugan Idli Shop, Marina Beach, Rs 380.00 (+91-90000-10001)
+13:15 [CONFIRMED - MESSAGE] Ananya -> Rose: "You okay? You seemed off last night. Call me when you're free."
+15:30 [CONFIRMED - FINANCIAL] Cash withdrawal: Arjun Dev withdraws Rs 10,000 at T. Nagar SBI ATM (ATMTN-112). Claims for family function (True, receipt kept, but location near Anna Nagar route looks suspicious - Innocent #2)
+18:45 [CONFIRMED - CALL LOG - MISSED] Ananya Joseph -> Rose Mathew (Missed, 0s, 18:45:12)
+19:00 [CONFIRMED - LOCATION - ARJUN] Arjun location: T. Nagar residence (claimed, supported by neighbor witness LIKELY)
+20:05 [CONFIRMED - CALL LOG - MISSED - LIE BY MEERA] Meera Krishnan -> Rose Mathew (Missed, 0s, 20:05:33) — Meera later lies saying she did not contact Rose since 12 Apr.
+20:30 [CONFIRMED - CALL LOG] Arjun Dev -> Rose Mathew (Incoming to Rose, Duration 02:18) — Argument, Arjun pleads, Rose says "leave me alone".
+22:10 [CONFIRMED - DIGITAL FORENSICS - MISLEADING SEARCH] Rose laptop Chrome:
+    22:10:11 search "alprazolam alcohol interaction"
+    22:12:44 search "how much alprazolam is dangerous"
+    22:15:03 search "can anxiety medication cause sleep"
+    (Meera will claim this is research; Arjun's side claims planning)
+22:45 [CONFIRMED - MESSAGE - DELETED PLACEHOLDER] Rose -> Ananya: Message deleted (placeholder recovered as "[This message was deleted 13APR 22:45]"). Content unknown, later Ananya claims it said "if anything happens..." but no recovery.
+
+--------------------------------------------------------------------------------
+PHASE 2: DAY OF INCIDENT — 14 APRIL 2026 (TUESDAY)
+--------------------------------------------------------------------------------
+09:15 [CONFIRMED - MESSAGE] Rose Mathew -> Ananya Joseph (WhatsApp): "Feeling very low today, can we talk later? Didn't sleep at all."
+09:42 [CONFIRMED - MESSAGE] Rose Mathew -> Meera Krishnan: "Need some time alone today. Not feeling great. Will talk later."
+09:55 [CONFIRMED - MESSAGE] Meera Krishnan -> Rose Mathew: "Okay Rose, take care. I'm here if you need. Remember to breathe."
+10:05 [CONFIRMED - CALL LOG + MESSAGE] Arjun Dev -> Rose Mathew (Attempted call 00:00 missed + immediate message): "Can we meet? Please. I'm near T Nagar now."
+10:18 [CONFIRMED - MESSAGE] Rose Mathew -> Arjun Dev: "Not today Arjun, please give me space. I mean it."
+10:40 [CONFIRMED - LOCATION - ARJUN] Arjun Dev at Cafe Coffee Day, T. Nagar (CCTV CAM-TN-04, 10:42 entry, LIKELY)
+11:40 [CONFIRMED - CCTV - ROSE] CAM-AN-02 (Anna Nagar Tower Park Entrance) captures Rose M. walking alone, wearing light blue kurta, white bag. Timestamp 11:40:22.
+11:55 [CONFIRMED - LOCATION] Rose returns to Green View Apartments.
+11:57 [CONFIRMED - CCTV - BUILDING] CAM-GV-01 (Green View Entrance) shows Rose entering building main gate. No one with her.
+12:30 [CLAIMED - MEERA] Meera Krishnan claims she was at home in Adyar 12:30 onwards (UNVERIFIED, no CCTV).
+12:45 [LIKELY - PHONE GPS] Meera's phone GPS ping shows movement from Adyar toward Nungambakkam (tower triangulation, accuracy ~800m, LIKELY, disputed by Meera).
+14:05 [CONFIRMED - CALL LOG] Rose Mathew -> Ananya Joseph (Duration 03:44). Last long conversation. Rose sounds tired, says "overwhelmed". Ananya tells her to rest. NOTE: Ananya's first statement later says 14:00 / "about 5 minutes" — inconsistency I1.
+14:30 [CONFIRMED - FINANCIAL] Swiggy order: Rose - "The Bowl Company", Anna Nagar, Amount Rs 450.00, UPI ref SWGY-88421, Order ID 7728491, delivered 14:48 to Flat 3B (delivery executive corroborated, CONFIRMED)
+15:12 [CONFIRMED - MESSAGE - LAST CONFIRMED DIGITAL ACTIVITY] Rose Mathew -> Ananya Joseph: "Sorry I cut earlier, feeling overwhelmed. Will call you tomorrow maybe. Thank you for always being there ❤️" — This is LAST outgoing message from Rose. Phone screen time after this shows no further outgoing messages (forensics).
+15:30-17:30 [ESTIMATED WINDOW OF DEATH — POSTMORTEM] See 04. Ingestion of sedative + alcohol estimated in this window. No further phone unlock after 15:18 (forensics).
+15:45 [CLAIMED - ARJUN ALIBI - CONTRADICTED] Arjun Dev claims he was at Saravana Bhavan / CCD, T. Nagar from 15:00 to 17:30 continuously, with waiter witness (partially true, but gap exists).
+16:16 [CONFIRMED - CCTV - MEDIUM CONFIDENCE - ARJUN] CAM-AN-03 (Anna Nagar 3rd Main Road, outside Green View Apartments) captures individual resembling Arjun Dev walking north toward apartments. Time 16:16:44. Confidence: MEDIUM (face partially obscured, build/clothing match). Arjun denies being there (DELIBERATE LIE F3).
+16:18 [CONFIRMED - LOCATION - PHONE PING] Arjun Dev phone pings tower ANR-03 (Anna Nagar West) with location area code, signal strength indicates within ~400m of Rose's apartment. Contradicts alibi. Arjun later claims he was buying gift at Anna Nagar Crossword (Innocent #2 explanation).
+16:20 [CONFIRMED - CCTV - LOW CONFIDENCE] CAM-GV-02 (Stairwell, Green View Apartments) shows blurred figure on 2nd floor near Flat 3B. Time 16:20:11. Confidence: LOW, cannot identify gender/clothing. Could be resident, could be Arjun, could be artifact. Important limitation noted.
+16:30-16:45 [ESTIMATED - TOXICOLOGY window] Presumed consumption of mixture: Orange juice (E-003) + Alprazolam (from E-005) + alcohol traces (see postmortem). No forced entry. Door found locked from inside? See scene report.
+17:10 [CLAIMED - MEERA] Meera claims: "I was in Adyar at 18:00, at home, I have Swiggy delivery to prove" — Actually Swiggy delivery at 18:35 to Adyar shows she was home at 18:35, but not at 18:00.
+18:14 [CONFIRMED - CALL LOG] Ananya Joseph -> Rose Mathew (Missed, 00:12 ring) — Ananya claims she called at 18:10 (inconsistency).
+18:20 [CONFIRMED - CCTV - MEDIUM-HIGH CONFIDENCE - MEERA CONTRADICTION] CAM-NM-02 (Nungambakkam High Road, near The Brew Room) captures person resembling Meera Krishnan walking south. Time 18:20:33. Wearing maroon kurta. Confidence: MEDIUM-HIGH. If Meera was in Adyar at 18:00, travel in 20 mins to Nungambakkam is impossible during traffic (Adyar-Nungambakkam ~9km, 35-45 mins). Temporal contradiction for testing.
+18:28 [CONFIRMED - WITNESS] Building manager Mr. Suresh (security log) notes Ananya Joseph entry into complex 18:28.
+18:30 [CONFIRMED - WITNESS - ANANYA] Ananya Joseph + Manager enter Flat 3B using spare key from manager (Rose had deposited). Discover Rose deceased on bed. Ananya claims discovery 18:30 (vs 18:28 log - minor).
+18:45 [CONFIRMED - CALL LOG] Manager Suresh -> Anna Nagar Police Station (+91-90000-10007 -> Police control): Call 02:44 reporting.
+19:05 [CONFIRMED - SCENE] Police arrive: SI R. Kumar and Constable Priya Nair, Anna Nagar Police Station (Case No. SHRLK-ROSE-2026-001 / FIR #ANPS-2026-0414-03). See 03_scene_report.txt
+19:30 [CONFIRMED - STATEMENT] Ananya Joseph first statement recorded at scene (see 06).
+21:00 [CONFIRMED] Body transferred to Govt. Kilpauk Medical College for postmortem. Apartment sealed.
+
+--------------------------------------------------------------------------------
+PHASE 3: INVESTIGATION (15 APR — 18 APR 2026)
+--------------------------------------------------------------------------------
+15 APR 09:00 [CONFIRMED] Postmortem conducted by Dr. L. Fernandez, Kilpauk Medical College (see 04).
+15 APR 11:00 [CONFIRMED] Evidence inventory logged (see 05). Phones sent to cyber forensics.
+15 APR 14:30 [CONFIRMED] Digital forensics extraction begins (see 14).
+15 APR 16:00 [CONFIRMED] Financial records requested from banks/UPI.
+16 APR 10:00 [CONFIRMED] Interview: Arjun Dev at Anna Nagar PS (see 07).
+16 APR 14:00 [CONFIRMED] Interview: Meera Krishnan at Anna Nagar PS (see 08).
+16 APR 16:30 [CONFIRMED] Interview: Vikram Rao at Anna Nagar PS (see 09).
+17 APR 09:30 [CONFIRMED] CCTV footage collated from 6 cameras (see 13).
+17 APR 11:00 [CONFIRMED] Location timeline compiled (see 12). Distinctions CONFIRMED/LIKELY/UNVERIFIED/CLAIMED applied.
+17 APR 15:00 [CONFIRMED] Call logs extracted (see 11), messages extracted (see 10).
+18 APR 10:00 [CONFIRMED] Investigator notes updated with 4 theories (see 17), Suspect matrix compiled (see 18).
+
+Notes on provenance:
+- CONFIRMED = CCTV, forensics, financial transaction, or multiple witness corroboration
+- LIKELY = single witness or GPS triangulation
+- UNVERIFIED = no corroboration
+- CLAIMED = person's own statement without corroboration
+
+END OF MASTER TIMELINE

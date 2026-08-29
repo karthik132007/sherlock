@@ -1,11 +1,11 @@
 package com.sherlock.ui.view;
 
 import com.sherlock.ui.SherlockBackendClient;
-import com.sherlock.ui.model.ChatMessageDto;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
@@ -21,6 +21,7 @@ public class ChatPanel extends VBox {
     private final SherlockBackendClient client;
     private String currentCaseId = "";
 
+    private final ComboBox<String> modelSelector = new ComboBox<>();
     private final VBox messageContainer = new VBox(12);
     private final ScrollPane scrollPane = new ScrollPane();
     private final TextField inputField = new TextField();
@@ -32,7 +33,7 @@ public class ChatPanel extends VBox {
 
         getStyleClass().add("dark-panel");
         setPadding(new Insets(16));
-        setSpacing(12);
+        setSpacing(10);
         setPrefWidth(360);
         setMinWidth(320);
 
@@ -46,9 +47,36 @@ public class ChatPanel extends VBox {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Label status = new Label("Sherlock AI");
-        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 2px 8px; -fx-background-radius: 10px;");
+        status.setStyle(
+                "-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 2px 8px; -fx-background-radius: 10px;");
 
         header.getChildren().addAll(title, spacer, status);
+
+        // Model Selector Bar
+        HBox modelRow = new HBox(6);
+        modelRow.setAlignment(Pos.CENTER_LEFT);
+        Label modelIcon = new Label("🤖 Model:");
+        modelIcon.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #94a3b8;");
+
+        modelSelector.setEditable(true);
+        modelSelector.setStyle(
+                "-fx-font-size: 10.5px; -fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-background-radius: 6px;");
+        modelSelector.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(modelSelector, Priority.ALWAYS);
+
+        modelSelector.getItems().addAll("gemma4:e2b", "qwen3.5:2b", "gpt-oss:120b-cloud", "gemma4:e4b", "gpt-4o-mini");
+        modelSelector.setValue("gemma4:e2b");
+
+        client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
+            if (models != null && !models.isEmpty()) {
+                modelSelector.getItems().clear();
+                modelSelector.getItems().addAll(models);
+                modelSelector.getItems().addAll("gpt-4o-mini", "deepseek-chat");
+                modelSelector.setValue(models.get(0));
+            }
+        }));
+
+        modelRow.getChildren().addAll(modelIcon, modelSelector);
 
         // Quick suggestions
         FlowPane suggestions = buildQuickSuggestions();
@@ -86,16 +114,18 @@ public class ChatPanel extends VBox {
         HBox inputRow = new HBox(8, inputField, sendButton);
         inputRow.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(header, suggestions, scrollPane, inputRow);
+        getChildren().addAll(header, modelRow, suggestions, scrollPane, inputRow);
 
         // Initial greeting
-        addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. Ask me questions about persons of interest, call logs, witness statements, or chronological occurrences.");
+        addSherlockMessage(
+                "Greetings. I am Sherlock, your investigation intelligence assistant. Ask me questions about persons of interest, call logs, witness statements, or chronological occurrences.");
     }
 
     public void setCaseId(String caseId) {
         this.currentCaseId = caseId;
         messageContainer.getChildren().clear();
-        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
+        addSherlockMessage("Case **" + caseId
+                + "** loaded. Knowledge graph and evidence inventory are synchronized. How may I assist your investigation?");
     }
 
     private FlowPane buildQuickSuggestions() {
@@ -108,9 +138,12 @@ public class ChatPanel extends VBox {
 
     private Button createSuggestionPill(String query) {
         Button btn = new Button(query);
-        btn.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
+        btn.setStyle(
+                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;");
+        btn.setOnMouseEntered(e -> btn.setStyle(
+                "-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle(
+                "-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-background-radius: 10px; -fx-padding: 3px 8px; -fx-cursor: hand;"));
         btn.setOnAction(e -> {
             inputField.setText(query);
             sendMessage();
@@ -120,7 +153,8 @@ public class ChatPanel extends VBox {
 
     private void sendMessage() {
         String query = inputField.getText() != null ? inputField.getText().trim() : "";
-        if (query.isBlank()) return;
+        if (query.isBlank())
+            return;
 
         addUserMessage(query);
         inputField.clear();
@@ -135,7 +169,8 @@ public class ChatPanel extends VBox {
             return;
         }
 
-        client.sendChatMessageAsync(currentCaseId, query)
+        String selectedModel = modelSelector.getValue();
+        client.sendChatMessageAsync(currentCaseId, query, selectedModel)
                 .thenAccept(resp -> Platform.runLater(() -> {
                     sendButton.setDisable(false);
                     typingIndicator.setVisible(false);

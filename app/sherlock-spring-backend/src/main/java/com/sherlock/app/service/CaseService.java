@@ -34,11 +34,15 @@ public class CaseService {
     );
 
     private final AppProperties appProperties;
+    private final Neo4jGraphService neo4jGraphService;
+    private final OllamaService ollamaService;
     private final ObjectMapper objectMapper;
     private final Map<String, ProcessingStatus> statusTracker = new ConcurrentHashMap<>();
 
-    public CaseService(AppProperties appProperties) {
+    public CaseService(AppProperties appProperties, Neo4jGraphService neo4jGraphService, OllamaService ollamaService) {
         this.appProperties = appProperties;
+        this.neo4jGraphService = neo4jGraphService;
+        this.ollamaService = ollamaService;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -78,6 +82,32 @@ public class CaseService {
             log.error("Unable to create case directory for: {}", caseName, e);
             throw new IllegalStateException("Unable to create case directory for: " + caseName, e);
         }
+    }
+
+    public String getNextCaseId() {
+        Path rootDir = Paths.get(appProperties.getBaseDirectory());
+        if (!Files.exists(rootDir)) {
+            return "CASE-001";
+        }
+
+        int maxNum = 0;
+        try (var paths = Files.list(rootDir)) {
+            List<Path> dirs = paths.filter(Files::isDirectory).collect(Collectors.toList());
+            for (Path d : dirs) {
+                String name = d.getFileName().toString().toUpperCase(Locale.ROOT);
+                if (name.startsWith("CASE-") || name.startsWith("CASE_")) {
+                    try {
+                        String numStr = name.substring(5).replaceAll("[^0-9]", "");
+                        if (!numStr.isEmpty()) {
+                            int val = Integer.parseInt(numStr);
+                            if (val > maxNum) maxNum = val;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (IOException ignored) {}
+
+        return String.format("CASE-%03d", maxNum + 1);
     }
 
     public List<CaseResponse> listCases() {
@@ -160,10 +190,10 @@ public class CaseService {
         Path dataDirectory = caseDirectory.resolve("data");
         Path warehouseFile = caseDirectory.resolve("warehouse.txt");
 
-        StringBuilder warehouseContent = new StringBuilder();
-
         if (Files.exists(dataDirectory) && Files.isDirectory(dataDirectory)) {
-            try (var stream = Files.list(dataDirectory)) {
+            try (var stream = Files.list(dataDirectory);
+                 java.io.BufferedWriter writer = Files.newBufferedWriter(warehouseFile, StandardCharsets.UTF_8,
+                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 List<Path> files = stream
                         .filter(Files::isRegularFile)
                         .sorted(Comparator.comparing(Path::getFileName))
@@ -171,33 +201,31 @@ public class CaseService {
 
                 for (Path file : files) {
                     String fileName = file.getFileName().toString();
-                    String content = "";
+                    String fileContent = "";
                     try {
-                        content = Files.readString(file, StandardCharsets.UTF_8);
+                        fileContent = Files.readString(file, StandardCharsets.UTF_8);
                     } catch (Exception e) {
                         try {
-                            content = Files.readString(file, StandardCharsets.ISO_8859_1);
+                            fileContent = Files.readString(file, StandardCharsets.ISO_8859_1);
                         } catch (Exception ignored) {
-                            content = "[Binary or unreadable content for " + fileName + "]";
+                            fileContent = "[Binary or unreadable content for " + fileName + "]";
                         }
                     }
 
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("SOURCE_FILE: ").append(fileName).append("\n");
-                    warehouseContent.append("SOURCE_TYPE: TEXT\n");
-                    warehouseContent.append("========================================\n\n");
-                    warehouseContent.append(content.trim()).append("\n\n");
-                    warehouseContent.append("========================================\n");
-                    warehouseContent.append("END_SOURCE: ").append(fileName).append("\n");
-                    warehouseContent.append("========================================\n\n\n");
+                    writer.write("========================================\n");
+                    writer.write("SOURCE_FILE: " + fileName + "\n");
+                    writer.write("SOURCE_TYPE: TEXT\n");
+                    writer.write("========================================\n\n");
+                    writer.write(fileContent.trim() + "\n\n");
+                    writer.write("========================================\n");
+                    writer.write("END_SOURCE: " + fileName + "\n");
+                    writer.write("========================================\n\n\n");
                 }
             }
         }
-
-        Files.writeString(warehouseFile, warehouseContent.toString(), StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
-        log.info("Built warehouse.txt for case: {} ({} bytes)", caseDirectory.getFileName(), warehouseContent.length());
+        
+        long size = Files.exists(warehouseFile) ? Files.size(warehouseFile) : 0;
+        log.info("Built warehouse.txt for case: {} ({} bytes)", caseDirectory.getFileName(), size);
         return warehouseFile.toString();
     }
 
@@ -238,7 +266,8 @@ public class CaseService {
 
         statusTracker.put(caseId, status);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
+        java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
             try {
                 log.info("Executing Python command: {}", String.join(" ", commandTokens));
                 ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
@@ -286,6 +315,8 @@ public class CaseService {
                 status.setSuccess(false);
                 status.setMessage("Processing failed: " + e.getMessage());
                 status.getLogs().add("ERROR: " + e.getMessage());
+            } finally {
+                executor.shutdown();
             }
         });
 
@@ -310,10 +341,28 @@ public class CaseService {
                 status.setMessage("Ready for processing.");
             }
         }
+        if (status != null && status.isCompleted()) {
+            statusTracker.remove(caseId);
+        }
         return status;
     }
 
     public GraphDataResponse getGraphData(String caseId) {
+        // 0. Try fetching from Neo4j if connected
+        if (neo4jGraphService != null && neo4jGraphService.isConnected()) {
+            try {
+                GraphDataResponse neo4jData = neo4jGraphService.fetchGraphFromNeo4j(caseId);
+                if (neo4jData != null && neo4jData.getNodes() != null && !neo4jData.getNodes().isEmpty()) {
+                    log.info("Loaded {} nodes and {} edges for case {} directly from Neo4j",
+                            neo4jData.getNodes().size(), neo4jData.getEdges().size(), caseId);
+                    return neo4jData;
+                }
+            } catch (Exception e) {
+                log.warn("Neo4j fetch error for case {}, using JSON fallback: {}", caseId, e.getMessage());
+            }
+        }
+
+        // 1. Fallback to reading file-based JSON
         Path caseDirectory = getCaseDirectory(caseId);
         Path processedDir = caseDirectory.resolve("processed");
 
@@ -500,8 +549,46 @@ public class CaseService {
                 })
                 .collect(Collectors.toList());
 
-        if (!relevantNodes.isEmpty()) {
+        // 0. If Ollama is available or requested, generate and run Cypher query
+        String cypherQuery = null;
+        List<Map<String, Object>> cypherResults = Collections.emptyList();
+        try {
+            String model = request.getModel();
+            if (model == null || model.isBlank()) {
+                CaseResponse caseResp = getCase(caseId);
+                if (caseResp != null && caseResp.getLlmConfig() != null && caseResp.getLlmConfig().getModel() != null) {
+                    model = caseResp.getLlmConfig().getModel();
+                }
+            }
+            if (model == null || model.isBlank()) {
+                List<String> available = ollamaService != null ? ollamaService.getAvailableModels() : List.of();
+                model = !available.isEmpty() ? available.get(0) : "gemma4:e2b";
+            }
+
+            if (ollamaService != null && !ollamaService.getAvailableModels().isEmpty()) {
+                cypherQuery = ollamaService.generateCypherQuery(caseId, query, model);
+                if (cypherQuery != null && !cypherQuery.isBlank() && neo4jGraphService != null && neo4jGraphService.isConnected()) {
+                    cypherResults = neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Cypher generation or execution skipped: {}", e.getMessage());
+        }
+
+        if (!relevantNodes.isEmpty() || !cypherResults.isEmpty()) {
             answer.append("### Sherlock Investigation Findings\n\n");
+
+            if (cypherQuery != null && !cypherQuery.isBlank()) {
+                answer.append("```cypher\n// Generated CQL for Neo4j\n").append(cypherQuery).append("\n```\n\n");
+                if (!cypherResults.isEmpty()) {
+                    answer.append("**Neo4j Query Matches (").append(cypherResults.size()).append(" records found):**\n");
+                    for (int i = 0; i < Math.min(cypherResults.size(), 5); i++) {
+                        answer.append("• `").append(cypherResults.get(i).toString()).append("`\n");
+                    }
+                    answer.append("\n");
+                }
+            }
+
             for (var node : relevantNodes) {
                 matchedEntities.add(node.getName());
                 answer.append("• **").append(node.getName()).append("** (`").append(node.getType()).append("`)\n");
@@ -690,6 +777,95 @@ public class CaseService {
                 response.setFileCount(files.size());
             } catch (IOException ignored) {}
         }
+    }
+
+    public boolean syncToNeo4j(String caseId) {
+        if (neo4jGraphService == null || !neo4jGraphService.isConnected()) {
+            return false;
+        }
+        GraphDataResponse graphData = getGraphDataFromFileOnly(caseId);
+        return neo4jGraphService.syncGraphToNeo4j(caseId, graphData);
+    }
+
+    public List<Map<String, Object>> executeNeo4jCypher(String caseId, String cypherQuery) {
+        if (neo4jGraphService == null || !neo4jGraphService.isConnected()) {
+            return Collections.emptyList();
+        }
+        return neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
+    }
+
+    public List<String> getOllamaModels() {
+        return ollamaService != null ? ollamaService.getAvailableModels() : Collections.emptyList();
+    }
+
+    public Map<String, Object> getNeo4jStatus() {
+        return neo4jGraphService != null ? neo4jGraphService.getStatus() : Map.of("enabled", false, "connected", false);
+    }
+
+    private GraphDataResponse getGraphDataFromFileOnly(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        Path processedDir = caseDirectory.resolve("processed");
+        Path entitiesFile = processedDir.resolve("entities.json");
+
+        List<GraphDataResponse.Node> nodes = new ArrayList<>();
+        List<GraphDataResponse.Edge> edges = new ArrayList<>();
+        Map<String, GraphDataResponse.Node> nodeMap = new HashMap<>();
+
+        if (Files.exists(entitiesFile)) {
+            try {
+                JsonNode root = objectMapper.readTree(entitiesFile.toFile());
+                if (root.isArray()) {
+                    for (JsonNode item : root) {
+                        GraphDataResponse.Node node = objectMapper.treeToValue(item, GraphDataResponse.Node.class);
+                        if (node != null && node.getId() != null) {
+                            nodeMap.put(node.getId(), node);
+                            nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
+                            nodes.add(node);
+                        }
+                    }
+                }
+            } catch (IOException ignored) {}
+        }
+
+        Path graphDataFile = processedDir.resolve("graph_data.json");
+        if (Files.exists(graphDataFile)) {
+            try {
+                JsonNode root = objectMapper.readTree(graphDataFile.toFile());
+                if (root.isArray()) {
+                    for (JsonNode item : root) {
+                        String relId = item.has("relation_id") ? item.get("relation_id").asText() : "";
+                        String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
+                        Double conf = item.has("confidence") ? item.get("confidence").asDouble() : 1.0;
+                        String evidence = item.has("evidence_text") ? item.get("evidence_text").asText() : "";
+                        String sourceFile = item.has("source_file") ? item.get("source_file").asText() : "";
+                        String chunkId = item.has("chunk_id") ? item.get("chunk_id").asText() : "";
+
+                        String sourceName = "";
+                        JsonNode srcNode = item.get("source");
+                        if (srcNode != null) {
+                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText() : srcNode.asText();
+                            ensureNodeExists(srcNode, nodeMap, nodes);
+                        }
+
+                        String targetName = "";
+                        JsonNode tgtNode = item.get("target");
+                        if (tgtNode != null) {
+                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText() : tgtNode.asText();
+                            ensureNodeExists(tgtNode, nodeMap, nodes);
+                        }
+
+                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation, targetName);
+                        edge.setConfidence(conf);
+                        edge.setEvidenceText(evidence);
+                        edge.setSourceFile(sourceFile);
+                        edge.setChunkId(chunkId);
+                        edges.add(edge);
+                    }
+                }
+            } catch (IOException ignored) {}
+        }
+
+        return new GraphDataResponse(caseId, nodes, edges);
     }
 
     private String normalizeCaseName(String caseName) {

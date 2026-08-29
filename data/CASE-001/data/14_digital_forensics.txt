@@ -1,0 +1,103 @@
+CASE ID: SHRLK-ROSE-2026-001 | FIR: ANPS-2026-0414-03
+Sources: E-001 (iPhone 13, Rose) + E-002 (MacBook Air, Rose) | Extracted by FSL Cyber, Chennai (Officer A. Kumar, Fictional)
+Imaging Tool: Magnet Axiom Synthetic v7.1 (Fictional) | Hashes: ROSE-IPHONE-E01 MD5: FICT-a1b2c3, MACBOOK-E01 MD5: FICT-d4e5f6
+Extraction Date: 15 April 2026 (Initial) — 17 April 2026 (Deep dive) | Report Date: 17 April 2026
+Evidence IDs: E-001, E-002 correlated with 05_evidence_inventory.txt
+
+--------------------------------------------------------------------------------
+1. PHONE (E-001) — Rose Mathew (+91-90000-10001) — iOS 17.4 (Fictional)
+--------------------------------------------------------------------------------
+- Lock: No PIN/bio needed at scene (phone was unlocked via charging tap), but image captured with passcode 2580 provided by Ananya (Rose had shared).
+- Last unlock: 15:18:22 IST on 14 Apr 2026 (face down). After that no unlock, no app foreground, only background pings. Last outgoing message 15:12 confirms last active use. Strong indicator ToD after 15:18.
+- Storage: 64GB, 41% used.
+- Messages: See 10_phone_messages.txt (extracted via iMazing synthetic)
+- Call Logs: See 11_call_logs.txt
+- App usage:
+   14 Apr 09:15 WhatsApp (message to Ananya)
+   14 Apr 09:42 WhatsApp (to Meera)
+   14 Apr 10:18 WhatsApp (to Arjun)
+   14 Apr 14:05 Phone dialer (call to Ananya 03:44)
+   14 Apr 15:12 WhatsApp (final message)
+   14 Apr 15:18 Screen unlock -> WhatsApp read (2 sec) -> lock
+   No app use 15:18-18:14 (except background).
+- Deleted data:
+   * Deleted message placeholder: 13 Apr 22:45:11 Rose -> Ananya "[This message was deleted]" — 7 sec after send, delete flag set, content not in backup (see note below).
+   * Deleted message gap: 12 Apr 09:42:18 Arjun -> Rose (1 message, not recoverable, sequence gap). Forensics indicates WhatsApp "Delete for Everyone" invoked by sender (Arjun phone shows delete log at same timestamp, content unknown).
+   * Recently deleted photos: None relevant (3 screenshots of design work deleted 11 Apr, recovered).
+- Location history (Google Timeline + Apple Significant Locations):
+   Matches 12_location_timeline.txt — last GPS 14 Apr 11:57 at Green View (accuracy 12m).
+- Health App: Sleep data — 13-14 Apr night: 3h 12m sleep (fragmented), 12-13 Apr: 4h 45m — indicates sleep deprivation.
+
+--------------------------------------------------------------------------------
+2. LAPTOP (E-002) — MacBook Air, macOS 14.2 (Fictional), User: rose.m (Rose M.)
+--------------------------------------------------------------------------------
+- Login Activity:
+   Last login 14 Apr 09:22 (password entry), logout 14 Apr 10:00 (sleep). No login after 14 Apr (consistent with phone being primary device).
+   Previous logins: 13 Apr 22:00-23:10, 13 Apr 13:30, 12 Apr 20:00, etc.
+- Browser History (Chrome, Profile rose.m):
+   2026-04-07 09:15:23 search "psychological manipulation signs" (Google) -> clicked psychologytoday.com
+   2026-04-07 09:18:41 search "how to deal with controlling friend" -> reddit thread
+   2026-04-07 09:22:05 search "coercive control friendship" -> counselling site
+   2026-04-07 09:35:11 visited https://www.psychologytoday.com/us/blog/... (coercive control article) — dwell 4 mins
+   2026-04-11 16:30:22 search "is hypnosis real or fake" -> youtube
+   2026-04-11 16:45:11 search "can hypnosis make you do something you don't want" -> scientificamerican
+   2026-04-13 22:10:11 search "alprazolam alcohol interaction" -> drugs.com — dwell 2 mins
+   2026-04-13 22:12:44 search "how much alprazolam is dangerous" -> medical site — dwell 1.5 mins (MISLEADING SEARCH: appears like suicidal planning, but also explainable as anxiety research; Rose had prescription, may have been worried about interaction)
+   2026-04-13 22:15:03 search "can anxiety medication cause sleep problems" -> health site
+   2026-04-13 22:18:22 visited https://www.drugs.com/alprazolam-alcohol.html (page about ethanol potentiation)
+   -- Note: Search 22:12:44 is the suspicious search that turns out to be misleading — no evidence she used dosage info to plan, could be fear-driven research. Sherlock should mark as ambiguous, not definitive suicidal intent.
+
+- Recent Documents (~/Documents):
+   04APR 20:50 "client_project_rose_v3.ai" (graphic design)
+   08APR 21:10 "journal_08apr.txt" — Content: "Felt uncomfortable after today. Meera means well but I felt pressured. She said I'm too guarded."
+   11APR 22:45 "journal_11apr.txt" — Content: "Arjun won't stop messaging. I told him clearly but he says I'm being unfair. Forwarded his message to Ananya. Scared."
+   13APR 19:20 "design_draft_final.ai"
+   10APR 16:22 "meera_session_notes_10apr.txt" — File created 10 Apr 16:22:11, deleted 10 Apr 16:35:44, recovered via unallocated space. Content (recovered): "Don't know how to say no to Meera. She says I overthink. She told me to repeat 'I trust you' and I did but felt scared after. Want to stop but don't want to hurt her." — This is POTENTIALLY IMPORTANT DELETED NOTE — shows escalating discomfort post-session, genuine clue that initially appears as just a deleted draft.
+
+- Recently Deleted / Trash:
+   Trash empty except for above note. File securely deleted (rm) but not wiped, carvable.
+   Also "session_reflection_04apr.docx" created 04 Apr 20:10 by Meera? Actually this was on Rose's laptop? Clarify: Rose copied Meera's reflection? Metadata shows author "Meera K." — likely shared doc via AirDrop, created 04 Apr 20:10, not deleted.
+   Recycle count negligible.
+
+- Email (rose.m.design@gmail.com — fictional, via Chrome):
+   No relevant emails to suspect. Last email 13 Apr from client "Approve draft?" 13 Apr 16:22.
+
+- Metadata Timestamps (for timeline consistency):
+   File "meera_session_notes_10apr.txt" creation 16:22:11 (matches location timeline 10 Apr after session). Deletion 16:35:44 same day — indicates Rose deleted after writing, possibly to hide discomfort.
+   Browser session 13 Apr 22:10-22:18 — aligns with call log gap (no calls then) and precedes deleted message 22:45.
+
+- Installed Apps: Adobe Suite, Figma, Chrome, Spotify, WhatsApp Desktop (last active 14 Apr 09:20).
+
+--------------------------------------------------------------------------------
+3. CORROBORATIVE EXTRACTIONS (Consented, from suspects' phones — partial)
+--------------------------------------------------------------------------------
+- Arjun Dev (+91-90000-10002) iPhone SE (consented imaging 16 Apr):
+   * Message 11 Apr 22:14 "You'll regret ignoring me, Rose..." present (confirms 10_phone_messages, contradicts his denial in interview).
+   * Delete log: 12 Apr 09:42:18 "Delete for Everyone" invoked for message to Rose (content unknown, matches gap on Rose phone). Arjun claimed no deletions (lie).
+   * Search history: No searches about alprazolam; searches about "gift for friend" 14 Apr 10:30 (supports gift claim but not verified).
+   * Location: Matches 12_location_timeline.
+
+- Meera Krishnan (+91-90000-10003) Android (consented imaging 16 Apr):
+   * Browser history: Search 2026-03-15 11:30 "how to make someone more suggestible psychology experiment" -> academic paper (supports dissertation claim). Also searches "guided meditation scripts" Jan-Feb 2026.
+   * Call log confirms 13 Apr 20:05 missed call to Rose (contradicts denial).
+   * Note app: "session_reflection_04apr.docx" author Meera K. (matches Rose laptop).
+   * Location history: Claims Adyar home 14 Apr 12:30-18:30, but GPS shows ping 12:45 toward Nungambakkam (accuracy 800m) and CCTV contradicts 18:20 — shows inconsistency.
+
+- Vikram Rao (+91-90000-10005) Android (consented):
+   * No deleted messages to Rose, no searches about drugs.
+   * Invoice file VR-042 for art print dated 12 Apr (corroborates financial record, proves innocent explanation).
+
+- Ananya Joseph (+91-90000-10004) iPhone (consented):
+   * Confirms forwarded screenshot 11 Apr 22:31 from Rose.
+   * No deletions.
+
+--------------------------------------------------------------------------------
+4. SUMMARY OF DIGITAL CLUES
+--------------------------------------------------------------------------------
+- Suspicious search that turns out to be misleading: 13 Apr 22:12 "how much alprazolam is dangerous" — appears suicidal, but context shows anxiety research (Rose had prescription, researching interaction after drinking? Actually no alcohol bottle found, but search about alcohol interaction suggests worry, not necessarily planning).
+- Potentially important deleted note: 10 Apr 16:22 "meera_session_notes_10apr.txt" — genuine evidence of psychological pressure, initially appears as just deleted draft but shows pattern of coercion/discomfort. Sherlock should surface this as genuine clue.
+- Deleted message placeholder 13 Apr 22:45 Rose->Ananya — content unknown, Ananya claims "if anything happens..." but no recovery, so remains ambiguous.
+- Login activity confirms last laptop use 14 Apr 10:00, last phone activity 15:18 — tightening ToD window.
+
+--------------------------------------------------------------------------------
+Chain-of-Custody: See 05_evidence_inventory.txt | Forensic Hash logs preserved at FSL.

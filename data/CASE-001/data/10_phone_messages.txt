@@ -1,0 +1,74 @@
+CASE ID: SHRLK-ROSE-2026-001
+Extraction Source: E-001 (Rose Mathew's iPhone) and corroborative extractions from Arjun/Meera phones (consented imaging, fictional)
+Tool: FSL Cyber Imaging v12.3 (Fictional) | Extraction Date: 15-17 April 2026
+Note: All phone numbers are fictional 90000 test series. Aliases variations appear as typed by users.
+
+Format:
+TIMESTAMP (IST) | SENDER (Name + Alias + Number) | RECIPIENT (Name + Alias + Number) | MESSAGE TEXT | STATUS
+--------------------------------------------------------------------------------
+
+# Conversation: Rose Mathew (Rose M., +91-90000-10001) <-> Ananya Joseph (Ananya J., +91-90000-10004)
+--------------------------------------------------------------------------------
+2026-04-04 18:20:11 | Rose Mathew (Rose M., +91-90000-10001) -> Ananya Joseph (+91-90000-10004) | Meera's session today was intense... she kept telling me to 'let go' and I felt weirdly pressured. Not sure how I feel about it. | Delivered, Read 18:22
+2026-04-04 18:25:44 | Ananya J. (+91-90000-10004) -> Rose M. (+91-90000-10001) | I felt it was a bit intense too. We can talk tomorrow? Maybe we just need time to process | Delivered
+2026-04-05 20:55:02 | Rose M. (+91-90000-10001) -> Ananya J. (+91-90000-10004) | Did you notice how Arjun was staring at me the whole time at Besant Nagar? I'm tired of this. | Delivered
+2026-04-06 19:12:30 | Ananya Joseph -> Rose Mathew | Call me when you can? Worried about you after Arjun call | Delivered
+2026-04-07 21:40:33 | Rose Mathew -> Ananya J. | Meera wants another session. I said maybe but I'm not sure I want to go. | Delivered
+2026-04-08 18:31:05 | Rose M. -> Ananya J. | Meera kept saying I need to 'let go of resistance' and trust her completely, it felt weird. She said I'm too guarded. | Delivered
+2026-04-09 12:31:22 | Rose Mathew (R. Mathew) -> Ananya Joseph | Arjun showed up at my client meeting in Nungambakkam. This is getting too much. He said he was 'just passing by' but how did he know I was there? | Delivered
+2026-04-10 20:11:09 | Rose Mathew -> Ananya Joseph | I told Meera I need a break. She was nice about it but I felt guilty. | Delivered
+2026-04-11 22:31:05 | Rose Mathew -> Ananya Joseph | See this? From Arjun. I'm really scared now. He has never said it like this before. [Forwarded attachment: screenshot of Arjun's 22:14 message] | Delivered — Forensic note: Forwarded image hash matches Arjun's message.
+2026-04-12 21:06:14 | Rose Mathew -> Ananya Joseph | Vikram freaked me out today but maybe I'm overthinking. He said karma will catch me. | Delivered
+2026-04-12 21:07:55 | Ananya J. -> R. Mathew | Vikram talks like that to everyone. Try not to overthink. But I get why you're scared. Let's meet tomorrow? | Delivered
+2026-04-13 22:45:11 | Rose Mathew -> Ananya Joseph | [This message was deleted 13APR 22:45:18] | DELETED PLACEHOLDER — Content not recoverable, forensics shows delete flag, no backup.
+2026-04-13 22:46:02 | Ananya J. -> Rose M. | What did you mean? You deleted something. You okay? | Delivered
+2026-04-13 22:47:19 | Rose Mathew -> Ananya Joseph | Sorry, wrong typing. Nothing. Good night. | Delivered
+2026-04-14 09:15:22 | Rose Mathew -> Ananya Joseph | Feeling very low today, can we talk later? Didn't sleep at all. | Delivered, Read 09:18
+2026-04-14 14:07:10 | Ananya Joseph -> Rose Mathew | Take care Rose, try to rest. Call me whenever you want. I'm here. | Delivered
+2026-04-14 15:12:44 | Rose Mathew -> Ananya Joseph | Sorry I cut earlier, feeling overwhelmed. Will call you tomorrow maybe. Thank you for always being there ❤️ | Delivered, Read 15:14 — LAST outgoing message from Rose
+
+# Conversation: Rose Mathew <-> Arjun Dev (Arjun D., +91-90000-10002)
+--------------------------------------------------------------------------------
+2026-04-05 10:15:44 | Arjun Dev (Arjun D., +91-90000-10002) -> Rose Mathew (R. Mathew, +91-90000-10001) | Hey Rose, are you free today? Wanted to meet. I was thinking we could talk properly. | Delivered
+2026-04-05 10:22:18 | Rose Mathew -> Arjun Dev | Hey Arjun, busy with work today. Maybe another time. | Delivered
+2026-04-06 14:41:33 | Arjun Dev -> Rose Mathew | Sorry I raised my voice. I just care about you so much. | Delivered
+2026-04-06 15:05:22 | Rose Mathew -> Arjun Dev | Please stop. I have told you I don't want this. Give me space. | Delivered
+2026-04-09 12:45:09 | Arjun Dev -> Rose Mathew | I was in Nungambakkam for work. Didn't know you'd be there. Sorry if I made you uncomfortable. | Delivered
+2026-04-10 09:15:02 | Arjun Dev -> Rose Mathew | You free to catch up? I'm near Anna Nagar | Delivered
+2026-04-10 09:22:41 | Rose Mathew -> Arjun Dev | Not today, need to work. Sorry. | Delivered
+2026-04-11 14:10:22 | Arjun Dev -> Rose Mathew | Please pick up. We need to talk. | Delivered
+2026-04-11 22:14:07 | Arjun Dev (A. Dev) -> Rose Mathew (Rose M.) | You'll regret ignoring me, Rose. You can't just cut me off like this. You know how much I've done for you. | Delivered, Read 22:15 — APPEARS THREATENING, later interpreted by Arjun as non-literal, but is key evidence.
+2026-04-12 09:40:11 | Arjun Dev -> Rose Mathew | Can we meet at Besant Nagar? Vikram's place? | Delivered
+2026-04-12 09:45:33 | Rose Mathew -> Arjun Dev | Not coming today. Please stop messaging so much. | Delivered
+2026-04-14 10:05:44 | Arjun Dev -> Rose Mathew | Can we meet? Please. I'm near T Nagar now. [Accompanied by missed call 10:05:31, 0s] | Delivered
+2026-04-14 10:18:02 | Rose Mathew -> Arjun Dev (Arjun D.) | Not today Arjun, please give me space. I mean it. | Delivered, Read 10:19 — Message that can later be interpreted differently: was Rose setting boundary or final refusal?
+
+# Conversation: Rose Mathew <-> Meera Krishnan (Meera K., +91-90000-10003)
+--------------------------------------------------------------------------------
+2026-04-07 20:30:11 | Meera Krishnan (Meera K., +91-90000-10003) -> Rose Mathew (R. Mathew) | You seemed tense the other day, R. Mathew. We can do a private relaxation session tomorrow? Just you and me, more focused. Might help with your sleep. | Delivered
+2026-04-07 21:05:44 | Rose Mathew -> Meera K. | Maybe. Let me think about it. Thanks Meera K. | Delivered
+2026-04-08 09:10:22 | Meera K. -> Rose Mathew | So shall we do 5pm today at my place in Adyar? | Delivered
+2026-04-08 09:18:55 | Rose Mathew -> Meera Krishnan | Okay, 5pm works. See you then. | Delivered
+2026-04-09 19:40:11 | Meera Krishnan -> Rose Mathew | Hope you're feeling calmer after yesterday. Remember to practice breathing. | Delivered
+2026-04-10 09:15:44 | Meera K. -> Rose Mathew | Don't cancel please, today's session will be really helpful for you | Delivered
+2026-04-10 09:22:11 | Rose Mathew -> Meera Krishnan | Okay I'll come at 10:30 then. | Delivered
+2026-04-10 19:30:22 | Rose Mathew -> Meera Krishnan | Hi Meera, I don't think I want to continue sessions, need space to think. Hope you understand. | Delivered
+2026-04-10 19:45:11 | Meera Krishnan -> Rose Mathew (Rose M.) | I understand you feel that way Rose M., but discomfort is part of growth. Take your time. | Delivered
+2026-04-13 19:50:22 | Meera Krishnan -> Rose Mathew | Thinking of you. Hope you're okay. | Delivered — Note: Meera claims she didn't contact after 12 Apr, but this 13 Apr message exists? Actually check log: call was 20:05, this message is additional? Keep call as lie but message also shows contact. For testing, we will keep 20:05 call as lie, and this message timestamp adjust to 13 Apr? Let's set this as 13 Apr 19:50 but Meera denies. Actually keep both to strengthen lie.
+2026-04-14 09:42:33 | Rose Mathew -> Meera Krishnan | Need some time alone today. Not feeling great. Will talk later. | Delivered
+2026-04-14 09:55:11 | Meera Krishnan -> Rose Mathew | Okay Rose, take care. I'm here if you need. Remember to breathe. | Delivered
+
+# Conversation: Rose Mathew <-> Unknown/Secondary Contact (+91-90000-10006 — Dr. Shalini Clinic reception)
+--------------------------------------------------------------------------------
+2026-04-06 10:30:22 | Dr. Shalini Clinic (+91-90000-10006) -> Rose Mathew (+91-90000-10001) | Your appointment today 16:40 confirmed. Please bring ID. — Dr. Shalini Clinic, Anna Nagar | Delivered
+2026-04-06 17:05:11 | Rose Mathew -> Dr. Shalini Clinic | Thank you, consultation done. Prescription received. | Delivered
+2026-04-13 11:30:44 | Unknown (+91-90000-10008 — Swiggy Delivery) -> Rose Mathew | Your Swiggy order #7728490 has been delivered. Thank you! | Automated
+
+# Additional recovered deleted / message status notes:
+--------------------------------------------------------------------------------
+- Deleted message placeholder: 2026-04-13 22:45:11 Rose -> Ananya [This message was deleted] — Forensics confirms delete action 7 seconds after sending. Content irrecoverable.
+- Deleted file note: Message thread between Rose and Arjun on 12 Apr 09:40-09:45 appears truncated — one message from Arjun at 09:42 may have been deleted (gap in sequence numbers, indicated by "1 message deleted" in WhatsApp metadata, timestamp 12 Apr 09:42:18). Content unknown, flagged as DELETED_MESSAGE_GAP.
+- Message read receipts: Blue ticks where indicated, otherwise delivered only.
+
+--------------------------------------------------------------------------------
+End of message dataset. All timestamps cross-referenced with 11_call_logs.txt and 19_timeline_master.txt.

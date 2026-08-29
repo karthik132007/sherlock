@@ -29,6 +29,11 @@ public class CaseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/cases/next-id")
+    public ResponseEntity<java.util.Map<String, String>> getNextCaseId() {
+        return ResponseEntity.ok(java.util.Map.of("nextCaseId", caseService.getNextCaseId()));
+    }
+
     @GetMapping("/cases")
     public ResponseEntity<List<CaseResponse>> listCases() {
         return ResponseEntity.ok(caseService.listCases());
@@ -64,6 +69,31 @@ public class CaseController {
     @GetMapping("/cases/{caseId}/timeline")
     public ResponseEntity<TimelineEventResponse> getTimeline(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.getTimeline(caseId));
+    }
+
+    @GetMapping("/neo4j/status")
+    public ResponseEntity<java.util.Map<String, Object>> getNeo4jStatus() {
+        return ResponseEntity.ok(caseService.getNeo4jStatus());
+    }
+
+    @PostMapping("/cases/{caseId}/neo4j/sync")
+    public ResponseEntity<java.util.Map<String, Object>> syncToNeo4j(@PathVariable String caseId) {
+        boolean success = caseService.syncToNeo4j(caseId);
+        return ResponseEntity.ok(java.util.Map.of("caseId", caseId, "synced", success));
+    }
+
+    @GetMapping("/llm/ollama/models")
+    public ResponseEntity<List<String>> getOllamaModels() {
+        return ResponseEntity.ok(caseService.getOllamaModels());
+    }
+
+    @PostMapping("/cases/{caseId}/neo4j/query")
+    public ResponseEntity<java.util.Map<String, Object>> queryNeo4j(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, String> payload) {
+        String cypher = payload.getOrDefault("cypher", "");
+        List<java.util.Map<String, Object>> records = caseService.executeNeo4jCypher(caseId, cypher);
+        return ResponseEntity.ok(java.util.Map.of("caseId", caseId, "cypher", cypher, "records", records));
     }
 
     @PostMapping("/cases/{caseId}/chat")
