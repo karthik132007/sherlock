@@ -75,9 +75,9 @@ public class GraphCanvas extends StackPane {
         StackPane.setMargin(minimapBox, new Insets(14));
 
         // Bottom-right Legend
-        VBox legendBox = buildLegend();
+        HBox legendBox = buildLegend();
         StackPane.setAlignment(legendBox, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(legendBox, new Insets(14));
+        StackPane.setMargin(legendBox, new Insets(8));
 
         getChildren().addAll(canvas, toolbar, minimapBox, legendBox);
 
@@ -223,30 +223,31 @@ public class GraphCanvas extends StackPane {
         return box;
     }
 
-    private VBox buildLegend() {
-        VBox box = new VBox(5);
-        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+    private HBox buildLegend() {
+        HBox box = new HBox(8);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 3px 8px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
 
-        Label title = new Label("Legend");
-        title.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
-
+        Label title = new Label("LEGEND:");
+        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
         box.getChildren().add(title);
+
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
         box.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
-        box.getChildren().add(legendItem(Color.web("#10B981"), "Document / Transcript"));
+        box.getChildren().add(legendItem(Color.web("#10B981"), "Doc"));
         box.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
         box.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
-        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Organization"));
+        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Org"));
 
         return box;
     }
 
     private HBox legendItem(Color color, String text) {
-        HBox row = new HBox(6);
+        HBox row = new HBox(3);
         row.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(4, color);
+        Circle dot = new Circle(3, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 10px; -fx-text-fill: #cbd5e1;");
+        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #94a3b8;");
         row.getChildren().addAll(dot, label);
         return row;
     }

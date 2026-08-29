@@ -1,0 +1,147 @@
+CASE ID: SHRLK-ROSE-2026-001 | FIR: ANPS-2026-0414-03
+Compiled: 17 April 2026 by FSL Video Analysis (Officer P. Senthil, Fictional) + SI R. Kumar
+Sources: 6 cameras (Green View + 5 external). All locations fictional but mapped to real Chennai areas for realism.
+Notes: Confidence levels and limitations must be logged per Sherlock requirements. Includes one mistaken identification possibility.
+
+--------------------------------------------------------------------------------
+CAMERA INVENTORY (Fictional IDs):
+--------------------------------------------------------------------------------
+CAM-GV-01: Green View Apartments, Main Entrance (Facing gate, 1080p, outdoor)
+CAM-GV-02: Green View Apartments, Stairwell 2nd-3rd Floor (Indoor, 720p, low light)
+CAM-AN-02: Anna Nagar Tower Park Entrance (Chennai Corporation camera, 1080p)
+CAM-AN-03: Anna Nagar 3rd Main Road, outside Green View (Private shop camera, 720p, angle oblique)
+CAM-TN-04: Cafe Coffee Day, T. Nagar (Private, indoor)
+CAM-NM-02: Nungambakkam High Road, near The Brew Room (Traffic camera, 1080p)
+CAM-NM-07: Nungambakkam High Road, SBI ATM vestibule (Bank camera)
+
+--------------------------------------------------------------------------------
+EXTRACTED SIGHTINGS (Timestamp IST):
+--------------------------------------------------------------------------------
+
+ENTRY #001
+  Timestamp: 2026-04-09 12:05:33 — 12:18:11
+  Camera: CAM-NM-02 (Nungambakkam High Road, nr Brew Room)
+  Person Detected: Arjun Dev (Arjun D., +91-90000-10002) + Rose Mathew (R. Mathew)
+  Description: Rose in light green kurta enters Brew Room 11:40, Arjun appears 12:05 walking from north, enters same café, leaves 12:18 alone, appears agitated. Clothing matches Arjun's usual (grey shirt).
+  Confidence: HIGH (facial recognition manual match, corroborated by Rose's GPS)
+  Limitations: None significant.
+  Corroboration: Location timeline, Rose message 12:31.
+  Evidence ID: E-008 (file NM-090426-1205.mp4)
+
+ENTRY #002
+  Timestamp: 2026-04-10 16:20:14 — 16:48:02
+  Camera: CAM-GV-01 (Green View Entrance)
+  Person Detected: Vikram Rao (Vikram R., +91-90000-10005)
+  Description: Male, beard, tattoo on forearm, wearing black t-shirt, enters gate, signs register for Flat 2A, leaves 16:48. Duration 28 mins. Matches Vikram known appearance.
+  Confidence: HIGH (clear face, register corroboration)
+  Limitations: None. Innocent explanation verified via Priya Menon (Flat 2A) witness.
+  Notes: Initially flagged as suspicious (near Rose building 4 days before death), but investigation shows visit to friend Priya, not Rose.
+  File: GV-100426-1620.mp4
+
+ENTRY #003
+  Timestamp: 2026-04-10 16:22:00 (approx)
+  Camera: CAM-GV-02 (Stairwell) — NOT triggered (no motion detected 16:22)
+  Person Detected: None
+  Description: No figure detected stairwell at this time (helps confirm Vikram used stairs to 2A but camera missed due to angle).
+  Confidence: N/A
+  Limitations: Camera angle covers only part of stairwell, low FPS.
+
+ENTRY #004
+  Timestamp: 2026-04-13 15:30:22 — 15:32:11
+  Camera: CAM-NM-07 (SBI ATM, Nungambakkam High Road)
+  Person Detected: Arjun Dev
+  Description: Male withdrawing cash, matches Arjun (grey shirt, same as 12 Apr CCTV). Transaction Rs 10,000. Receipt visible.
+  Confidence: HIGH (bank camera frontal)
+  File: NM07-130426-1530.mp4
+  Limitations: None. Confirms financial record (Arjun withdrawal).
+
+ENTRY #005
+  Timestamp: 2026-04-14 10:42:18 — 10:44:05
+  Camera: CAM-TN-04 (Cafe Coffee Day, T. Nagar indoor)
+  Person Detected: Arjun Dev (claimed)
+  Description: Male in grey hoodie, back to camera, sitting near window with laptop. Face not clearly visible (mask pulled down partially). Build similar to Arjun.
+  Confidence: MEDIUM (No clear facial match, clothing similar, time matches claimed alibi)
+  Limitations: Camera resolution low, face obscured, cannot confirm identity beyond clothing similarity. Possible mistaken identification — could be another customer in similar hoodie. Investigator note: This is the "mistaken identification possibility" required — CCTV at T. Nagar 10:42 is not reliable for alibi.
+  Corroboration: Arjun's claimed presence 10:40-12:00.
+  File: TN04-140426-1042.mp4
+
+ENTRY #006
+  Timestamp: 2026-04-14 11:40:22 — 11:40:45
+  Camera: CAM-AN-02 (Anna Nagar Tower Park Entrance)
+  Person Detected: Rose Mathew (Rose M., also R. Mathew)
+  Description: Female, light blue kurta, white cloth bag, walking alone south toward Green View direction. Face clear, matches Rose from college photo ID provided by Ananya.
+  Confidence: HIGH (clear face, clothing matches scene)
+  Limitations: None. Last confirmed sighting of Rose outside apartment before return.
+  File: AN02-140426-1140.mp4
+
+ENTRY #007
+  Timestamp: 2026-04-14 11:57:03 — 11:57:31
+  Camera: CAM-GV-01 (Green View Entrance)
+  Person Detected: Rose Mathew (alone)
+  Description: Female entering gate, same clothing as CAM-AN-02, carrying white bag, no other person with her, appears to walk normally, not distressed. Guard nods at her.
+  Confidence: HIGH (frontal face, corroborated by tower park footage)
+  Limitations: Gate camera does not show interior flat entry, only gate.
+  File: GV-140426-1157.mp4
+
+ENTRY #008
+  Timestamp: 2026-04-14 16:16:44 — 16:17:02
+  Camera: CAM-AN-03 (Anna Nagar 3rd Main Road, outside Green View, oblique shop camera)
+  Person Detected: Person resembling Arjun Dev (Arjun D.)
+  Description: Male, approx 5'10", grey hoodie/dark jeans, walking north toward Green View Apartments. Face partially obscured by cap and mask, side profile. Build and gait similar to Arjun. No bag.
+  Confidence: MEDIUM (Partial face, clothing matches T. Nagar 10:42, but not definitive. Independent analyst rates 62% match). Arjun denies it is him.
+  Limitations: Oblique angle, low resolution 720p, 15m distance, face 40% obscured. Cannot be used as sole proof, but temporal correlation with phone ping 16:18 strengthens interest. Possibly mistaken identification? Alternative could be resident R. Karthik (Flat 3A son, similar build) but Karthik claims he was at work in Velachery at that time (UNVERIFIED).
+  File: AN03-140426-1616.mp4
+  Important: This is key temporal contradiction vs Arjun's alibi "T. Nagar entire afternoon".
+
+ENTRY #009
+  Timestamp: 2026-04-14 16:20:11 — 16:20:28
+  Camera: CAM-GV-02 (Stairwell 2nd-3rd Floor, Green View)
+  Person Detected: Unknown blurred figure
+  Description: Indistinct human form on stairwell between 2nd and 3rd floor, near Flat 3B landing. Motion blur, low light, only silhouette, approx 1 frame clear. Cannot determine gender, height approx 5'6-5'10, dark clothing. Could be resident, visitor, or artifact (e.g., shadow from window).
+  Confidence: LOW (Image quality poor, 480p equivalent after interpolation, only 2 seconds of motion)
+  Limitations: Major — Camera FPS 5, low light, no facial detail, no corroborating entrance camera shows same person entering gate at 16:16-16:20 (but gate camera has gap 16:15-16:22 due to auto-iris adjustment, missed entry). Cannot identify. Must not be used as definitive evidence of third-party presence, but is flagged as "unknown person appears near apartment" per case overview.
+  File: GV02-140426-1620.mp4
+  Investigator Note: This blurred figure is the "genuine clue that initially appears unimportant" vs "misleading"? Actually it's ambiguous — could be Arjun, could be no one. Sherlock must weigh confidence.
+
+ENTRY #010
+  Timestamp: 2026-04-14 16:25:11 — 16:25:40
+  Camera: CAM-GV-01 (Green View Entrance) — Review 16:00-18:00
+  Person Detected: No clear entry matching Arjun in 16:16-16:25 window (gap due to sun glare 16:15-16:22)
+  Description: No person clearly seen entering gate 16:15-16:22 when stairwell figure appears. Could be due to glare obscuring entrance for 7 mins (auto-exposure).
+  Confidence: N/A
+  Limitations: Sun glare 16:15-16:22 obliterates gate footage — cannot confirm or deny entry. This limitation is important for defence: Arjun could claim he never entered.
+
+ENTRY #011
+  Timestamp: 2026-04-14 18:20:33 — 18:20:51
+  Camera: CAM-NM-02 (Nungambakkam High Road)
+  Person Detected: Person resembling Meera Krishnan (Meera K.)
+  Description: Female, long hair, maroon kurta, white bag, walking south on High Road. Face partially visible, matches Meera's photo (provided by Ananya) ~70% manual match.
+  Confidence: MEDIUM-HIGH (Face 60% visible, clothing distinct, analyst rates 71%). Meera denies being there, claims Adyar at 18:00.
+  Limitations: Distance ~12m, evening light, not frontal, but distinct kurta matches Meera's known wardrobe (maroon photographed at 04 Apr session).
+  Temporal Note: If Meera was in Adyar at 18:00 (claimed), reaching Nungambakkam by 18:20 is impossible (9km, traffic 35-45 mins). Contradiction detectable via location timeline.
+  File: NM02-140426-1820.mp4
+
+ENTRY #012
+  Timestamp: 2026-04-14 18:28:22 — 18:33:11
+  Camera: CAM-GV-01 (Green View Entrance)
+  Person Detected: Ananya Joseph (+91-90000-10004) + Mr. Suresh (manager)
+  Description: Female (Ananya) and older male (Suresh, manager) enter gate 18:28:22, appear hurried, proceed to stairwell. Security register log matches. Guard confirms.
+  Confidence: HIGH (clear face)
+  File: GV-140426-1828.mp4
+
+ENTRY #013
+  Timestamp: 2026-04-14 16:30:00 (Attempted retrieval: Crossword Bookstore, Anna Nagar — Arjun's claimed gift purchase location)
+  Camera: Crossword Anna Nagar, 2nd Avenue (Private, requested via warrant)
+  Person Detected: No clear match to Arjun in 15:50-16:40 window
+  Description: Footage reviewed for Arjun claim "buying book 16:00-16:30". One male in grey hoodie seen at cashier 16:12 but face away, transaction cash Rs 299, but not identifiable as Arjun. No receipt provided, no loyalty card used. Cannot corroborate nor fully refute alibi gap.
+  Confidence: LOW (No identification)
+  Limitations: Store camera angle away from entrance, cash transaction not logged with name.
+  File: CROSS-140426-1612.mp4 (Requested)
+
+--------------------------------------------------------------------------------
+SUMMARY FOR SHERLOCK:
+--------------------------------------------------------------------------------
+- CONFIRMED sightings: Rose 11:40 & 11:57, Vikram 10 Apr, Arjun ATM 13 Apr, Ananya 18:28.
+- MEDIUM: Arjun 16:16 near Green View (disputed, contradicted by Arjun's alibi), Arjun T. Nagar 10:42 (mistaken ID possible), Meera 18:20 Nungambakkam (contradicts Adyar 18:00 claim).
+- LOW: Stairwell blurred figure 16:20 (unknown).
+- LIMITATIONS emphasize that not every identification is reliable — Sherlock must analyze confidence.

@@ -1,0 +1,91 @@
+CASE ID: SHRLK-ROSE-2026-001
+FIR No: ANPS-2026-0414-03 | Anna Nagar Police Station (Fictional)
+Address: Flat 3B, Green View Apartments, 12/45 3rd Main Road, Anna Nagar West, Chennai (Fictional)
+Date of Examination: 14 April 2026
+Time Police Arrived: 19:05 IST (SI R. Kumar, Constable Priya Nair)
+Forensic Team Arrival: 19:40 IST (Team Lead: S. Varun, FSL Chennai — Fictional)
+Photography: 19:42 — 20:15 IST (42 photos logged)
+Reporting Officer: Inspector K. Raghavan (Fictional)
+
+--------------------------------------------------------------------------------
+1. ARRIVAL AND ENTRY
+--------------------------------------------------------------------------------
+- Call received at ANPS control room 18:55 IST from Mr. Suresh (building manager, +91-90000-10007) on behalf of Ananya Joseph (+91-90000-10004).
+- Officers arrived 19:05 IST. Complainant Ananya J. and Mr. Suresh present in corridor outside Flat 3B, visibly distressed.
+- Flat door: Wooden main door with Yale-type latch. No signs of forced entry, no tool marks, no broken lock, no scuff on frame. Door was reported closed/latched from inside before manager used spare key at ~18:30. Key in manager's possession matched lock smoothly.
+- Windows: Two windows in living room and one in bedroom. All closed and latched from inside. Grilles intact. No entry via balcony (3rd floor, no external climb marks, balcony door closed but not locked — see notes).
+- Balcony: Small balcony off living room, 4x6 ft. Contains two potted plants (one wilted), a plastic chair, drying clothes (2 t-shirts, towel). No footprints besides victim's slippers. No signs of disturbance.
+
+2. CONDITION OF APARTMENT (Overall Order)
+--------------------------------------------------------------------------------
+- General impression: Mostly normal, lived-in but tidy. No ransacking, no signs of struggle, no overturned furniture.
+- Living room: Sofa with two cushions, coffee table with magazines (Design Today, March 2026; Creative Arts Quarterly), TV off, remote on table, floor clean. Shoes neatly by door (1 pair women's sneakers, 1 pair sandals).
+- Kitchen: Clean. Dishes washed and stacked, drying rack. Refrigerator contains: milk (500ml), eggs (4), orange juice carton (Real brand, 1L, opened, ~60% remaining), curd, vegetables. Trash bin contains food packaging, receipt from Swiggy (14 Apr 14:48, The Bowl Company, Rs 450). Note: Swiggy delivery corroborated by delivery executive M. Arif (phone +91-90000-10018).
+- Bedroom (where victim found): Bed centered against north wall, nightstand on east side, study desk near window on west wall.
+- Bathroom: Towel hung, toiletries normal, no unusual substances. Prescription label not found here.
+- Irrelevant details logged for completeness: Electricity bill on fridge (paid, due 28 Apr), houseplants watered, WiFi router (ACT Fibernet) blinking normal, air conditioner remote on bed (AC off).
+
+3. POSITION OF VICTIM
+--------------------------------------------------------------------------------
+- Victim: Rose Mathew (also Rose M., R. Mathew), 27, female, approx 5'4". Found supine on bed, head on pillow, arms at sides. Wearing light blue kurta (same as in 11:40 CCTV) and grey leggings. No outer footwear.
+- Pallor, no spontaneous movement. Body cool to touch. Rigor mortis not fully developed at 19:10 (jaw slight stiffness). Livor mortis present posteriorly (consistent with supine position, not moved).
+- Visible injuries (non-graphic summary): Superficial linear marks on dorsal hands and volar wrists, bilateral, appear to be few days old and one fresher mark (see postmortem 04 for detailed medical description). No active bleeding, no large wounds, no ligature marks. No obvious defensive injuries beyond noted marks.
+- Hands: Nails trimmed, no broken nails. Left hand loosely holding phone charging cable (not phone).
+- Bed: Sheet relatively smooth, no signs of violent struggle. Pillow slightly indented.
+
+4. ITEMS RECOVERED (Linked to Evidence Inventory 05)
+--------------------------------------------------------------------------------
+E-001: Mobile Phone — iPhone 13, Blue case, found on bedside table, east nightstand. Screen off, 68% battery, connected to charger cable. SIM: Jio (fictional). Recovered by Constable Priya Nair at 19:48. Photographed in situ (IMG_0034). Fingerprints: victim's partial.
+
+E-002: Laptop — MacBook Air (Silver), found on study desk, lid half-closed, sleep light on. Charger nearby. Browser tabs open (later forensics shows psychology articles). Recovered by S. Varun 19:52. IMG_0037.
+
+E-003: Glass / Container — Transparent glass, approx 250ml, containing ~150ml orange-coloured liquid, partially consumed. Found on bedside nightstand, coaster. Condensation absent (room temp). No lipstick trace. Residue around rim. Smell: citrus. Photographed (IMG_0041). Recovered 19:50 by S. Varun. Sent to FSL for toxicology. Note: Juice carton in fridge matches liquid visually, but FSL needed to test for adulteration. This item initially appears unimportant but is central to toxicology.
+
+E-004: Handwritten Note — White A5 paper, found on study desk under laptop charger, handwritten in blue ink. Text (transcribed verbatim):
+    "I can't keep doing this. It's too much. Sorry. — R"
+    No date, no addressee. Paper has 2 creases (folded once). Ink appears fresh. Desk also had 2 pens (blue, black) and sketchbook (see E-010). Handwriting compared to victim's known writing (sketchbook) — appears similar but expert opinion pending. Recovered 19:55. Photographed IMG_0038, IMG_0039 (macro).
+
+E-005: Medication — Blister pack: Alprazolam 0.5mg (Brand: Alprax 0.5, fictional batch), 10-tablet strip. Found in bedside drawer, inside small cloth pouch with clinic receipt (Dr. Shalini Clinic, 06 Apr 2026). Pack has 6 tablets remaining, 4 missing; plus 2 loose tablets in pouch. Prescription label pasted: "Rose Mathew, 0.5mg HS x 5 days, Dr. Shalini, 06APR2026". Recovered 20:02. Count photographed IMG_0044.
+
+E-006: Door Lock & Key Set — Main door lock inspected, key tested. No forced entry marks. Photographed.
+
+E-007: Trace / Fingerprints — Dusting performed:
+    - On E-003 glass: 1 partial thumb print (victim matched, via Aadhaar-fictional reference) and 1 smudged partial on base (insufficient for identification, 8 ridge points, E-007-S1)
+    - On door handle (inside): Victim + mixed smudge
+    - On desk: Victim prints only
+    - No footwear prints other than victim's.
+
+E-009: Clothing — No additional clothing seized, victim's clothing examined in situ.
+
+E-010: Journal / Sketchbook — Hardbound sketchbook, found on desk, contains graphic design drafts and handwritten journal entries dated 08 Apr and 11 Apr (photographed, original retained). Entry 11 Apr: "Arjun won't stop messaging. I told him clearly but he says I'm being unfair."
+
+5. DOORS / WINDOWS STATUS SUMMARY
+--------------------------------------------------------------------------------
+- Main door: No forced entry, latched from inside (per manager statement before opening)
+- Bedroom door: N/A (no internal door)
+- Balcony door: Closed, latch not engaged (unlocked but closed) — potentially relevant if someone left without locking? However no evidence of second person exit via balcony (3rd floor drop ~30ft, no rope, no ladder marks).
+- Windows: All latched from inside.
+
+6. INITIAL OBSERVATIONS / INVESTIGATOR IMPRESSIONS
+--------------------------------------------------------------------------------
+- No obvious robbery motive: Valuables intact — laptop, phone, Rs 2,100 cash in drawer, gold earrings on victim.
+- No signs suggesting another person shortly before death? Contradictory: Glass with drink suggests victim had drink alone, but two glasses? Only one glass found. However Swiggy packaging suggests meal for one. Yet building CCTV shows blurred figure 16:20 near stairwell (unidentified).
+- Handwritten note ambiguous: Could be suicide note, but content generic, no method mentioned, no addressee, could be draft. Found under charger, not prominently displayed (unusual for suicide note placement).
+- Medication: Presence of sedative suggests possible overdose, but 4 missing tablets over 8 days is within prescribed use, not excessive alone — however combined with alcohol could be fatal (see toxicology pending).
+- Visible injuries on hands/wrists: Postmortem to clarify if self-inflicted, accidental, or defensive. Scene shows no blood spatter.
+- Neighbours canvassed 19:30-20:00: Flat 3A (Mrs. Geetha, 62) heard no shouting on 14 Apr. Flat 2B (Mr. Karthik) says heard footsteps 16:15-16:25 but not unusual. No one reports scream.
+
+7. CHAIN OF CUSTODY INITIATED
+--------------------------------------------------------------------------------
+See 05_evidence_inventory.txt for formal log. Items sealed in tamper-evident bags, signed by SI R. Kumar and FSL Varun, transferred to ANPS malkhana at 21:45, then to FSL Chennai 15 Apr 09:30.
+
+8. LIMITATIONS
+--------------------------------------------------------------------------------
+- CCTV DVR for Green View has 72-hour overwrite; oldest footage from 11 Apr only. No earlier timeline recovery.
+- Fingerprint smudge insufficient for AFIS match.
+- No blood or DNA swabs positive at scene (prelim).
+
+--------------------------------------------------------------------------------
+Photographs logged: IMG_0001 - IMG_0048
+Sketch map: Apartment layout drawn (north oriented), evidence positions marked.
+Report prepared by: SI R. Kumar | Reviewed by: Inspector K. Raghavan | Date: 15 Apr 2026 02:10 IST

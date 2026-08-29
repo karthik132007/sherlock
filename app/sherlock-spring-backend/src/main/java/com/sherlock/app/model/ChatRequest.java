@@ -9,6 +9,8 @@ import java.util.List;
 public class ChatRequest {
 
     private String query;
+    private String model;
+    private String provider;
     private List<ChatMessage> history = new ArrayList<>();
 
     public ChatRequest() {}
@@ -19,6 +21,12 @@ public class ChatRequest {
 
     public String getQuery() { return query; }
     public void setQuery(String query) { this.query = query; }
+
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
+
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
 
     public List<ChatMessage> getHistory() { return history; }
     public void setHistory(List<ChatMessage> history) { this.history = history; }

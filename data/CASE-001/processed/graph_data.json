@@ -1,0 +1,92 @@
+{
+  "project": "CASE-001",
+  "nodes": [
+    {
+      "id": "person_rose_mathew",
+      "name": "Rose Mathew",
+      "type": "PERSON",
+      "confidence": 0.98,
+      "data": {
+        "age": 27,
+        "occupation": "Graphic Designer",
+        "phone": "+91-90000-10001"
+      },
+      "mentions": 14
+    },
+    {
+      "id": "person_arjun_dev",
+      "name": "Arjun Dev",
+      "type": "PERSON",
+      "confidence": 0.95,
+      "data": {
+        "occupation": "Architect",
+        "phone": "+91-90000-10002"
+      },
+      "mentions": 10
+    },
+    {
+      "id": "person_ananya_joseph",
+      "name": "Ananya Joseph",
+      "type": "PERSON",
+      "confidence": 0.96,
+      "data": {
+        "occupation": "Architect Partner"
+      },
+      "mentions": 8
+    },
+    {
+      "id": "location_anna_nagar",
+      "name": "Green View Apartments, Anna Nagar",
+      "type": "LOCATION",
+      "confidence": 0.99,
+      "data": {
+        "city": "Chennai"
+      },
+      "mentions": 12
+    },
+    {
+      "id": "doc_fir_001",
+      "name": "FIR No. 112/2026",
+      "type": "DOCUMENT",
+      "confidence": 1.0,
+      "data": {
+        "ps": "Anna Nagar PS"
+      },
+      "mentions": 6
+    }
+  ],
+  "edges": [
+    {
+      "relation_id": "rel_001",
+      "source": "Rose Mathew",
+      "relation": "FRIEND_OF",
+      "target": "Ananya Joseph",
+      "confidence": 0.96,
+      "evidence_text": "Rose Mathew was close friends with Ananya."
+    },
+    {
+      "relation_id": "rel_002",
+      "source": "Arjun Dev",
+      "relation": "MET_WITH",
+      "target": "Rose Mathew",
+      "confidence": 0.92,
+      "evidence_text": "Arjun met Rose at the apartment on 14 April."
+    },
+    {
+      "relation_id": "rel_003",
+      "source": "Rose Mathew",
+      "relation": "LOCATED_AT",
+      "target": "Green View Apartments, Anna Nagar",
+      "confidence": 0.99,
+      "evidence_text": "Found at flat 3B Green View Apartments."
+    },
+    {
+      "relation_id": "rel_004",
+      "source": "FIR No. 112/2026",
+      "relation": "MENTIONS",
+      "target": "Rose Mathew",
+      "confidence": 1.0,
+      "evidence_text": "FIR filed regarding deceased Rose Mathew."
+    }
+  ]
+}

@@ -6,6 +6,8 @@ import com.sherlock.app.controller.CaseController;
 import com.sherlock.app.model.CaseRequest;
 import com.sherlock.app.model.LlmConfigRequest;
 import com.sherlock.app.service.CaseService;
+import com.sherlock.app.service.Neo4jGraphService;
+import com.sherlock.app.service.OllamaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,7 +34,10 @@ class CaseControllerTest {
     void setUp() {
         AppProperties appProperties = new AppProperties();
         appProperties.setBaseDirectory(tempDir.toString());
-        CaseService caseService = new CaseService(appProperties);
+        appProperties.getNeo4j().setEnabled(false);
+        Neo4jGraphService neo4jGraphService = new Neo4jGraphService(appProperties);
+        OllamaService ollamaService = new OllamaService(appProperties);
+        CaseService caseService = new CaseService(appProperties, neo4jGraphService, ollamaService);
         CaseController caseController = new CaseController(caseService);
         mockMvc = MockMvcBuilders.standaloneSetup(caseController).build();
         objectMapper = new ObjectMapper();
@@ -55,6 +60,7 @@ class CaseControllerTest {
     @Test
     void testListCasesEndpoint() throws Exception {
         mockMvc.perform(get("/api/cases"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 }

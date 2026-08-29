@@ -1,0 +1,67 @@
+CASE ID: SHRLK-ROSE-2026-001 | FIR: ANPS-2026-0414-03
+Interviewee: Meera Krishnan (also Meera K., M. Krishnan), 26, Female, MA Psychology (University of Madras), Freelance wellness facilitator
+Address (Fictional): Flat 7C, Shanti Apartments, 22/8 Lattice Bridge Road, Adyar, Chennai 600020 (also referred to as Adyar)
+Phone (Fictional): +91-90000-10003
+Interview Date: 16 April 2026 | Time: 14:00 — 15:10 IST
+Location: Interview Room 2, Anna Nagar Police Station, Chennai (Fictional)
+Interviewers: Inspector K. Raghavan (IKR) and Constable Priya Nair (CPN) (Fictional)
+Recording: INT-MEERA-160426.MP3 (Fictional)
+--------------------------------------------------------------------------------
+IKR: State your full name and background.
+Meera: I am Meera Krishnan, 26, I finished MA Psychology at University of Madras in 2023. I am interested in hypnosis, guided meditation, suggestion, altered states — but only as psychological tools, not supernatural. I facilitate relaxation workshops in Adyar. I am friends with Rose Mathew and Ananya.
+
+IKR: How do you know Rose?
+Meera: Rose M. is a friend through Ananya. We became close over the last year. She attended a group session I held on 04 April at my flat — with Ananya. Then I did private sessions with her on 08 April. Rose was anxious, had sleep issues.
+
+CPN: When was your last session with Rose?
+Meera: My last session with Rose was on 08 April. After that she told me on 10 April she needed space, so I stopped. We did not meet after 08 April. [DELIBERATE LIE / SUBTLE INCONSISTENCY I3 — contradicts digital forensics file created 10 Apr 16:22 and message 10 Apr 10:30 session evidence]
+
+IKR: What did these sessions involve? Some friends say you were obsessive about influencing people's decisions.
+Meera: That's a misunderstanding. I study suggestion and guided imagery — it's about relaxation, breathing, positive affirmations. I would ask Rose to close her eyes, breathe, imagine a safe place, repeat phrases like "I am calm" or "I trust the process". There is no mind control. Hypnosis cannot make someone do what they don't want to do. It is suggestion, not control. I never forced her. She consented each time. If she felt uncomfortable, that is valid, but I didn't coerce her.
+
+CPN: Rose told Ananya you made her repeat "I trust you" and she felt pressured. What about that?
+Meera: I may have asked her to repeat "I trust you" as an exercise in building self-trust, not trust in me specifically. Perhaps I phrased it poorly. I understand why she felt weird. I apologized on 10 April when she said she needed space — I said take your time.
+
+IKR: We found a deleted note on Rose's laptop created 10 April 16:22: "Don't know how to say no to Meera. She says I overthink. She told me to repeat 'I trust you' and I did but felt scared after." Comments?
+Meera: I did not know she felt scared. I thought she was okay. I would have stopped immediately if she said scared. I feel terrible.
+
+IKR: Your movements on 14 April — where were you all day?
+Meera: I was at home in Adyar most of the day. I messaged Rose at 09:55 after she said she needed time alone. After that I was home. I had a Swiggy delivery at 18:35 to my flat — you can verify. I was in Adyar at 18:00 definitely at home.
+
+CPN: So you were in Adyar at 18:00 on 14 April?
+Meera: Yes, I was in Adyar at 18:00, at home. [This claim contradicts CCTV at Nungambakkam 18:20 showing person resembling Meera — travel time 20 mins from Adyar impossible, temporal contradiction for testing]
+
+IKR: Did you contact Rose after 12 April?
+Meera: No, I have not contacted Rose since she told me to give her space on 10 April. Last contact was her message 10 April and my reply. After that I left her alone until she messaged on 14 April morning. [DELIBERATE LIE F2 — contradicts call log 13 Apr 20:05 missed call from Meera to Rose]
+
+CPN: Our call logs show a missed call from your number (+91-90000-10003) to Rose (+91-90000-10001) on 13 April at 20:05:33.
+Meera: Oh, I... I may have called to check if she was okay but hung up immediately before it rang? I forgot. It was not a real conversation.
+
+IKR: What about 14 April 12:45 phone GPS showing movement toward Nungambakkam?
+Meera: I did order groceries from Nungambakkam area? No, maybe my phone GPS is inaccurate. Adyar and Nungambakkam towers overlap sometimes. I was home, I have Swiggy proof for evening but not afternoon. I was not near Nungambakkam at 12:45.
+
+IKR: Did you search online about "how to make someone more suggestible"?
+Meera: Yes, that was for my dissertation — I am writing about suggestibility and personality traits. It's research, not a plan. I can show you my notes and university submission draft dated March 2026. [Innocent explanation that initially looks suspicious — Genuine dissertation research]
+
+CPN: Do you know Arjun Dev?
+Meera: I know him through the friend group. We met at gatherings, Besant Nagar. He was romantically interested in Rose, I knew that. I once worked with him on a college fest in 2019 — he was in organizing team. So we knew each other before Rose's circle. [Multi-hop link: Rose -> Meera -> previously worked with Arjun]
+
+IKR: Did you ever give Rose any medication or supplements?
+Meera: No. I suggested herbal tea once — chamomile — but not pills. I never gave her Alprazolam or alcohol.
+
+CPN: How would you describe Vikram Rao?
+Meera: Vikram is artistic, talks about energies. Some think it's black magic, but I think it's just beliefs and ritual theatre, not supernatural. He can be intense but not violent I think.
+
+IKR: One last detail: Ananya says Rose was afraid of Vikram after 12 April argument. Were you there?
+Meera: Yes, at Vikram's studio. He said "Karma will catch you" but it was philosophical, not threat. Rose was sensitive that week.
+
+[Interview ends 15:10, signed: M. Krishnan 16APR2026]
+
+--------------------------------------------------------------------------------
+Investigator Notes (Sherlock):
+- Ambiguity maintained: Meera grounded, not supernatural mind control, emphasizes suggestion.
+- Inconsistency: Claims last session 08 Apr vs digital forensics shows 10 Apr session/note.
+- Lie: Denies contacting after 12 Apr, but missed call 13 Apr 20:05 exists.
+- Temporal contradiction: Claims Adyar at 18:00 but CCTV Nungambakkam 18:20 resembling Meera — requires temporal reasoning (travel impossible).
+- Innocent explanation: Search about suggestibility is for dissertation (verifiable, true but looks suspicious).
+- Multi-hop connection to Arjun via previous work.

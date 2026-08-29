@@ -1,0 +1,104 @@
+CASE ID: SHRLK-ROSE-2026-001
+FIR No: ANPS-2026-0414-03 | Inquest No: INQ-ANP-2026-0414-03A
+Medico-Legal Postmortem No (Fictional): PM-KMC-2026-0415-011
+Deceased: Rose Mathew (also recorded as Rose M., R. Mathew), 27 years, Female
+Date of Autopsy: 15 April 2026, 09:00 — 11:30 IST
+Conducted by: Dr. L. Fernandez, MD Forensic Medicine, Professor (Fictional), assisted by Dr. S. Priya (Fictional)
+Requisition by: Inspector K. Raghavan, Anna Nagar PS (Fictional)
+Identification by: Ananya Joseph (+91-90000-10004) and Mr. Suresh (building manager) at mortuary
+
+--------------------------------------------------------------------------------
+1. SUMMARY OF EXTERNAL EXAMINATION (Non-Graphic)
+--------------------------------------------------------------------------------
+- Body length: approx 163 cm, weight approx 54 kg, moderate build, nutritional status average.
+- Postmortem changes:
+   * Algor mortis: Body cool.
+   * Rigor mortis: Fully developed at time of autopsy (09:00 15 Apr), expected given interval.
+   * Livor mortis: Fixed posteriorly, consistent with supine position, no evidence of postmortem movement.
+   * Decomposition: Nil (early period).
+- No natural disease stigmata externally obvious.
+- Skin: Pallor noted. No jaundice, no cyanosis beyond expected.
+- Visible injuries (medico-legal description, non-graphic):
+   * Group A: Multiple superficial, linear, healed and healing abrasions/lacerations on dorsal aspect of both hands and volar wrists, ranging 0.5-2 cm. Some appear 3-5 days old (scabbed), one fresher superficial mark on left wrist (within ~24 hours, not deep, not fatal). No deep tendon or vessel injury. No active bleeding. Margins regular. Direction varied.
+   * Group B: No ligature marks on neck. No strangulation signs.
+   * Group C: No defensive bruises on forearms/arms, no scalp contusions, no facial bruising.
+   * Minor: Small bruise (1 cm) on right knee, possibly accidental (old).
+- Nails: No cyanosis, no broken nails, no foreign tissue under nails on gross inspection (samples taken for micro).
+- Mouth/lips: No corrosion, no coating, slight smell of citrus (non-specific).
+- No needle track marks.
+
+2. INTERNAL EXAMINATION (Summary, Non-Graphic)
+--------------------------------------------------------------------------------
+- Cranium: Skull intact, no fractures, dura intact, brain mildly edematous (swollen) but no hemorrhage, no contusions.
+- Neck: Hyoid intact, soft tissues no hemorrhage.
+- Thorax: Lungs: congested, mildly edematous, no consolidation. Heart: average weight, chambers contain fluid blood, coronaries patent, no infarction. No rib fractures.
+- Abdomen: Stomach contains approx 180 ml of orange-coloured fluid with semi-digested food particles (consistent with recent meal + juice). Mucosa congested. No ulceration. Liver: congested, no cirrhosis. Kidneys: congested. Spleen, pancreas unremarkable. Uterus normal.
+- No internal traumatic injuries.
+
+3. ESTIMATED TIME OF DEATH (ToD)
+--------------------------------------------------------------------------------
+- Based on postmortem changes, stomach contents (meal at ~14:48 Swiggy delivery), and scene timeline:
+   ESTIMATED WINDOW: 15:30 — 17:30 IST on 14 April 2026.
+- Last confirmed digital activity 15:12 (message), phone last unlock 15:18 (forensics). This aligns with ToD window starting shortly after.
+- Uncertainty: ±1 hour inherent to methods. Cannot pinpoint exact minute. Window remains undetermined within 2 hours.
+- Rigor development and lividity support that death was not immediately before discovery (18:30), but earlier afternoon.
+
+4. TOXICOLOGY (Preliminary — FSL Chennai Lab No. FSL-TOX-2026-0415-R001 — Fictional)
+--------------------------------------------------------------------------------
+- Samples sent: Blood (peripheral), vitreous, gastric fluid, liver, urine, plus E-003 glass residue.
+- Preliminary screening (immunoassay) at autopsy lab: POSITIVE for benzodiazepines (class) and ethanol (alcohol).
+- Quantitative confirmation PENDING final GC-MS report (expected 22 Apr, not included in this synthetic dataset version; final report will show: Blood Alprazolam 85 ng/mL + Ethanol 112 mg/dL, gastric fluid high concentration — simulated).
+- Glass residue (E-003): Preliminary indicates orange juice + ethanol (approx 15ml of alcoholic beverage) + benzodiazepine traces (qualitative positive). Suggests sedative was mixed with drink.
+- Interpretation (Preliminary Opinion):
+   * Findings suggest mixed sedative-alcohol toxicity. Combined CNS depressant effect can be fatal even at individually sub-lethal doses due to synergism, especially with underlying stress/fasting.
+   * Alprazolam alone at typical levels not usually fatal, but with alcohol significantly potentiated.
+   * No evidence of other common poisons (organophosphates negative on spot test), no carbon monoxide.
+- Final toxicology pending to rule out other substances.
+
+5. OPINION ON CAUSE AND MANNER OF DEATH (Provisional, With Uncertainty)
+--------------------------------------------------------------------------------
+- CAUSE OF DEATH (Provisional): Acute combined central nervous system depression due to mixed benzodiazepine (alprazolam) and ethanol toxicity — consistent with ingestion of sedative medication with alcoholic drink. Final cause awaits quantitative FSL confirmation.
+- MECHANISM: Respiratory depression.
+- MANNER OF DEATH: UNDETERMINED at present. Findings are AMBIGUOUS and do not by themselves prove homicide, suicide, or accident. Detailed below.
+
+   Evidence that could support self-administration / suicide:
+     - Handwritten note (ambiguous but could be interpreted as farewell note) — "I can't keep doing this... Sorry. — R"
+     - Presence of victim's own prescribed medication.
+     - No forced entry, no signs of struggle, body position undisturbed, glass with victim's fingerprint.
+     - Browser searches 13 Apr 22:10 about alprazolam/alcohol interaction (could indicate planning, though also explainable as anxiety research).
+     - Recent psychosocial stressors (relationship pressure, conflicts, fear).
+
+   Evidence that suggests caution before concluding suicide:
+     - Note is generic, lacks method details, not prominently placed (under charger), could be draft/jotting not suicide note — handwriting similar but not expert-confirmed.
+     - Injuries on hands/wrists are superficial, not clearly self-harm pattern (mixed ages, not all in typical self-harm location), and one fresh mark could be accidental or unrelated. No deep, definitive self-inflicted injury.
+     - No previous documented suicide attempts.
+     - No witness to ingestion.
+
+   Evidence that suggests possible third-party involvement or coercion (but not conclusive):
+     - Victim expressed fear of Arjun Dev and discomfort with Meera Krishnan in days before death. Threatening-like message from Arjun 11 Apr 22:14.
+     - Unidentified blurred figure on stairwell CCTV 16:20 (LOW confidence) — cannot confirm presence of another person at time of ingestion.
+     - Partial smudged fingerprint on glass insufficient for identification — could be victim, could be other.
+
+   Evidence suggesting accident possible (but less likely):
+     - Victim may have taken medication for anxiety/sleep and consumed alcohol inadvertently unaware of interaction. No evidence she was habitual drinker; alcohol source not identified in apartment (no bottle found, only traces in glass). Source of alcohol unclear.
+
+- CONCLUSION ON INJURIES:
+   Hand/wrist marks are NOT the cause of death. They are superficial and not fatal. They could represent prior self-harm attempts, accidental scratches, or interpersonal altercations. Opinion: INDETERMINATE — pattern is not classic for either defensive wounds or clear self-harm; mixed ages suggest multiple episodes, not single event. Requires correlation with psychiatric history and witness accounts.
+
+- UNCERTAINTY STATEMENT (Important for Sherlock testing):
+   The postmortem ALONE does NOT determine intent. Intentional self-harm vs accidental vs coercion-facilitated ingestion cannot be distinguished on anatomical/toxicological grounds alone. Investigators must integrate digital, behavioural, and timeline evidence. Manner remains UNDETERMINED pending FSL final and investigation.
+
+6. ADDITIONAL SAMPLES & PRESERVATION
+--------------------------------------------------------------------------------
+- Histopathology: Heart, lungs, liver, kidney, brain sections preserved.
+- Toxicology: As above, chain of custody FSL-TOX-2026-0415-R001
+- DNA: Blood, nail clippings, gastric fluid preserved.
+- Handwriting: Note preserved for expert comparison.
+
+7. MEDICO-LEGAL OPINION (Fictional, Provisional)
+--------------------------------------------------------------------------------
+"Death due to acute mixed sedative-alcohol toxicity, time of death estimated between 15:30 and 17:30 on 14 April 2026. Injuries on hands/wrists are superficial and not causative. Manner of death remains undetermined; toxicology is positive for benzodiazepine and ethanol, but intent cannot be ascertained medically. Correlation with circumstantial evidence recommended."
+
+Date: 15 April 2026 12:00 IST
+Signature: Dr. L. Fernandez, MD (Forensic Medicine), Reg No. FICT-TN-MC-28471
+Countersigned: Dr. S. Priya

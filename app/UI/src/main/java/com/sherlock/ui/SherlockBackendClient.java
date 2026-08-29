@@ -180,14 +180,23 @@ public class SherlockBackendClient {
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query) {
+        return sendChatMessageAsync(caseId, query, null);
+    }
+
+    public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String json = objectMapper.writeValueAsString(Map.of("query", query));
+                Map<String, Object> map = new HashMap<>();
+                map.put("query", query);
+                if (model != null && !model.isBlank()) {
+                    map.put("model", model);
+                }
+                String json = objectMapper.writeValueAsString(map);
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                        .timeout(Duration.ofSeconds(30))
+                        .timeout(Duration.ofSeconds(60))
                         .build();
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -217,6 +226,43 @@ public class SherlockBackendClient {
                 return objectMapper.readValue(response.body(), new TypeReference<List<CaseDto>>() {});
             } catch (Exception e) {
                 throw new RuntimeException("Failed to list cases: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<List<String>> getOllamaModelsAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/llm/ollama/models"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(4))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    return objectMapper.readValue(response.body(), new TypeReference<List<String>>() {});
+                }
+                return List.of();
+            } catch (Exception e) {
+                return List.of();
+            }
+        });
+    }
+
+    public CompletableFuture<Boolean> syncNeo4jAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/neo4j/sync"))
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .timeout(Duration.ofSeconds(10))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return response.statusCode() == 200;
+            } catch (Exception e) {
+                return false;
             }
         });
     }
