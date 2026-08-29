@@ -308,6 +308,45 @@ def connect() -> Neo4jStore:
 	return Neo4jStore()
 
 
+def sync_graph_to_neo4j(
+	project_path: str | Path,
+	entities: List[Dict[str, Any]],
+	mappings: List[Dict[str, Any]],
+	verbose: bool = True,
+) -> bool:
+	"""Persist generated Sherlock graph JSON into Neo4j for a single project.
+
+	This is called automatically after graph_data.json is written so the DB stays in sync
+	with the JSON export without requiring a manual trigger.
+	"""
+	project_dir = Path(project_path).expanduser().resolve()
+	project_id = project_dir.name
+	store = None
+	try:
+		store = Neo4jStore()
+		store.verify_connection()
+		if verbose:
+			print(f"[Sherlock Neo4j] Syncing project '{project_id}' into Neo4j")
+		store.delete_project(project_id)
+		for entity in entities:
+			store.create_node(project_id, entity)
+		for mapping in mappings:
+			store.create_relationship(project_id, mapping)
+		if verbose:
+			print(f"[Sherlock Neo4j] Synced {len(entities)} entities and {len(mappings)} relationships for '{project_id}'")
+		return True
+	except Exception as exc:
+		if verbose:
+			print(f"[Sherlock Neo4j] Sync skipped or failed: {exc}")
+		return False
+	finally:
+		if store is not None:
+			try:
+				store.close()
+			except Exception:
+				pass
+
+
 def main() -> None:
 	parser = argparse.ArgumentParser(description="Load Sherlock entities and relationships into Neo4j Aura")
 	parser.add_argument("--data", help="Directory containing entities.json and optional relations.json")

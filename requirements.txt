@@ -3,4 +3,5 @@ scikit-learn
 numpy
 scipy
 python-dotenv
+neo4j
 tiktoken  # optional, for accurate token counting (fallback to heuristic if missing)

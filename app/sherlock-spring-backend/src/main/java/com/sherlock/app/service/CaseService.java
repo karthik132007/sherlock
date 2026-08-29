@@ -1025,7 +1025,7 @@ public class CaseService {
         if (neo4jGraphService == null || !neo4jGraphService.isConnected()) {
             return false;
         }
-        GraphDataResponse graphData = getGraphDataFromFileOnly(caseId);
+        GraphDataResponse graphData = readGraphDataFromFiles(caseId);
         return neo4jGraphService.syncGraphToNeo4j(caseId, graphData);
     }
 
@@ -1045,76 +1045,7 @@ public class CaseService {
     }
 
     private GraphDataResponse getGraphDataFromFileOnly(String caseId) {
-        Path caseDirectory = getCaseDirectory(caseId);
-        Path processedDir = caseDirectory.resolve("processed");
-        Path entitiesFile = processedDir.resolve("entities.json");
-
-        List<GraphDataResponse.Node> nodes = new ArrayList<>();
-        List<GraphDataResponse.Edge> edges = new ArrayList<>();
-        Map<String, GraphDataResponse.Node> nodeMap = new HashMap<>();
-
-        if (Files.exists(entitiesFile)) {
-            try {
-                JsonNode root = objectMapper.readTree(entitiesFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
-                        GraphDataResponse.Node node = objectMapper.treeToValue(item, GraphDataResponse.Node.class);
-                        if (node != null && node.getId() != null) {
-                            nodeMap.put(node.getId(), node);
-                            if (node.getName() != null) {
-                                nodeMap.put(node.getName().toLowerCase(Locale.ROOT), node);
-                            }
-                            nodes.add(node);
-                        }
-                    }
-                }
-            } catch (IOException ignored) {
-            }
-        }
-
-        Path graphDataFile = processedDir.resolve("graph_data.json");
-        if (Files.exists(graphDataFile)) {
-            try {
-                JsonNode root = objectMapper.readTree(graphDataFile.toFile());
-                if (root.isArray()) {
-                    for (JsonNode item : root) {
-                        String relId = item.has("relation_id") ? item.get("relation_id").asText() : "";
-                        String relation = item.has("relation") ? item.get("relation").asText() : "RELATED_TO";
-                        Double conf = item.has("confidence") ? item.get("confidence").asDouble() : 1.0;
-                        String evidence = item.has("evidence_text") ? item.get("evidence_text").asText() : "";
-                        String sourceFile = item.has("source_file") ? item.get("source_file").asText() : "";
-                        String chunkId = item.has("chunk_id") ? item.get("chunk_id").asText() : "";
-
-                        String sourceName = "";
-                        JsonNode srcNode = item.get("source");
-                        if (srcNode != null) {
-                            sourceName = srcNode.isObject() && srcNode.has("name") ? srcNode.get("name").asText()
-                                    : srcNode.asText();
-                            ensureNodeExists(srcNode, nodeMap, nodes);
-                        }
-
-                        String targetName = "";
-                        JsonNode tgtNode = item.get("target");
-                        if (tgtNode != null) {
-                            targetName = tgtNode.isObject() && tgtNode.has("name") ? tgtNode.get("name").asText()
-                                    : tgtNode.asText();
-                            ensureNodeExists(tgtNode, nodeMap, nodes);
-                        }
-
-                        GraphDataResponse.Edge edge = new GraphDataResponse.Edge(relId, sourceName, relation,
-                                targetName);
-                        edge.setConfidence(conf);
-                        edge.setEvidenceText(evidence);
-                        edge.setSourceFile(sourceFile);
-                        edge.setChunkId(chunkId);
-                        edges.add(edge);
-                    }
-                }
-            } catch (IOException ignored) {
-            }
-        }
-
-        return new GraphDataResponse(caseId, nodes, edges);
+        return readGraphDataFromFiles(caseId);
     }
 
     private String normalizeCaseName(String caseName) {
