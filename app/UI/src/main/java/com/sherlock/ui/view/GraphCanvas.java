@@ -8,9 +8,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -23,20 +21,34 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class GraphCanvas extends StackPane {
+
+    public enum LayoutMode {
+        FORCE_DIRECTED("⚡ Physics Force"),
+        DEGREE_HIERARCHY("👑 Degree Hierarchy"),
+        RADIAL_HUB("🎯 Centrality Hub"),
+        CIRCULAR("⭕ Circular");
+
+        private final String label;
+        LayoutMode(String label) { this.label = label; }
+        public String getLabel() { return label; }
+    }
 
     private final Canvas canvas = new Canvas(400, 300);
     private final Canvas minimapCanvas = new Canvas(140, 90);
     private final List<NodeDto> nodes = new ArrayList<>();
     private final List<EdgeDto> edges = new ArrayList<>();
     private final Map<String, NodeDto> nodeLookup = new HashMap<>();
+    private final Map<String, Integer> nodeDegreeMap = new HashMap<>();
 
     private double zoom = 1.0;
     private double panX = 0.0;
     private double panY = 0.0;
 
     private double dragStartX, dragStartY;
+    private boolean isMinimapDragging = false;
     private NodeDto draggedNode = null;
     private NodeDto selectedNode = null;
     private EdgeDto selectedEdge = null;
@@ -46,48 +58,60 @@ public class GraphCanvas extends StackPane {
     private boolean isPanMode = false;
     private boolean isSimulating = true;
     private int simulationTicks = 0;
+    private LayoutMode currentLayout = LayoutMode.FORCE_DIRECTED;
+
+    private String filterType = "ALL";
+    private String searchQuery = "";
 
     private Consumer<NodeDto> onNodeSelected;
     private Consumer<EdgeDto> onEdgeSelected;
     private Runnable onSelectionCleared;
 
     private final AnimationTimer renderLoop;
+    private Button playPauseBtn;
+    private TextField searchField;
 
     public GraphCanvas() {
         setStyle("-fx-background-color: #0b0e14; -fx-background-radius: 10px; -fx-border-color: #1e293b; -fx-border-radius: 10px; -fx-border-width: 1px;");
         setMinSize(300, 200);
 
-        // Bind canvas dimensions to StackPane dimensions
+        // Bind canvas dimensions to StackPane
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
 
         widthProperty().addListener((obs, oldVal, newVal) -> render());
         heightProperty().addListener((obs, oldVal, newVal) -> render());
 
-        // Top-right toolbar
+        // Top-Left Filter & Search Overlay
+        VBox searchFilterOverlay = buildSearchFilterOverlay();
+        StackPane.setAlignment(searchFilterOverlay, Pos.TOP_LEFT);
+        StackPane.setMargin(searchFilterOverlay, new Insets(12));
+
+        // Top-Right Toolbar
         HBox toolbar = buildToolbar();
         StackPane.setAlignment(toolbar, Pos.TOP_RIGHT);
-        StackPane.setMargin(toolbar, new Insets(14));
+        StackPane.setMargin(toolbar, new Insets(12));
 
-        // Bottom-left Minimap
+        // Bottom-Left Minimap
         VBox minimapBox = buildMinimap();
         StackPane.setAlignment(minimapBox, Pos.BOTTOM_LEFT);
-        StackPane.setMargin(minimapBox, new Insets(14));
+        StackPane.setMargin(minimapBox, new Insets(12));
 
-        // Bottom-right Legend
+        // Bottom-Right Legend
         HBox legendBox = buildLegend();
         StackPane.setAlignment(legendBox, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(legendBox, new Insets(8));
+        StackPane.setMargin(legendBox, new Insets(12));
 
-        getChildren().addAll(canvas, toolbar, minimapBox, legendBox);
+        getChildren().addAll(canvas, searchFilterOverlay, toolbar, minimapBox, legendBox);
 
         setupMouseHandlers();
+        setupMinimapHandlers();
 
         // Physics & Animation Loop
         renderLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (isSimulating && simulationTicks < 300 && !nodes.isEmpty()) {
+                if (isSimulating && currentLayout == LayoutMode.FORCE_DIRECTED && simulationTicks < 350 && !nodes.isEmpty()) {
                     stepPhysics();
                     simulationTicks++;
                 }
@@ -101,10 +125,13 @@ public class GraphCanvas extends StackPane {
         nodes.clear();
         edges.clear();
         nodeLookup.clear();
+        nodeDegreeMap.clear();
         selectedNode = null;
         selectedEdge = null;
         hoveredNode = null;
         hoveredEdge = null;
+        if (searchField != null) searchField.clear();
+        searchQuery = "";
 
         if (data != null) {
             if (data.getNodes() != null) {
@@ -124,45 +151,236 @@ public class GraphCanvas extends StackPane {
             return;
         }
 
-        // Initialize positions in a circle / radial layout
-        double cx = getWidth() > 0 ? getWidth() / 2 : 400;
-        double cy = getHeight() > 0 ? getHeight() / 2 : 300;
-        double radius = Math.max(120, Math.min(cx, cy) * 0.65);
-
-        for (int i = 0; i < nodes.size(); i++) {
-            NodeDto n = nodes.get(i);
-            double angle = (2 * Math.PI * i) / Math.max(1, nodes.size());
-            n.setX(cx + radius * Math.cos(angle) + (Math.random() - 0.5) * 40);
-            n.setY(cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 40);
-            n.setVx(0);
-            n.setVy(0);
-
+        // Build lookup map & compute connection degree for each node
+        for (NodeDto n : nodes) {
             if (n.getId() != null) nodeLookup.put(n.getId().toLowerCase(Locale.ROOT), n);
             if (n.getName() != null) nodeLookup.put(n.getName().toLowerCase(Locale.ROOT), n);
+            nodeDegreeMap.put(n.getId() != null ? n.getId() : n.getName(), 0);
         }
 
-        // Reset view
-        zoom = 1.0;
-        panX = 0;
-        panY = 0;
-        simulationTicks = 0;
-        isSimulating = true;
+        for (EdgeDto e : edges) {
+            NodeDto src = getNode(e.getSource());
+            NodeDto tgt = getNode(e.getTarget());
+            if (src != null) {
+                String k = src.getId() != null ? src.getId() : src.getName();
+                nodeDegreeMap.put(k, nodeDegreeMap.getOrDefault(k, 0) + 1);
+            }
+            if (tgt != null) {
+                String k = tgt.getId() != null ? tgt.getId() : tgt.getName();
+                nodeDegreeMap.put(k, nodeDegreeMap.getOrDefault(k, 0) + 1);
+            }
+        }
+
+        applyLayout(currentLayout);
+    }
+
+    public void applyLayout(LayoutMode mode) {
+        this.currentLayout = mode;
+        if (nodes.isEmpty()) return;
+
+        double cx = getWidth() > 0 ? getWidth() / 2 : 400;
+        double cy = getHeight() > 0 ? getHeight() / 2 : 300;
+
+        switch (mode) {
+            case DEGREE_HIERARCHY -> {
+                // Top-down hierarchy: Most connected nodes at the top layer
+                List<NodeDto> sorted = new ArrayList<>(nodes);
+                sorted.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
+
+                int tierCount = Math.max(1, (int) Math.ceil(Math.sqrt(sorted.size())));
+                int perTier = (int) Math.ceil((double) sorted.size() / tierCount);
+
+                double tierHeight = Math.max(120, (getHeight() > 0 ? getHeight() * 0.75 : 400) / Math.max(1, tierCount));
+                double startY = cy - ((tierCount - 1) * tierHeight) / 2.0;
+
+                for (int i = 0; i < sorted.size(); i++) {
+                    int tier = i / perTier;
+                    int col = i % perTier;
+                    int inThisTier = Math.min(perTier, sorted.size() - tier * perTier);
+
+                    double spacingX = Math.max(140, 700.0 / Math.max(1, inThisTier));
+                    double startX = cx - ((inThisTier - 1) * spacingX) / 2.0;
+
+                    NodeDto n = sorted.get(i);
+                    n.setX(startX + col * spacingX + (Math.random() - 0.5) * 20);
+                    n.setY(startY + tier * tierHeight + (Math.random() - 0.5) * 20);
+                    n.setVx(0);
+                    n.setVy(0);
+                }
+                isSimulating = false;
+            }
+            case RADIAL_HUB -> {
+                // Centrality hub: Nodes with highest degree placed in central circle, others placed on outer concentric rings
+                List<NodeDto> sorted = new ArrayList<>(nodes);
+                sorted.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
+
+                int hubCount = Math.min(4, Math.max(1, sorted.size() / 4));
+                double innerRadius = Math.min(cx, cy) * 0.28;
+                double outerRadius = Math.min(cx, cy) * 0.68;
+
+                for (int i = 0; i < sorted.size(); i++) {
+                    NodeDto n = sorted.get(i);
+                    if (i < hubCount) {
+                        double angle = (2 * Math.PI * i) / Math.max(1, hubCount);
+                        n.setX(cx + innerRadius * Math.cos(angle));
+                        n.setY(cy + innerRadius * Math.sin(angle));
+                    } else {
+                        int outerIdx = i - hubCount;
+                        int totalOuter = sorted.size() - hubCount;
+                        double angle = (2 * Math.PI * outerIdx) / Math.max(1, totalOuter);
+                        n.setX(cx + outerRadius * Math.cos(angle) + (Math.random() - 0.5) * 30);
+                        n.setY(cy + outerRadius * Math.sin(angle) + (Math.random() - 0.5) * 30);
+                    }
+                    n.setVx(0);
+                    n.setVy(0);
+                }
+                isSimulating = false;
+            }
+            case CIRCULAR -> {
+                double radius = Math.max(140, Math.min(cx, cy) * 0.65);
+                for (int i = 0; i < nodes.size(); i++) {
+                    NodeDto n = nodes.get(i);
+                    double angle = (2 * Math.PI * i) / Math.max(1, nodes.size());
+                    n.setX(cx + radius * Math.cos(angle));
+                    n.setY(cy + radius * Math.sin(angle));
+                    n.setVx(0);
+                    n.setVy(0);
+                }
+                isSimulating = false;
+            }
+            case FORCE_DIRECTED -> {
+                double radius = Math.max(120, Math.min(cx, cy) * 0.60);
+                for (int i = 0; i < nodes.size(); i++) {
+                    NodeDto n = nodes.get(i);
+                    double angle = (2 * Math.PI * i) / Math.max(1, nodes.size());
+                    n.setX(cx + radius * Math.cos(angle) + (Math.random() - 0.5) * 60);
+                    n.setY(cy + radius * Math.sin(angle) + (Math.random() - 0.5) * 60);
+                    n.setVx(0);
+                    n.setVy(0);
+                }
+                simulationTicks = 0;
+                isSimulating = true;
+            }
+        }
 
         fitToView();
+    }
+
+    public void selectAndFocusNode(NodeDto node) {
+        if (node == null) return;
+        this.selectedNode = node;
+        this.selectedEdge = null;
+
+        // Center on the selected node
+        double canvasW = Math.max(120, canvas.getWidth());
+        double canvasH = Math.max(120, canvas.getHeight());
+        panX = (canvasW / 2) - node.getX() * zoom;
+        panY = (canvasH / 2) - node.getY() * zoom;
+
+        if (onNodeSelected != null) onNodeSelected.accept(node);
+        render();
+    }
+
+    private VBox buildSearchFilterOverlay() {
+        VBox overlay = new VBox(6);
+        overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        overlay.setStyle("-fx-background-color: rgba(15, 23, 42, 0.90); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 8, 0, 0, 3);");
+
+        // Search Field Row
+        HBox searchRow = new HBox(6);
+        searchRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label searchIcon = new Label("🔍");
+        searchIcon.setStyle("-fx-font-size: 11px;");
+
+        searchField = new TextField();
+        searchField.setPromptText("Search entity / connection...");
+        searchField.setStyle("-fx-font-size: 11px; -fx-background-color: #1e293b; -fx-text-fill: #ffffff; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
+        searchField.textProperty().addListener((obs, oldV, newV) -> {
+            searchQuery = newV != null ? newV.trim().toLowerCase(Locale.ROOT) : "";
+            render();
+        });
+        searchField.setOnAction(e -> {
+            if (!searchQuery.isEmpty()) {
+                NodeDto match = nodes.stream()
+                        .filter(n -> n.getName() != null && n.getName().toLowerCase(Locale.ROOT).contains(searchQuery))
+                        .findFirst().orElse(null);
+                if (match != null) selectAndFocusNode(match);
+            }
+        });
+
+        Button clearSearchBtn = new Button("✕");
+        clearSearchBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 4px; -fx-cursor: hand;");
+        clearSearchBtn.setOnAction(e -> searchField.clear());
+
+        searchRow.getChildren().addAll(searchIcon, searchField, clearSearchBtn);
+
+        // Filter Pills Row
+        HBox filterRow = new HBox(4);
+        filterRow.setAlignment(Pos.CENTER_LEFT);
+
+        String[] types = {"ALL", "PERSON", "LOCATION", "ORG", "DOC", "PHONE", "EVENT"};
+        for (String t : types) {
+            Button pill = new Button(t);
+            pill.getStyleClass().add("filter-pill");
+            updateFilterPillStyle(pill, t.equals(filterType));
+            pill.setOnAction(e -> {
+                filterType = t;
+                for (javafx.scene.Node child : filterRow.getChildren()) {
+                    if (child instanceof Button b) {
+                        updateFilterPillStyle(b, b.getText().equals(filterType));
+                    }
+                }
+                render();
+            });
+            filterRow.getChildren().add(pill);
+        }
+
+        overlay.getChildren().addAll(searchRow, filterRow);
+        return overlay;
+    }
+
+    private void updateFilterPillStyle(Button pill, boolean isSelected) {
+        if (isSelected) {
+            pill.setStyle("-fx-background-color: #2563eb; -fx-text-fill: #ffffff; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+        } else {
+            pill.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #94a3b8; -fx-font-size: 9px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+        }
     }
 
     private HBox buildToolbar() {
         HBox toolbar = new HBox(6);
         toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         toolbar.setAlignment(Pos.CENTER_RIGHT);
-        toolbar.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        toolbar.setStyle("-fx-background-color: rgba(18, 24, 36, 0.90); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+
+        // Layout Dropdown
+        ComboBox<LayoutMode> layoutCombo = new ComboBox<>();
+        layoutCombo.getItems().addAll(LayoutMode.values());
+        layoutCombo.setValue(LayoutMode.FORCE_DIRECTED);
+        layoutCombo.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(LayoutMode item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getLabel());
+            }
+        });
+        layoutCombo.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(LayoutMode item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getLabel());
+            }
+        });
+        layoutCombo.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-font-size: 10px; -fx-font-weight: bold; -fx-pref-width: 140px; -fx-background-radius: 6px;");
+        layoutCombo.setOnAction(e -> applyLayout(layoutCombo.getValue()));
 
         Button selectBtn = new Button("↖");
-        selectBtn.setTooltip(new Tooltip("Select Tool"));
+        selectBtn.setTooltip(new Tooltip("Select & Move Tool"));
         selectBtn.getStyleClass().add("tool-button-active");
 
         Button panBtn = new Button("✋");
-        panBtn.setTooltip(new Tooltip("Pan Tool"));
+        panBtn.setTooltip(new Tooltip("Pan Graph Tool"));
         panBtn.getStyleClass().add("tool-button");
 
         selectBtn.setOnAction(e -> {
@@ -177,11 +395,24 @@ public class GraphCanvas extends StackPane {
             selectBtn.getStyleClass().setAll("tool-button");
         });
 
+        playPauseBtn = new Button("⏸");
+        playPauseBtn.setTooltip(new Tooltip("Pause / Resume Physics"));
+        playPauseBtn.getStyleClass().add("tool-button");
+        playPauseBtn.setOnAction(e -> {
+            isSimulating = !isSimulating;
+            if (isSimulating) {
+                simulationTicks = 0;
+                playPauseBtn.setText("⏸");
+            } else {
+                playPauseBtn.setText("▶");
+            }
+        });
+
         Button zoomInBtn = new Button("＋");
         zoomInBtn.setTooltip(new Tooltip("Zoom In"));
         zoomInBtn.getStyleClass().add("tool-button");
         zoomInBtn.setOnAction(e -> {
-            zoom = Math.min(3.0, zoom * 1.2);
+            zoom = Math.min(3.5, zoom * 1.2);
             render();
         });
 
@@ -189,7 +420,7 @@ public class GraphCanvas extends StackPane {
         zoomOutBtn.setTooltip(new Tooltip("Zoom Out"));
         zoomOutBtn.getStyleClass().add("tool-button");
         zoomOutBtn.setOnAction(e -> {
-            zoom = Math.max(0.2, zoom / 1.2);
+            zoom = Math.max(0.15, zoom / 1.2);
             render();
         });
 
@@ -199,24 +430,21 @@ public class GraphCanvas extends StackPane {
         fitBtn.setOnAction(e -> fitToView());
 
         Button resetBtn = new Button("↺");
-        resetBtn.setTooltip(new Tooltip("Re-simulate / Reset"));
+        resetBtn.setTooltip(new Tooltip("Reset Layout"));
         resetBtn.getStyleClass().add("tool-button");
-        resetBtn.setOnAction(e -> {
-            simulationTicks = 0;
-            isSimulating = true;
-        });
+        resetBtn.setOnAction(e -> applyLayout(currentLayout));
 
-        toolbar.getChildren().addAll(selectBtn, panBtn, zoomInBtn, zoomOutBtn, fitBtn, resetBtn);
+        toolbar.getChildren().addAll(layoutCombo, selectBtn, panBtn, playPauseBtn, zoomInBtn, zoomOutBtn, fitBtn, resetBtn);
         return toolbar;
     }
 
     private VBox buildMinimap() {
         VBox box = new VBox(4);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.85); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        box.setStyle("-fx-background-color: rgba(18, 24, 36, 0.90); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
-        Label title = new Label("Minimap");
-        title.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+        Label title = new Label("Minimap (Interactive)");
+        title.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
 
         minimapCanvas.setWidth(130);
         minimapCanvas.setHeight(85);
@@ -229,10 +457,10 @@ public class GraphCanvas extends StackPane {
         HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.85); -fx-padding: 2px 4px; -fx-background-radius: 4px; -fx-border-color: #1e293b; -fx-border-radius: 4px; -fx-border-width: 1px;");
+        box.setStyle("-fx-background-color: rgba(15, 23, 42, 0.90); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: #1e293b; -fx-border-radius: 6px; -fx-border-width: 1px;");
 
-        Label title = new Label("LEGEND:");
-        title.setStyle("-fx-font-size: 7px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+        Label title = new Label("ENTITIES:");
+        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
         box.getChildren().add(title);
 
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
@@ -246,11 +474,11 @@ public class GraphCanvas extends StackPane {
     }
 
     private HBox legendItem(Color color, String text) {
-        HBox row = new HBox(2);
+        HBox row = new HBox(3);
         row.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(2, color);
+        Circle dot = new Circle(3, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 7px; -fx-text-fill: #94a3b8;");
+        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #94a3b8;");
         row.getChildren().addAll(dot, label);
         return row;
     }
@@ -327,9 +555,9 @@ public class GraphCanvas extends StackPane {
         canvas.addEventHandler(ScrollEvent.SCROLL, (ScrollEvent e) -> {
             double mouseX = e.getX();
             double mouseY = e.getY();
-            double zoomFactor = e.getDeltaY() > 0 ? 1.12 : 1 / 1.12;
+            double zoomFactor = e.getDeltaY() > 0 ? 1.14 : 1 / 1.14;
 
-            double newZoom = Math.max(0.2, Math.min(3.5, zoom * zoomFactor));
+            double newZoom = Math.max(0.15, Math.min(4.0, zoom * zoomFactor));
             if (newZoom != zoom) {
                 panX = mouseX - (mouseX - panX) * (newZoom / zoom);
                 panY = mouseY - (mouseY - panY) * (newZoom / zoom);
@@ -338,6 +566,56 @@ public class GraphCanvas extends StackPane {
             }
             e.consume();
         });
+    }
+
+    private void setupMinimapHandlers() {
+        minimapCanvas.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
+            isMinimapDragging = true;
+            panFromMinimap(e.getX(), e.getY());
+        });
+
+        minimapCanvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, e -> {
+            if (isMinimapDragging) {
+                panFromMinimap(e.getX(), e.getY());
+            }
+        });
+
+        minimapCanvas.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> isMinimapDragging = false);
+    }
+
+    private void panFromMinimap(double mx, double my) {
+        if (nodes.isEmpty()) return;
+
+        double mw = minimapCanvas.getWidth();
+        double mh = minimapCanvas.getHeight();
+
+        double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+
+        for (NodeDto n : nodes) {
+            minX = Math.min(minX, n.getX());
+            maxX = Math.max(maxX, n.getX());
+            minY = Math.min(minY, n.getY());
+            maxY = Math.max(maxY, n.getY());
+        }
+
+        double spanX = Math.max(100, maxX - minX + 100);
+        double spanY = Math.max(100, maxY - minY + 100);
+        double scale = Math.min((mw - 16) / spanX, (mh - 16) / spanY);
+
+        double offX = (mw - spanX * scale) / 2 - minX * scale;
+        double offY = (mh - spanY * scale) / 2 - minY * scale;
+
+        double targetWorldX = (mx - offX) / scale;
+        double targetWorldY = (my - offY) / scale;
+
+        double canvasW = Math.max(120, canvas.getWidth());
+        double canvasH = Math.max(120, canvas.getHeight());
+
+        panX = (canvasW / 2) - targetWorldX * zoom;
+        panY = (canvasH / 2) - targetWorldY * zoom;
+
+        render();
     }
 
     public void fitToView() {
@@ -359,14 +637,14 @@ public class GraphCanvas extends StackPane {
             maxY = Math.max(maxY, n.getY());
         }
 
-        double graphW = Math.max(120, maxX - minX + 160);
-        double graphH = Math.max(120, maxY - minY + 160);
+        double graphW = Math.max(120, maxX - minX + 180);
+        double graphH = Math.max(120, maxY - minY + 180);
 
         double canvasW = Math.max(120, canvas.getWidth());
         double canvasH = Math.max(120, canvas.getHeight());
 
         zoom = Math.min(1.2, Math.min(canvasW / graphW, canvasH / graphH) * 0.85);
-        if (zoom < 0.3) zoom = 0.3;
+        if (zoom < 0.2) zoom = 0.2;
 
         double graphCenterX = (minX + maxX) / 2;
         double graphCenterY = (minY + maxY) / 2;
@@ -380,11 +658,11 @@ public class GraphCanvas extends StackPane {
     private void stepPhysics() {
         if (nodes.isEmpty()) return;
 
-        double repulsion = 4500.0;
-        double springLength = 140.0;
-        double springStrength = 0.04;
-        double centerStrength = 0.015;
-        double damping = 0.82;
+        double repulsion = 5200.0;
+        double springLength = 150.0;
+        double springStrength = 0.045;
+        double centerStrength = 0.018;
+        double damping = 0.80;
 
         double cx = getWidth() > 0 ? getWidth() / 2 : 400;
         double cy = getHeight() > 0 ? getHeight() / 2 : 300;
@@ -398,7 +676,7 @@ public class GraphCanvas extends StackPane {
                 double dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 1.0) dist = 1.0;
 
-                if (dist < 380) {
+                if (dist < 420) {
                     double force = (repulsion / (dist * dist));
                     double fx = (dx / dist) * force;
                     double fy = (dy / dist) * force;
@@ -472,21 +750,93 @@ public class GraphCanvas extends StackPane {
         gc.translate(panX, panY);
         gc.scale(zoom, zoom);
 
+        // Determine highlighted / connected neighborhood
+        Set<NodeDto> activeNeighbors = new HashSet<>();
+        Set<EdgeDto> activeEdges = new HashSet<>();
+        NodeDto focusNode = selectedNode != null ? selectedNode : hoveredNode;
+
+        if (focusNode != null) {
+            activeNeighbors.add(focusNode);
+            for (EdgeDto edge : edges) {
+                NodeDto src = getNode(edge.getSource());
+                NodeDto tgt = getNode(edge.getTarget());
+                if (src == focusNode && tgt != null) {
+                    activeNeighbors.add(tgt);
+                    activeEdges.add(edge);
+                } else if (tgt == focusNode && src != null) {
+                    activeNeighbors.add(src);
+                    activeEdges.add(edge);
+                }
+            }
+        }
+
+        // Draw Edges
         for (EdgeDto edge : edges) {
             NodeDto src = getNode(edge.getSource());
             NodeDto tgt = getNode(edge.getTarget());
             if (src != null && tgt != null) {
-                drawEdge(gc, src, tgt, edge, edge == selectedEdge, edge == hoveredEdge);
+                boolean isEdgeSelected = (edge == selectedEdge);
+                boolean isEdgeHovered = (edge == hoveredEdge);
+                boolean isEdgeActive = focusNode == null || activeEdges.contains(edge) || isEdgeSelected || isEdgeHovered;
+
+                double opacity = isEdgeActive ? 1.0 : 0.12;
+                drawEdge(gc, src, tgt, edge, isEdgeSelected, isEdgeHovered, opacity);
             }
         }
 
-        for (NodeDto node : nodes) {
-            drawNode(gc, node, node == selectedNode, node == hoveredNode);
+        // Sort nodes so HIGHER DEGREE (more connections) NODES ARE DRAWN ON TOP (highest z-order)
+        List<NodeDto> renderList = new ArrayList<>(nodes);
+        renderList.sort(Comparator.comparingInt(this::getNodeDegree));
+
+        for (NodeDto node : renderList) {
+            boolean isSel = (node == selectedNode);
+            boolean isHov = (node == hoveredNode);
+            boolean isMatchSearch = matchesSearch(node);
+            boolean isMatchFilter = matchesFilter(node);
+
+            boolean isDimmed = !isMatchFilter || (!searchQuery.isEmpty() && !isMatchSearch)
+                    || (focusNode != null && !activeNeighbors.contains(node));
+
+            double opacity = isDimmed ? 0.18 : 1.0;
+            drawNode(gc, node, isSel, isHov, isMatchSearch && !searchQuery.isEmpty(), opacity);
         }
 
         gc.restore();
 
+        // Draw hover tooltip on top
+        if (hoveredNode != null && draggedNode == null) {
+            drawNodeTooltip(gc, hoveredNode);
+        }
+
         drawMinimap();
+    }
+
+    private boolean matchesFilter(NodeDto node) {
+        if ("ALL".equalsIgnoreCase(filterType)) return true;
+        if (node.getType() == null) return false;
+        String t = node.getType().toUpperCase(Locale.ROOT);
+        return switch (filterType.toUpperCase(Locale.ROOT)) {
+            case "PERSON" -> t.contains("PERSON");
+            case "LOCATION" -> t.contains("LOCATION");
+            case "ORG", "ORGANIZATION" -> t.contains("ORG");
+            case "DOC", "DOCUMENT" -> t.contains("DOC") || t.contains("TRANSCRIPT");
+            case "PHONE" -> t.contains("PHONE");
+            case "EVENT" -> t.contains("EVENT");
+            default -> true;
+        };
+    }
+
+    private boolean matchesSearch(NodeDto node) {
+        if (searchQuery.isEmpty()) return true;
+        String nName = node.getName() != null ? node.getName().toLowerCase(Locale.ROOT) : "";
+        String nType = node.getType() != null ? node.getType().toLowerCase(Locale.ROOT) : "";
+        if (nName.contains(searchQuery) || nType.contains(searchQuery)) return true;
+        if (node.getAliases() != null) {
+            for (String a : node.getAliases()) {
+                if (a != null && a.toLowerCase(Locale.ROOT).contains(searchQuery)) return true;
+            }
+        }
+        return false;
     }
 
     private void drawGrid(GraphicsContext gc, double w, double h) {
@@ -504,7 +854,7 @@ public class GraphCanvas extends StackPane {
         }
     }
 
-    private void drawEdge(GraphicsContext gc, NodeDto src, NodeDto tgt, EdgeDto edge, boolean isSelected, boolean isHovered) {
+    private void drawEdge(GraphicsContext gc, NodeDto src, NodeDto tgt, EdgeDto edge, boolean isSelected, boolean isHovered, double opacity) {
         double x1 = src.getX();
         double y1 = src.getY();
         double x2 = tgt.getX();
@@ -523,8 +873,10 @@ public class GraphCanvas extends StackPane {
         double endX = x2 - (dx / dist) * (radiusTgt + 6);
         double endY = y2 - (dy / dist) * (radiusTgt + 6);
 
-        Color strokeColor = isSelected ? Color.web("#60A5FA") : isHovered ? Color.web("#93C5FD") : Color.web("#334155");
-        double lineWidth = isSelected ? 3.0 : isHovered ? 2.2 : 1.5;
+        Color baseColor = isSelected ? Color.web("#60A5FA") : isHovered ? Color.web("#93C5FD") : Color.web("#334155");
+        Color strokeColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), opacity);
+
+        double lineWidth = isSelected ? 3.2 : isHovered ? 2.4 : 1.5;
 
         gc.setStroke(strokeColor);
         gc.setLineWidth(lineWidth);
@@ -532,23 +884,28 @@ public class GraphCanvas extends StackPane {
 
         drawArrowHead(gc, startX, startY, endX, endY, strokeColor);
 
-        double midX = (startX + endX) / 2;
-        double midY = (startY + endY) / 2;
-        String relLabel = edge.getRelation() != null ? edge.getRelation().replace("_", " ") : "RELATED";
+        // Edge label badge
+        if (opacity > 0.3) {
+            double midX = (startX + endX) / 2;
+            double midY = (startY + endY) / 2;
+            String relLabel = edge.getRelation() != null ? edge.getRelation().replace("_", " ") : "RELATED";
 
-        gc.setFont(Font.font("System", FontWeight.SEMI_BOLD, 9));
-        double textWidth = relLabel.length() * 5.5 + 10;
-        double textHeight = 16;
+            gc.setFont(Font.font("System", FontWeight.SEMI_BOLD, 9));
+            double textWidth = relLabel.length() * 5.5 + 12;
+            double textHeight = 16;
 
-        gc.setFill(isSelected ? Color.web("#1E3A8A") : Color.web("#161F30"));
-        gc.setStroke(strokeColor);
-        gc.setLineWidth(1.0);
-        gc.fillRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
-        gc.strokeRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
+            Color badgeBg = isSelected ? Color.web("#1E3A8A") : Color.web("#161F30");
+            gc.setFill(Color.color(badgeBg.getRed(), badgeBg.getGreen(), badgeBg.getBlue(), opacity));
+            gc.setStroke(strokeColor);
+            gc.setLineWidth(1.0);
+            gc.fillRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
+            gc.strokeRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
 
-        gc.setFill(isSelected ? Color.web("#FFFFFF") : Color.web("#94A3B8"));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(relLabel, midX, midY + 3.5);
+            Color textCol = isSelected ? Color.web("#FFFFFF") : Color.web("#94A3B8");
+            gc.setFill(Color.color(textCol.getRed(), textCol.getGreen(), textCol.getBlue(), opacity));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText(relLabel, midX, midY + 3.5);
+        }
     }
 
     private void drawArrowHead(GraphicsContext gc, double x1, double y1, double x2, double y2, Color color) {
@@ -569,48 +926,110 @@ public class GraphCanvas extends StackPane {
         gc.fillPolygon(new double[]{x2, p1x, p2x}, new double[]{y2, p1y, p2y}, 3);
     }
 
-    private void drawNode(GraphicsContext gc, NodeDto node, boolean isSelected, boolean isHovered) {
+    private void drawNode(GraphicsContext gc, NodeDto node, boolean isSelected, boolean isHovered, boolean isSearchMatch, double opacity) {
         double x = node.getX();
         double y = node.getY();
         double radius = getNodeRadius(node);
+        int degree = getNodeDegree(node);
         Color typeColor = getTypeColor(node.getType());
 
-        if (isSelected) {
-            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.35));
-            gc.fillOval(x - radius - 8, y - radius - 8, (radius + 8) * 2, (radius + 8) * 2);
-            gc.setStroke(typeColor.brighter());
-            gc.setLineWidth(2.5);
-            gc.strokeOval(x - radius - 3, y - radius - 3, (radius + 3) * 2, (radius + 3) * 2);
-        } else if (isHovered) {
-            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.2));
-            gc.fillOval(x - radius - 5, y - radius - 5, (radius + 5) * 2, (radius + 5) * 2);
+        // 1. Prominent Outer Glow for High-Degree Hub Nodes (or selected/matched)
+        if (degree >= 3 && opacity > 0.5) {
+            Color glowColor = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.18 + Math.min(0.25, degree * 0.03));
+            gc.setFill(glowColor);
+            gc.fillOval(x - radius - 10, y - radius - 10, (radius + 10) * 2, (radius + 10) * 2);
         }
 
-        gc.setFill(Color.web("#0F172A"));
+        if (isSelected) {
+            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.40 * opacity));
+            gc.fillOval(x - radius - 8, y - radius - 8, (radius + 8) * 2, (radius + 8) * 2);
+            gc.setStroke(Color.color(typeColor.brighter().getRed(), typeColor.brighter().getGreen(), typeColor.brighter().getBlue(), opacity));
+            gc.setLineWidth(2.8);
+            gc.strokeOval(x - radius - 3, y - radius - 3, (radius + 3) * 2, (radius + 3) * 2);
+        } else if (isHovered) {
+            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.25 * opacity));
+            gc.fillOval(x - radius - 6, y - radius - 6, (radius + 6) * 2, (radius + 6) * 2);
+        } else if (isSearchMatch) {
+            gc.setStroke(Color.web("#F59E0B"));
+            gc.setLineWidth(2.5);
+            gc.strokeOval(x - radius - 4, y - radius - 4, (radius + 4) * 2, (radius + 4) * 2);
+        }
+
+        // 2. Node Body
+        gc.setFill(Color.color(0.06, 0.09, 0.16, opacity));
         gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
 
-        gc.setStroke(typeColor);
-        gc.setLineWidth(isSelected ? 3.0 : 2.0);
+        gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
+        gc.setLineWidth(isSelected ? 3.2 : degree >= 3 ? 2.5 : 2.0);
         gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
 
+        // 3. Node Symbol
         String symbol = getTypeSymbol(node.getType());
-        gc.setFont(Font.font("System", FontWeight.BOLD, 14));
-        gc.setFill(typeColor.brighter());
+        gc.setFont(Font.font("System", FontWeight.BOLD, 15));
+        Color symColor = typeColor.brighter();
+        gc.setFill(Color.color(symColor.getRed(), symColor.getGreen(), symColor.getBlue(), opacity));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(symbol, x, y - 4);
+        gc.fillText(symbol, x, y - 5);
 
+        // 4. Node Label
         String label = node.getName() != null ? node.getName() : "Entity";
         if (label.length() > 16) {
             label = label.substring(0, 14) + "..";
         }
-        gc.setFont(Font.font("System", FontWeight.SEMI_BOLD, 10));
-        gc.setFill(Color.web("#E2E8F0"));
+        gc.setFont(Font.font("System", FontWeight.BOLD, 10.5));
+        gc.setFill(Color.color(0.92, 0.94, 0.96, opacity));
         gc.fillText(label, x, y + 14);
 
-        String sub = node.getType() != null ? node.getType().toLowerCase(Locale.ROOT) : "";
-        gc.setFont(Font.font("System", FontWeight.NORMAL, 8));
+        // 5. Connection Count Badge for Top Connected Nodes
+        if (degree > 0 && opacity > 0.4) {
+            double badgeX = x + radius * 0.70;
+            double badgeY = y - radius * 0.70;
+            double bR = 9.0;
+
+            gc.setFill(Color.web("#1E293B"));
+            gc.fillOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
+            gc.setStroke(degree >= 4 ? Color.web("#38BDF8") : Color.web("#64748B"));
+            gc.setLineWidth(1.2);
+            gc.strokeOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
+
+            gc.setFont(Font.font("System", FontWeight.BOLD, 8.5));
+            gc.setFill(degree >= 4 ? Color.web("#38BDF8") : Color.web("#CBD5E1"));
+            gc.fillText(String.valueOf(degree), badgeX, badgeY + 3.0);
+        }
+    }
+
+    private void drawNodeTooltip(GraphicsContext gc, NodeDto node) {
+        double screenX = node.getX() * zoom + panX;
+        double screenY = node.getY() * zoom + panY - getNodeRadius(node) * zoom - 16;
+
+        int degree = getNodeDegree(node);
+        int mentions = node.getMentions() != null ? node.getMentions() : 1;
+        String name = node.getName() != null ? node.getName() : "Entity";
+        String type = node.getType() != null ? node.getType() : "ENTITY";
+
+        String title = name + " (" + type + ")";
+        String stats = "Connections: " + degree + "  |  Mentions: " + mentions;
+
+        gc.setFont(Font.font("System", FontWeight.BOLD, 11));
+        double w = Math.max(160, Math.max(title.length() * 6.5, stats.length() * 6.0) + 20);
+        double h = 42;
+
+        double tx = Math.max(10, Math.min(canvas.getWidth() - w - 10, screenX - w / 2));
+        double ty = Math.max(10, screenY - h);
+
+        gc.setFill(Color.web("#0F172A", 0.95));
+        gc.fillRoundRect(tx, ty, w, h, 8, 8);
+        gc.setStroke(Color.web("#38BDF8"));
+        gc.setLineWidth(1.2);
+        gc.strokeRoundRect(tx, ty, w, h, 8, 8);
+
+        gc.setFill(Color.web("#FFFFFF"));
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText(title, tx + 10, ty + 16);
+
+        gc.setFont(Font.font("System", FontWeight.NORMAL, 9.5));
         gc.setFill(Color.web("#94A3B8"));
-        gc.fillText(sub, x, y + radius + 12);
+        gc.fillText(stats, tx + 10, ty + 32);
     }
 
     private void drawMinimap() {
@@ -657,7 +1076,9 @@ public class GraphCanvas extends StackPane {
             mgc.setFill(c);
             double nx = n.getX() * scale + offX;
             double ny = n.getY() * scale + offY;
-            mgc.fillOval(nx - 2, ny - 2, 4, 4);
+            int deg = getNodeDegree(n);
+            double dotR = deg >= 3 ? 3.0 : 2.0;
+            mgc.fillOval(nx - dotR, ny - dotR, dotR * 2, dotR * 2);
         }
 
         double viewMinX = -panX / zoom;
@@ -670,7 +1091,7 @@ public class GraphCanvas extends StackPane {
         double rw = (viewMaxX - viewMinX) * scale;
         double rh = (viewMaxY - viewMinY) * scale;
 
-        mgc.setStroke(Color.web("#3B82F6"));
+        mgc.setStroke(Color.web("#38BDF8"));
         mgc.setLineWidth(1.5);
         mgc.strokeRect(Math.max(0, rx), Math.max(0, ry), Math.min(mw, rw), Math.min(mh, rh));
     }
@@ -679,8 +1100,11 @@ public class GraphCanvas extends StackPane {
         double worldX = (screenX - panX) / zoom;
         double worldY = (screenY - panY) / zoom;
 
-        for (int i = nodes.size() - 1; i >= 0; i--) {
-            NodeDto n = nodes.get(i);
+        // Search in reverse order so top-drawn nodes get hit first
+        List<NodeDto> searchOrder = new ArrayList<>(nodes);
+        searchOrder.sort((a, b) -> Integer.compare(getNodeDegree(b), getNodeDegree(a)));
+
+        for (NodeDto n : searchOrder) {
             double dx = worldX - n.getX();
             double dy = worldY - n.getY();
             double r = getNodeRadius(n);
@@ -717,14 +1141,22 @@ public class GraphCanvas extends StackPane {
         return Math.sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
     }
 
-    private NodeDto getNode(String idOrName) {
+    public NodeDto getNode(String idOrName) {
         if (idOrName == null) return null;
         return nodeLookup.get(idOrName.toLowerCase(Locale.ROOT));
     }
 
+    public int getNodeDegree(NodeDto n) {
+        if (n == null) return 0;
+        String k = n.getId() != null ? n.getId() : n.getName();
+        return nodeDegreeMap.getOrDefault(k, 0);
+    }
+
     private double getNodeRadius(NodeDto n) {
         int mentions = n.getMentions() != null ? n.getMentions() : 1;
-        return Math.min(52.0, 36.0 + Math.log(mentions + 1) * 4.0);
+        int degree = getNodeDegree(n);
+        // Base radius 36, grows with degree and mentions
+        return Math.min(56.0, 36.0 + Math.min(12.0, degree * 2.5) + Math.log(mentions + 1) * 2.5);
     }
 
     private Color getTypeColor(String type) {
@@ -735,7 +1167,7 @@ public class GraphCanvas extends StackPane {
             case "PHONE_NUMBER", "PHONE" -> Color.web("#06B6D4");
             case "DOCUMENT", "TRANSCRIPT" -> Color.web("#10B981");
             case "LOCATION" -> Color.web("#F59E0B");
-            case "ORGANIZATION" -> Color.web("#8B5CF6");
+            case "ORGANIZATION", "ORG" -> Color.web("#8B5CF6");
             case "EVENT" -> Color.web("#F43F5E");
             default -> Color.web("#64748B");
         };
@@ -749,7 +1181,7 @@ public class GraphCanvas extends StackPane {
             case "PHONE_NUMBER", "PHONE" -> "📞";
             case "DOCUMENT", "TRANSCRIPT" -> "📄";
             case "LOCATION" -> "📍";
-            case "ORGANIZATION" -> "🏢";
+            case "ORGANIZATION", "ORG" -> "🏢";
             case "EVENT" -> "⚡";
             default -> "●";
         };

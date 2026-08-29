@@ -98,9 +98,9 @@ public class Neo4jGraphService {
                 : SessionConfig.defaultConfig();
 
         try (Session session = driver.session(sessionConfig)) {
-            // 1. Fetch all nodes for this case/project
+            // 1. Fetch all nodes for this case/project directly from Neo4j
             String nodeQuery = "MATCH (n {project_id: $caseId}) " +
-                    "RETURN n.id AS id, n.name AS name, n.type AS type, labels(n) AS labels, n.data AS data, n.mentions AS mentions, n.confidence AS confidence";
+                    "RETURN n.id AS id, n.name AS name, n.type AS type, labels(n) AS labels, n.data AS data, n.mentions AS mentions, n.confidence AS confidence, n.aliases AS aliases, n.source_files AS sourceFiles, n.chunk_ids AS chunkIds";
 
             List<Record> nodeRecords = session.run(nodeQuery, Values.parameters("caseId", caseId)).list();
             for (Record rec : nodeRecords) {
@@ -118,6 +118,21 @@ public class Neo4jGraphService {
                 if (!rec.get("mentions").isNull()) {
                     node.setMentions(rec.get("mentions").asInt());
                 }
+                if (!rec.get("aliases").isNull()) {
+                    try {
+                        node.setAliases(rec.get("aliases").asList(Value::asString));
+                    } catch (Exception ignored) {}
+                }
+                if (!rec.get("sourceFiles").isNull()) {
+                    try {
+                        node.setSourceFiles(rec.get("sourceFiles").asList(Value::asString));
+                    } catch (Exception ignored) {}
+                }
+                if (!rec.get("chunkIds").isNull()) {
+                    try {
+                        node.setChunkIds(rec.get("chunkIds").asList(Value::asString));
+                    } catch (Exception ignored) {}
+                }
                 if (!rec.get("data").isNull()) {
                     String dataStr = rec.get("data").asString("{}");
                     try {
@@ -134,7 +149,7 @@ public class Neo4jGraphService {
                 }
             }
 
-            // 2. Fetch all relationships for this case/project
+            // 2. Fetch all relationships for this case/project directly from Neo4j
             String edgeQuery = "MATCH (s)-[r {project_id: $caseId}]->(t) " +
                     "RETURN s.name AS sourceName, s.id AS sourceId, s.type AS sourceType, " +
                     "       t.name AS targetName, t.id AS targetId, t.type AS targetType, " +
@@ -211,8 +226,8 @@ public class Neo4jGraphService {
 
                         String nodeCypher = String.format(
                                 "MERGE (n:%s {id: $id, project_id: $caseId}) " +
-                                "ON CREATE SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data " +
-                                "ON MATCH SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data",
+                                "ON CREATE SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds " +
+                                "ON MATCH SET n.name = $name, n.type = $type, n.confidence = $confidence, n.mentions = $mentions, n.data = $data, n.aliases = $aliases, n.source_files = $sourceFiles, n.chunk_ids = $chunkIds",
                                 safeType
                         );
 
@@ -223,7 +238,10 @@ public class Neo4jGraphService {
                                 "type", node.getType() != null ? node.getType() : "ENTITY",
                                 "confidence", node.getConfidence() != null ? node.getConfidence() : 1.0,
                                 "mentions", node.getMentions() != null ? node.getMentions() : 1,
-                                "data", dataJson
+                                "data", dataJson,
+                                "aliases", node.getAliases() != null ? node.getAliases() : List.of(),
+                                "sourceFiles", node.getSourceFiles() != null ? node.getSourceFiles() : List.of(),
+                                "chunkIds", node.getChunkIds() != null ? node.getChunkIds() : List.of()
                         ));
                     }
                 }

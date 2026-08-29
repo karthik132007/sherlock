@@ -432,9 +432,9 @@ public class MainFrameView extends BorderPane {
         timelinePanel.setManaged(false);
         viewStack.getChildren().addAll(graphCanvas, timelinePanel);
 
-        detailsPanel.setMinHeight(160);
-        detailsPanel.setPrefHeight(180);
-        detailsPanel.setMaxHeight(200);
+        detailsPanel.setMinHeight(180);
+        detailsPanel.setPrefHeight(230);
+        detailsPanel.setMaxHeight(320);
 
         leftCol.getChildren().addAll(toggleBox, viewStack, detailsPanel);
 
@@ -465,6 +465,15 @@ public class MainFrameView extends BorderPane {
 
         graphCanvas.setOnSelectionCleared(() -> {
             detailsPanel.showPlaceholder();
+        });
+
+        detailsPanel.setOnNavigateToEntity(entityName -> {
+            if (entityName != null && !entityName.isBlank()) {
+                var node = graphCanvas.getNode(entityName);
+                if (node != null) {
+                    graphCanvas.selectAndFocusNode(node);
+                }
+            }
         });
     }
 

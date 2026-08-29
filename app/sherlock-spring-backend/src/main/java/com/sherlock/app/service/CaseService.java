@@ -447,6 +447,20 @@ public class CaseService {
                     status.setStatus("COMPLETED");
                     status.setSuccess(true);
                     status.setMessage("Investigation Knowledge Graph generated successfully.");
+
+                    // Auto-sync into Neo4j database
+                    try {
+                        GraphDataResponse graphData = getGraphData(caseId);
+                        if (graphData != null && neo4jGraphService != null && neo4jGraphService.isConnected()) {
+                            boolean synced = neo4jGraphService.syncGraphToNeo4j(caseId, graphData);
+                            if (synced) {
+                                log.info("Auto-synced case {} to Neo4j database", caseId);
+                                status.getLogs().add("[Sherlock] Graph data synchronized to Neo4j database.");
+                            }
+                        }
+                    } catch (Exception syncEx) {
+                        log.warn("Failed auto-syncing to Neo4j for case {}: {}", caseId, syncEx.getMessage());
+                    }
                 } else {
                     status.setStatus("FAILED");
                     status.setSuccess(false);
@@ -495,21 +509,40 @@ public class CaseService {
     }
 
     public GraphDataResponse getGraphData(String caseId) {
-        // 0. Try fetching from Neo4j if connected
+        // 1. Primary: Fetch directly from Neo4j database
         if (neo4jGraphService != null && neo4jGraphService.isConnected()) {
             try {
                 GraphDataResponse neo4jData = neo4jGraphService.fetchGraphFromNeo4j(caseId);
                 if (neo4jData != null && neo4jData.getNodes() != null && !neo4jData.getNodes().isEmpty()) {
-                    log.info("Loaded {} nodes and {} edges for case {} directly from Neo4j",
+                    log.info("Directly loaded {} nodes and {} edges for case {} from Neo4j database",
                             neo4jData.getNodes().size(), neo4jData.getEdges().size(), caseId);
                     return neo4jData;
                 }
+
+                // If Neo4j has no records yet for this case, sync case files into Neo4j and return from Neo4j
+                log.info("No records in Neo4j for case {}, performing initial sync from case files into Neo4j...", caseId);
+                GraphDataResponse fileData = readGraphDataFromFiles(caseId);
+                if (fileData != null && fileData.getNodes() != null && !fileData.getNodes().isEmpty()) {
+                    neo4jGraphService.syncGraphToNeo4j(caseId, fileData);
+                    GraphDataResponse syncedFromDb = neo4jGraphService.fetchGraphFromNeo4j(caseId);
+                    if (syncedFromDb != null && syncedFromDb.getNodes() != null && !syncedFromDb.getNodes().isEmpty()) {
+                        log.info("Fetched {} nodes for case {} from Neo4j database after sync", syncedFromDb.getNodes().size(), caseId);
+                        return syncedFromDb;
+                    }
+                    return fileData;
+                }
             } catch (Exception e) {
-                log.warn("Neo4j fetch error for case {}, using JSON fallback: {}", caseId, e.getMessage());
+                log.warn("Neo4j database query error for case {}, falling back: {}", caseId, e.getMessage());
             }
+        } else {
+            log.warn("Neo4j database is offline or not reachable for case {}", caseId);
         }
 
-        // 1. Fallback to reading file-based JSON
+        // 2. Fallback to reading file-based JSON if Neo4j is offline
+        return readGraphDataFromFiles(caseId);
+    }
+
+    public GraphDataResponse readGraphDataFromFiles(String caseId) {
         Path caseDirectory = getCaseDirectory(caseId);
         Path processedDir = caseDirectory.resolve("processed");
 

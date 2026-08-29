@@ -126,6 +126,14 @@ def save_graph_outputs(
         print(f"[Sherlock Graph] Saved {len(relationships)} relations → {relations_path} (compat {compat_path})")
         print(f"[Sherlock Graph] Saved {len(mappings)} mappings → {graph_path} (alias {alias_path})")
 
+    # Ingest directly into Neo4j Community database if available
+    try:
+        from engine.crud import sync_graph_to_neo4j
+        sync_graph_to_neo4j(project_path, entities, mappings, verbose=verbose)
+    except Exception as e:
+        if verbose:
+            print(f"[Sherlock Neo4j] Sync skipped or failed: {e}")
+
     return {
         "relations_json": relations_path,
         "relationships_json": compat_path,

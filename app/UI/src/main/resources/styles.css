@@ -187,6 +187,51 @@
     -fx-border-radius: 12px;
 }
 
+.badge-org {
+    -fx-background-color: rgba(139, 92, 246, 0.2);
+    -fx-text-fill: #c084fc;
+    -fx-border-color: #8b5cf6;
+    -fx-border-radius: 12px;
+}
+
+/* TabPane Styling for Details Inspector */
+.tab-pane .tab-header-area {
+    -fx-padding: 0 0 6px 0;
+}
+
+.tab-pane .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #161e2e;
+    -fx-background-radius: 6px 6px 0 0;
+    -fx-border-color: #243048;
+    -fx-border-radius: 6px 6px 0 0;
+    -fx-border-width: 1px 1px 0 1px;
+    -fx-padding: 4px 10px;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: #2563eb;
+    -fx-border-color: #3b82f6;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.tab-pane:focused .tab-header-area .headers-region .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
 /* Dropzone */
 .dropzone {
     -fx-background-color: #111827;

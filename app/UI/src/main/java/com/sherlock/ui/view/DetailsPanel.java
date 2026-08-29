@@ -1,31 +1,34 @@
 package com.sherlock.ui.view;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.sherlock.ui.model.GraphDataDto.EdgeDto;
 import com.sherlock.ui.model.GraphDataDto.NodeDto;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Consumer;
 
 public class DetailsPanel extends VBox {
 
     private final StackPane contentContainer = new StackPane();
+    private final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private Consumer<String> onNavigateToEntity;
 
     public DetailsPanel() {
         getStyleClass().add("dark-panel");
-        setPadding(new Insets(14, 18, 14, 18));
-        setSpacing(10);
-        setPrefHeight(180);
-        setMinHeight(160);
+        setPadding(new Insets(12, 16, 12, 16));
+        setSpacing(8);
+        setPrefHeight(230);
+        setMinHeight(200);
 
-        Label headerTitle = new Label("When clicked a node or edge Details about it");
-        headerTitle.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+        Label headerTitle = new Label("INVESTIGATION INSPECTOR & METADATA");
+        headerTitle.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-weight: bold; -fx-letter-spacing: 1px;");
 
         contentContainer.setAlignment(Pos.CENTER_LEFT);
         VBox.setVgrow(contentContainer, Priority.ALWAYS);
@@ -34,18 +37,22 @@ public class DetailsPanel extends VBox {
         showPlaceholder();
     }
 
+    public void setOnNavigateToEntity(Consumer<String> onNavigateToEntity) {
+        this.onNavigateToEntity = onNavigateToEntity;
+    }
+
     public void showPlaceholder() {
-        HBox placeholder = new HBox(12);
+        HBox placeholder = new HBox(14);
         placeholder.setAlignment(Pos.CENTER_LEFT);
-        placeholder.setStyle("-fx-background-color: #161e2e; -fx-padding: 16px 20px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
+        placeholder.setStyle("-fx-background-color: #161e2e; -fx-padding: 18px 24px; -fx-background-radius: 8px; -fx-border-color: #243048; -fx-border-radius: 8px;");
 
-        Label icon = new Label("👆");
-        icon.setStyle("-fx-font-size: 24px;");
+        Label icon = new Label("🕵️");
+        icon.setStyle("-fx-font-size: 28px;");
 
-        VBox textCol = new VBox(3);
-        Label title = new Label("Interactive Knowledge Graph");
-        title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
-        Label desc = new Label("Click on any node or edge to inspect full evidence, attributes, and provenance. Drag nodes to explore relationships.");
+        VBox textCol = new VBox(4);
+        Label title = new Label("Investigation Knowledge Graph Inspector");
+        title.setStyle("-fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+        Label desc = new Label("Click any node or relationship to inspect its complete metadata, evidence provenance, and connected investigation entities.");
         desc.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
         textCol.getChildren().addAll(title, desc);
 
@@ -59,98 +66,215 @@ public class DetailsPanel extends VBox {
             return;
         }
 
-        HBox root = new HBox(18);
-        root.setAlignment(Pos.CENTER_LEFT);
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabPane.setStyle("-fx-background-color: transparent;");
 
-        // 1. Left Avatar
+        // Tab 1: Overview & All Attributes
+        Tab attrTab = new Tab("📋 Overview & Attributes", buildNodeOverview(node, relatedEdges));
+
+        // Tab 2: Connected Relationships
+        Tab relTab = new Tab("🔗 Connected Relationships (" + (relatedEdges != null ? relatedEdges.size() : 0) + ")", buildConnectionsList(node, relatedEdges));
+
+        // Tab 3: Evidence Provenance
+        Tab provTab = new Tab("📄 Evidence & Sources", buildProvenanceTab(node));
+
+        // Tab 4: Raw JSON
+        Tab jsonTab = new Tab("{ } Raw JSON", buildRawJsonTab(node));
+
+        tabPane.getTabs().addAll(attrTab, relTab, provTab, jsonTab);
+        contentContainer.getChildren().setAll(tabPane);
+    }
+
+    private HBox buildNodeOverview(NodeDto node, List<EdgeDto> relatedEdges) {
+        HBox root = new HBox(16);
+        root.setAlignment(Pos.CENTER_LEFT);
+        root.setPadding(new Insets(8, 4, 4, 4));
+
+        // 1. Avatar Icon
         StackPane avatarPane = new StackPane();
         Circle bg = new Circle(28, Color.web("#1E293B"));
         bg.setStroke(getNodeColor(node.getType()));
-        bg.setStrokeWidth(2.0);
+        bg.setStrokeWidth(2.2);
         Label avatarIcon = new Label(getNodeIcon(node.getType()));
         avatarIcon.setStyle("-fx-font-size: 20px;");
         avatarPane.getChildren().addAll(bg, avatarIcon);
 
-        // 2. Main Details Column
-        VBox mainCol = new VBox(6);
+        // 2. Main Identity Column
+        VBox mainCol = new VBox(5);
         mainCol.setPrefWidth(220);
+        mainCol.setMinWidth(180);
 
-        HBox nameRow = new HBox(8);
+        HBox nameRow = new HBox(6);
         nameRow.setAlignment(Pos.CENTER_LEFT);
         Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+        nameLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+        nameLabel.setWrapText(true);
+        nameRow.getChildren().add(nameLabel);
+
+        HBox badgesRow = new HBox(6);
+        badgesRow.setAlignment(Pos.CENTER_LEFT);
 
         Label typeBadge = new Label(node.getType() != null ? node.getType() : "ENTITY");
         typeBadge.getStyleClass().addAll("badge-pill", getTypeBadgeClass(node.getType()));
-        nameRow.getChildren().addAll(nameLabel, typeBadge);
 
-        HBox mentionsRow = new HBox(6);
-        mentionsRow.setAlignment(Pos.CENTER_LEFT);
-        Label mentionsLbl = new Label("Mentions: " + (node.getMentions() != null ? node.getMentions() : 1));
-        mentionsLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #38bdf8;");
-        mentionsRow.getChildren().add(mentionsLbl);
+        int degree = relatedEdges != null ? relatedEdges.size() : 0;
+        Label degreeBadge = new Label(degree + " Conn");
+        degreeBadge.setStyle("-fx-background-color: rgba(56, 189, 248, 0.18); -fx-text-fill: #38bdf8; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+
+        Label mentionsBadge = new Label((node.getMentions() != null ? node.getMentions() : 1) + " Mentions");
+        mentionsBadge.setStyle("-fx-background-color: rgba(148, 163, 184, 0.15); -fx-text-fill: #cbd5e1; -fx-font-size: 10px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+
+        badgesRow.getChildren().addAll(typeBadge, degreeBadge, mentionsBadge);
+
+        mainCol.getChildren().addAll(nameRow, badgesRow);
 
         if (node.getAliases() != null && !node.getAliases().isEmpty()) {
             Label aliasLbl = new Label("Aliases: " + String.join(", ", node.getAliases()));
-            aliasLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
-            mainCol.getChildren().addAll(nameRow, mentionsRow, aliasLbl);
-        } else {
-            mainCol.getChildren().addAll(nameRow, mentionsRow);
+            aliasLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
+            aliasLbl.setWrapText(true);
+            mainCol.getChildren().add(aliasLbl);
         }
 
-        // 3. Metadata Grid
+        // 3. FULL Attributes Grid (Scrollable, NO truncation)
+        VBox attrContainer = new VBox(4);
+        HBox.setHgrow(attrContainer, Priority.ALWAYS);
+
         GridPane grid = new GridPane();
-        grid.setHgap(16);
+        grid.setHgap(12);
         grid.setVgap(4);
-        grid.setPrefWidth(300);
 
-        addGridRow(grid, 0, "Type", node.getType());
-        addGridRow(grid, 1, "ID", node.getId());
+        int row = 0;
+        addGridRow(grid, row++, "Node ID", node.getId() != null ? node.getId() : "—");
+        addGridRow(grid, row++, "Confidence", node.getConfidence() != null ? String.format("%.0f%%", node.getConfidence() * 100) : "100%");
 
-        int connectedCount = relatedEdges != null ? relatedEdges.size() : 0;
-        addGridRow(grid, 2, "Connected to", connectedCount + " Relationship" + (connectedCount == 1 ? "" : "s"));
-
-        // Format custom attributes from data map
         if (node.getData() != null && !node.getData().isEmpty()) {
-            StringBuilder attrs = new StringBuilder();
-            int c = 0;
             for (Map.Entry<String, Object> entry : node.getData().entrySet()) {
-                if (c > 0) attrs.append(" • ");
-                attrs.append(entry.getKey()).append(": ").append(entry.getValue());
-                c++;
-                if (c >= 3) break;
+                String valStr = formatValue(entry.getValue());
+                addGridRow(grid, row++, entry.getKey(), valStr);
             }
-            addGridRow(grid, 3, "Attributes", attrs.toString());
+        } else {
+            addGridRow(grid, row++, "Attributes", "No additional entity properties recorded");
         }
 
-        // 4. Source Evidence Provenance
-        VBox provCol = new VBox(4);
-        HBox.setHgrow(provCol, Priority.ALWAYS);
-        Label provTitle = new Label("Source Documents");
+        ScrollPane gridScroll = new ScrollPane(grid);
+        gridScroll.setFitToWidth(true);
+        gridScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        VBox.setVgrow(gridScroll, Priority.ALWAYS);
+
+        attrContainer.getChildren().add(gridScroll);
+        root.getChildren().addAll(avatarPane, mainCol, attrContainer);
+        return root;
+    }
+
+    private ScrollPane buildConnectionsList(NodeDto node, List<EdgeDto> relatedEdges) {
+        VBox list = new VBox(6);
+        list.setPadding(new Insets(6));
+
+        if (relatedEdges == null || relatedEdges.isEmpty()) {
+            Label empty = new Label("No connected relationships found for this entity.");
+            empty.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-style: italic;");
+            list.getChildren().add(empty);
+        } else {
+            for (EdgeDto edge : relatedEdges) {
+                HBox card = new HBox(8);
+                card.setAlignment(Pos.CENTER_LEFT);
+                card.setStyle("-fx-background-color: #161e2e; -fx-padding: 6px 10px; -fx-background-radius: 6px; -fx-border-color: #243048; -fx-border-radius: 6px;");
+
+                boolean isOutgoing = node.getName() != null && node.getName().equalsIgnoreCase(edge.getSource());
+                String otherNodeName = isOutgoing ? edge.getTarget() : edge.getSource();
+                String directionSymbol = isOutgoing ? "➔" : "⬅";
+
+                Label dirLbl = new Label(directionSymbol);
+                dirLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #38bdf8; -fx-font-weight: bold;");
+
+                Label relBadge = new Label(edge.getRelation() != null ? edge.getRelation().replace("_", " ") : "RELATED");
+                relBadge.setStyle("-fx-background-color: rgba(37, 99, 235, 0.25); -fx-text-fill: #93c5fd; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+
+                Button targetBtn = new Button(otherNodeName);
+                targetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #ffffff; -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+                targetBtn.setOnAction(e -> {
+                    if (onNavigateToEntity != null) {
+                        onNavigateToEntity.accept(otherNodeName);
+                    }
+                });
+
+                Region sp = new Region();
+                HBox.setHgrow(sp, Priority.ALWAYS);
+
+                String conf = edge.getConfidence() != null ? String.format("%.0f%%", edge.getConfidence() * 100) : "100%";
+                Label confLbl = new Label(conf);
+                confLbl.setStyle("-fx-text-fill: #34d399; -fx-font-size: 10px; -fx-font-weight: bold;");
+
+                card.getChildren().addAll(dirLbl, relBadge, targetBtn, sp, confLbl);
+                list.getChildren().add(card);
+            }
+        }
+
+        ScrollPane scroll = new ScrollPane(list);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        return scroll;
+    }
+
+    private ScrollPane buildProvenanceTab(NodeDto node) {
+        VBox box = new VBox(8);
+        box.setPadding(new Insets(8));
+
+        Label provTitle = new Label("Source Evidence Files:");
         provTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #cbd5e1;");
+        box.getChildren().add(provTitle);
 
         FlowPane sourceBadges = new FlowPane(6, 6);
         if (node.getSourceFiles() != null && !node.getSourceFiles().isEmpty()) {
             for (String file : node.getSourceFiles()) {
                 Label fileBadge = new Label("📄 " + file);
-                fileBadge.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #93c5fd; -fx-font-size: 10px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+                fileBadge.setStyle("-fx-background-color: #1e293b; -fx-text-fill: #93c5fd; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 4px; -fx-border-color: #334155; -fx-border-radius: 4px;");
                 sourceBadges.getChildren().add(fileBadge);
             }
         } else {
-            Label noFiles = new Label("Extracted from warehouse evidence");
-            noFiles.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
+            Label noFiles = new Label("Extracted from case warehouse.txt evidence.");
+            noFiles.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b;");
             sourceBadges.getChildren().add(noFiles);
         }
+        box.getChildren().add(sourceBadges);
 
-        ScrollPane provScroll = new ScrollPane(sourceBadges);
-        provScroll.setFitToWidth(true);
-        provScroll.setPrefHeight(60);
-        provScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        if (node.getChunkIds() != null && !node.getChunkIds().isEmpty()) {
+            Label chunkTitle = new Label("Source Chunk IDs:");
+            chunkTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #cbd5e1;");
+            box.getChildren().add(chunkTitle);
 
-        provCol.getChildren().addAll(provTitle, provScroll);
+            FlowPane chunkBadges = new FlowPane(6, 6);
+            for (String chunkId : node.getChunkIds()) {
+                Label chunkBadge = new Label("🧩 " + chunkId);
+                chunkBadge.setStyle("-fx-background-color: #161e2e; -fx-text-fill: #38bdf8; -fx-font-size: 10px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+                chunkBadges.getChildren().add(chunkBadge);
+            }
+            box.getChildren().add(chunkBadges);
+        }
 
-        root.getChildren().addAll(avatarPane, mainCol, grid, provCol);
-        contentContainer.getChildren().setAll(root);
+        ScrollPane scroll = new ScrollPane(box);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        return scroll;
+    }
+
+    private ScrollPane buildRawJsonTab(Object dataObj) {
+        TextArea jsonArea = new TextArea();
+        jsonArea.setEditable(false);
+        jsonArea.setStyle("-fx-control-inner-background: #0b0e14; -fx-text-fill: #38bdf8; -fx-font-family: monospace; -fx-font-size: 11px;");
+
+        try {
+            jsonArea.setText(objectMapper.writeValueAsString(dataObj));
+        } catch (Exception e) {
+            jsonArea.setText(String.valueOf(dataObj));
+        }
+
+        ScrollPane scroll = new ScrollPane(jsonArea);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+        return scroll;
     }
 
     public void showEdgeDetails(EdgeDto edge) {
@@ -159,8 +283,9 @@ public class DetailsPanel extends VBox {
             return;
         }
 
-        HBox root = new HBox(18);
+        HBox root = new HBox(16);
         root.setAlignment(Pos.CENTER_LEFT);
+        root.setPadding(new Insets(8, 4, 4, 4));
 
         // 1. Connection Icon
         StackPane iconPane = new StackPane();
@@ -172,11 +297,29 @@ public class DetailsPanel extends VBox {
         iconPane.getChildren().addAll(bg, icon);
 
         // 2. Edge Metadata
-        VBox mainCol = new VBox(4);
-        mainCol.setPrefWidth(260);
+        VBox mainCol = new VBox(6);
+        mainCol.setPrefWidth(280);
+        mainCol.setMinWidth(240);
 
-        Label relationRow = new Label(edge.getSource() + " ➔ " + edge.getTarget());
-        relationRow.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+        HBox entitiesRow = new HBox(6);
+        entitiesRow.setAlignment(Pos.CENTER_LEFT);
+
+        Button srcBtn = new Button(edge.getSource());
+        srcBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #38bdf8; -fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+        srcBtn.setOnAction(e -> {
+            if (onNavigateToEntity != null) onNavigateToEntity.accept(edge.getSource());
+        });
+
+        Label arrow = new Label("➔");
+        arrow.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        Button tgtBtn = new Button(edge.getTarget());
+        tgtBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #38bdf8; -fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+        tgtBtn.setOnAction(e -> {
+            if (onNavigateToEntity != null) onNavigateToEntity.accept(edge.getTarget());
+        });
+
+        entitiesRow.getChildren().addAll(srcBtn, arrow, tgtBtn);
 
         HBox badges = new HBox(8);
         badges.setAlignment(Pos.CENTER_LEFT);
@@ -189,24 +332,35 @@ public class DetailsPanel extends VBox {
         confBadge.setStyle("-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-font-size: 10px; -fx-padding: 3px 8px; -fx-background-radius: 6px;");
 
         badges.getChildren().addAll(relBadge, confBadge);
-        mainCol.getChildren().addAll(relationRow, badges);
+
+        if (edge.getSourceFile() != null && !edge.getSourceFile().isBlank()) {
+            Label srcFile = new Label("📄 " + edge.getSourceFile() + (edge.getChunkId() != null ? " (" + edge.getChunkId() + ")" : ""));
+            srcFile.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
+            mainCol.getChildren().addAll(entitiesRow, badges, srcFile);
+        } else {
+            mainCol.getChildren().addAll(entitiesRow, badges);
+        }
 
         // 3. Evidence Citation Box
         VBox evidenceBox = new VBox(4);
         evidenceBox.getStyleClass().add("evidence-quote");
         HBox.setHgrow(evidenceBox, Priority.ALWAYS);
 
-        Label evTitle = new Label("Evidence Citation (" + (edge.getSourceFile() != null ? edge.getSourceFile() : "warehouse") + ")");
+        Label evTitle = new Label("Ground Truth Evidence Citation");
         evTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #94a3b8;");
 
         String snippet = edge.getEvidenceText() != null && !edge.getEvidenceText().isBlank()
                 ? edge.getEvidenceText()
-                : "Relationship verified from case documentation.";
+                : "Relationship verified from case evidence documentation.";
         Label snippetLbl = new Label("\"" + snippet + "\"");
         snippetLbl.getStyleClass().add("evidence-quote-text");
         snippetLbl.setWrapText(true);
 
-        evidenceBox.getChildren().addAll(evTitle, snippetLbl);
+        ScrollPane evScroll = new ScrollPane(snippetLbl);
+        evScroll.setFitToWidth(true);
+        evScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        evidenceBox.getChildren().addAll(evTitle, evScroll);
 
         root.getChildren().addAll(iconPane, mainCol, evidenceBox);
         contentContainer.getChildren().setAll(root);
@@ -214,14 +368,30 @@ public class DetailsPanel extends VBox {
 
     private void addGridRow(GridPane grid, int row, String label, String value) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: 600;");
+        lbl.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #64748b; -fx-font-weight: 600; -fx-min-width: 90px;");
 
         Label val = new Label(value != null ? value : "—");
-        val.setStyle("-fx-font-size: 11px; -fx-text-fill: #e2e8f0;");
-        val.setMaxWidth(220);
+        val.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #e2e8f0;");
+        val.setWrapText(true);
 
         grid.add(lbl, 0, row);
         grid.add(val, 1, row);
+    }
+
+    private String formatValue(Object val) {
+        if (val == null) return "—";
+        if (val instanceof List<?> list) {
+            return String.join(", ", list.stream().map(String::valueOf).toList());
+        }
+        if (val instanceof Map<?, ?> map) {
+            StringBuilder sb = new StringBuilder();
+            for (var entry : map.entrySet()) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(entry.getKey()).append(": ").append(entry.getValue());
+            }
+            return sb.toString();
+        }
+        return String.valueOf(val);
     }
 
     private Color getNodeColor(String type) {
@@ -231,7 +401,7 @@ public class DetailsPanel extends VBox {
             case "PHONE_NUMBER", "PHONE" -> Color.web("#06B6D4");
             case "DOCUMENT", "TRANSCRIPT" -> Color.web("#10B981");
             case "LOCATION" -> Color.web("#F59E0B");
-            case "ORGANIZATION" -> Color.web("#8B5CF6");
+            case "ORGANIZATION", "ORG" -> Color.web("#8B5CF6");
             case "EVENT" -> Color.web("#F43F5E");
             default -> Color.web("#64748B");
         };
@@ -244,7 +414,7 @@ public class DetailsPanel extends VBox {
             case "PHONE_NUMBER", "PHONE" -> "📞";
             case "DOCUMENT", "TRANSCRIPT" -> "📄";
             case "LOCATION" -> "📍";
-            case "ORGANIZATION" -> "🏢";
+            case "ORGANIZATION", "ORG" -> "🏢";
             case "EVENT" -> "⚡";
             default -> "●";
         };
@@ -257,6 +427,7 @@ public class DetailsPanel extends VBox {
             case "PHONE_NUMBER", "PHONE" -> "badge-phone";
             case "DOCUMENT", "TRANSCRIPT" -> "badge-document";
             case "LOCATION" -> "badge-location";
+            case "ORGANIZATION", "ORG" -> "badge-org";
             case "EVENT" -> "badge-event";
             default -> "badge-pill";
         };
