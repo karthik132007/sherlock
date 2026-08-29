@@ -67,7 +67,11 @@ public class InitialView extends BorderPane {
             fallbackBg.setStyle("-fx-background-color: #f8fafc;");
             rootStack.getChildren().add(fallbackBg);
         }
-        rootStack.getChildren().add(mainLayout);
+        ScrollPane mainScroll = new ScrollPane(mainLayout);
+        mainScroll.setFitToWidth(true);
+        mainScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        
+        rootStack.getChildren().add(mainScroll);
 
         setCenter(rootStack);
 
