@@ -68,9 +68,9 @@
     -fx-background-color: #0f172a;
     -fx-text-fill: #ffffff;
     -fx-font-weight: 700;
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
     -fx-background-radius: 8px;
-    -fx-padding: 12px 24px;
+    -fx-padding: 14px 28px;
     -fx-cursor: hand;
     -fx-effect: dropshadow(three-pass-box, rgba(15, 23, 42, 0.25), 8, 0, 0, 4);
 }
@@ -87,9 +87,9 @@
     -fx-background-color: rgba(255, 255, 255, 0.8);
     -fx-text-fill: #334155;
     -fx-font-weight: 600;
-    -fx-font-size: 13px;
+    -fx-font-size: 14px;
     -fx-background-radius: 8px;
-    -fx-padding: 8px 16px;
+    -fx-padding: 10px 20px;
     -fx-cursor: hand;
     -fx-border-color: #e2e8f0;
     -fx-border-radius: 8px;
@@ -156,8 +156,8 @@
     -fx-background-radius: 8px;
     -fx-border-color: #e2e8f0;
     -fx-border-radius: 8px;
-    -fx-padding: 10px 14px;
-    -fx-font-size: 13px;
+    -fx-padding: 12px 16px;
+    -fx-font-size: 15px;
     -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);
 }
 
@@ -168,18 +168,66 @@
 
 .combo-box .list-cell {
     -fx-text-fill: #0f172a;
-    -fx-background-color: #ffffff;
+    -fx-background-color: transparent;
 }
 
 .combo-box-popup .list-view {
     -fx-background-color: #ffffff;
     -fx-border-color: #e2e8f0;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);
-    -fx-background-radius: 8px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.12), 15, 0, 0, 6);
 }
 
-.combo-box-popup .list-cell:hover {
+.combo-box-popup .list-cell {
+    -fx-padding: 8px 12px;
+    -fx-background-radius: 8px;
+    -fx-text-fill: #475569;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+.combo-box-popup .list-cell:filled:hover {
     -fx-background-color: #f1f5f9;
+    -fx-text-fill: #0f172a;
+}
+
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: #e0f2fe;
+    -fx-text-fill: #0284c7;
+}
+
+/* Custom Layout Combo Box */
+.layout-combo {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-pref-width: 150px;
+    -fx-padding: 2px 8px;
+    -fx-cursor: hand;
+}
+
+.layout-combo:hover {
+    -fx-background-color: #f1f5f9;
+    -fx-border-color: #cbd5e1;
+}
+
+.layout-combo .list-cell {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+}
+
+.layout-combo > .arrow-button {
+    -fx-padding: 0 8px 0 0;
+    -fx-background-color: transparent;
+}
+
+.layout-combo > .arrow-button > .arrow {
+    -fx-background-color: #64748b;
 }
 
 /* Pills & Badges */

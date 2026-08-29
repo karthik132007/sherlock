@@ -111,12 +111,12 @@ public class InitialView extends BorderPane {
                     row.setStyle(
                             "-fx-background-color: rgba(255, 255, 255, 0.8); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
 
-                    VBox info = new VBox(2);
+                    VBox info = new VBox(4);
                     Label nameLbl = new Label(c.getCaseName() + " (" + c.getCaseId() + ")");
-                    nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0ea5e9; -fx-font-size: 11.5px;");
+                    nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0ea5e9; -fx-font-size: 15px;");
 
                     Label detailLbl = new Label(c.getFileCount() + " files • " + c.getStatus());
-                    detailLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
+                    detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
                     info.getChildren().addAll(nameLbl, detailLbl);
 
                     Region sp = new Region();
@@ -174,14 +174,13 @@ public class InitialView extends BorderPane {
         HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         Label logo = new Label("✨");
-        logo.setStyle("-fx-font-size: 28px;");
-
+        logo.setStyle("-fx-font-size: 36px;");
+        
         VBox titleBox = new VBox(0);
         Label title = new Label("Sherlock");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 32px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         Label subTitle = new Label("AI INVESTIGATION INTELLIGENCE");
-        subTitle.setStyle(
-                "-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1px;");
+        subTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
         titleBox.getChildren().addAll(title, subTitle);
 
         header.getChildren().addAll(logo, titleBox);
@@ -228,34 +227,46 @@ public class InitialView extends BorderPane {
         HBox titleRow = new HBox(8);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("👋");
-        icon.setStyle("-fx-font-size: 18px;");
+        icon.setStyle("-fx-font-size: 24px;");
         Label title = new Label("Welcome to SHERLOCK");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
         Label subTitle = new Label("AI-Powered Investigation Intelligence Platform");
-        subTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
+        subTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
 
-        VBox bulletPoints = new VBox(12);
-        bulletPoints.setPadding(new Insets(10, 0, 0, 0));
-        bulletPoints.getChildren().add(
-                createBullet("🫧", "Converts raw case evidence into an interactive, explainable Knowledge Graph."));
-        bulletPoints.getChildren().add(createBullet("📚",
-                "Automatic chunking, entity extraction, relationship discovery, and timeline reconstruction."));
-        bulletPoints.getChildren()
-                .add(createBullet("🔍", "Grounded reasoning with source document citations and evidence provenance."));
+        VBox bulletPoints = new VBox(16);
+        bulletPoints.setPadding(new Insets(16, 0, 0, 0));
+
+        Label description = new Label("Sherlock transforms unstructured case evidence into an interactive, explainable knowledge graph. It enables investigators to instantly uncover hidden connections, reconstruct timelines, and map out complex relationships.");
+        description.setWrapText(true);
+        description.setStyle("-fx-font-size: 15px; -fx-text-fill: #334155; -fx-line-spacing: 6px;");
+
+        Label howItWorksTitle = new Label("How it works:");
+        howItWorksTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        VBox.setMargin(howItWorksTitle, new Insets(10, 0, 0, 0));
+
+        bulletPoints.getChildren().addAll(
+                description,
+                howItWorksTitle,
+                createBullet("📁", "1. Create a Case: Name your investigation and upload raw evidence (documents, reports, logs)."),
+                createBullet("🧠", "2. Connect an AI Model: Configure your preferred local or cloud LLM to power the engine."),
+                createBullet("⚡", "3. Automatic Extraction: Sherlock autonomously processes data to discover entities and relationships."),
+                createBullet("🕸️", "4. Explore the Graph: Visually navigate the knowledge graph, fully grounded with source citations.")
+        );
 
         card.getChildren().addAll(titleRow, subTitle, bulletPoints);
         return card;
     }
 
     private HBox createBullet(String emoji, String text) {
-        HBox row = new HBox(10);
+        HBox row = new HBox(12);
         row.setAlignment(Pos.TOP_LEFT);
         Label icon = new Label(emoji);
+        icon.setStyle("-fx-font-size: 14px;");
         Label lbl = new Label(text);
         lbl.setWrapText(true);
-        lbl.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #475569; -fx-line-spacing: 2px;");
+        lbl.setStyle("-fx-font-size: 14px; -fx-text-fill: #475569; -fx-line-spacing: 4px;");
         row.getChildren().addAll(icon, lbl);
         return row;
     }
@@ -270,10 +281,10 @@ public class InitialView extends BorderPane {
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("📁");
-        icon.setStyle("-fx-font-size: 16px;");
-
+        icon.setStyle("-fx-font-size: 20px;");
+        
         Label title = new Label("New / Open Case");
-        title.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         headerRow.getChildren().addAll(icon, title);
 
         caseNameField.setPromptText("Enter Case Name or ID");
@@ -287,13 +298,13 @@ public class InitialView extends BorderPane {
         VBox.setVgrow(dropzone, Priority.ALWAYS);
 
         Label dropIcon = new Label("☁️");
-        dropIcon.setStyle("-fx-font-size: 20px;");
+        dropIcon.setStyle("-fx-font-size: 28px;");
 
         Label dropTitle = new Label("Upload files here (or drag & drop)");
-        dropTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        dropTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
 
         Label formats = new Label("• .txt   • .pdf   • .png allowed");
-        formats.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
+        formats.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
         Button browseBtn = new Button("Browse Files");
         browseBtn.getStyleClass().add("primary-button");
@@ -317,11 +328,12 @@ public class InitialView extends BorderPane {
         card.getStyleClass().add("glass-panel");
         card.setPadding(new Insets(20));
 
-        HBox titleRow = new HBox(8);
+        HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🔌");
+        icon.setStyle("-fx-font-size: 20px;");
         Label title = new Label("Connect AI & Models");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
         GridPane grid = new GridPane();
@@ -335,9 +347,9 @@ public class InitialView extends BorderPane {
         grid.getColumnConstraints().addAll(col1, col2);
 
         // 1. API Key Input with Eye Toggle
-        VBox keyBox = new VBox(6);
+        VBox keyBox = new VBox(8);
         Label keyLabel = new Label("Provide API key (Optional for local/demo)");
-        keyLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        keyLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         apiKeyField.setPromptText("sk-... (optional)");
         apiKeyVisibleField.setPromptText("sk-... (optional)");
@@ -372,9 +384,9 @@ public class InitialView extends BorderPane {
         keyBox.getChildren().addAll(keyLabel, keyInputRow);
 
         // 2. Model Selection
-        VBox modelBox = new VBox(6);
+        VBox modelBox = new VBox(8);
         Label modelLabel = new Label("Model Name");
-        modelLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        modelLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         modelCombo.setEditable(true);
         modelCombo.getItems().addAll(
@@ -390,9 +402,9 @@ public class InitialView extends BorderPane {
         modelBox.getChildren().addAll(modelLabel, modelCombo);
 
         // 3. Provider Selection
-        VBox providerBox = new VBox(6);
+        VBox providerBox = new VBox(8);
         Label providerLabel = new Label("Provider Name");
-        providerLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        providerLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama",
                 "Custom");
@@ -452,7 +464,7 @@ public class InitialView extends BorderPane {
         VBox hintBox = new VBox(4);
         hintBox.setAlignment(Pos.CENTER_LEFT);
         Label hintLbl = new Label("Please use the exact Provider and Model Name from the Docs");
-        hintLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
+        hintLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
         hintBox.getChildren().add(hintLbl);
 
         grid.add(keyBox, 0, 0);
@@ -465,23 +477,23 @@ public class InitialView extends BorderPane {
     }
 
     private VBox buildActionBox() {
-        VBox box = new VBox(12);
+        VBox box = new VBox(16);
         box.setAlignment(Pos.CENTER);
 
         proceedBtn.getStyleClass().add("primary-button");
         proceedBtn.setMaxWidth(Double.MAX_VALUE);
-        proceedBtn.setPrefHeight(48);
-        proceedBtn.setStyle("-fx-font-size: 15px;");
+        proceedBtn.setPrefHeight(60);
+        proceedBtn.setStyle("-fx-font-size: 18px;");
         proceedBtn.setOnAction(e -> handleProceed());
 
         HBox termsRow = new HBox(8);
         termsRow.setAlignment(Pos.CENTER);
 
-        termsCheckBox.setStyle("-fx-text-fill: #475569; -fx-font-size: 11.5px; -fx-font-weight: 600;");
+        termsCheckBox.setStyle("-fx-text-fill: #475569; -fx-font-size: 14px; -fx-font-weight: 600;");
         termsCheckBox.setSelected(true);
 
         Hyperlink termsLink = new Hyperlink("Read here");
-        termsLink.setStyle("-fx-text-fill: #2563eb; -fx-font-size: 11.5px; -fx-font-weight: 600;");
+        termsLink.setStyle("-fx-text-fill: #2563eb; -fx-font-size: 14px; -fx-font-weight: 600;");
         termsLink.setOnAction(e -> showTermsDialog());
 
         termsRow.getChildren().addAll(termsCheckBox, termsLink);
@@ -504,12 +516,12 @@ public class InitialView extends BorderPane {
         section.getStyleClass().add("glass-panel-subtle");
         section.setPadding(new Insets(16));
 
-        HBox header = new HBox(8);
+        HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🕒");
-        icon.setStyle("-fx-font-size: 14px;");
+        icon.setStyle("-fx-font-size: 18px;");
         Label title = new Label("Recent Sherlock Cases (in project data/ folder)");
-        title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);

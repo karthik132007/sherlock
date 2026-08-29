@@ -78,7 +78,7 @@ public class GraphCanvas extends StackPane {
 
     public GraphCanvas() {
         setStyle(
-                "-fx-background-color: #ffffff; -fx-background-radius: 10px; -fx-border-color: #e2e8f0; -fx-border-radius: 10px; -fx-border-width: 1px;");
+                "-fx-background-color: transparent; -fx-background-radius: 10px; -fx-border-color: rgba(226, 232, 240, 0.3); -fx-border-radius: 10px; -fx-border-width: 1px;");
         setMinSize(300, 200);
 
         canvas.widthProperty().bind(widthProperty());
@@ -271,7 +271,7 @@ public class GraphCanvas extends StackPane {
         VBox overlay = new VBox(6);
         overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         overlay.setStyle(
-                "-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 3);");
+                "-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 3);");
 
         HBox searchRow = new HBox(6);
         searchRow.setAlignment(Pos.CENTER_LEFT);
@@ -339,7 +339,7 @@ public class GraphCanvas extends StackPane {
         toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         toolbar.setAlignment(Pos.CENTER_RIGHT);
         toolbar.setStyle(
-                "-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
+                "-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
 
         ComboBox<LayoutMode> layoutCombo = new ComboBox<>();
         layoutCombo.getItems().addAll(LayoutMode.values());
@@ -358,7 +358,7 @@ public class GraphCanvas extends StackPane {
                 setText(empty || item == null ? null : item.getLabel());
             }
         });
-        layoutCombo.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #0284c7; -fx-font-size: 10px; -fx-font-weight: bold; -fx-pref-width: 140px; -fx-background-radius: 6px;");
+        layoutCombo.getStyleClass().add("layout-combo");
         layoutCombo.setOnAction(e -> applyLayout(layoutCombo.getValue()));
 
         Button selectBtn = new Button("↖");
@@ -421,7 +421,7 @@ public class GraphCanvas extends StackPane {
     private VBox buildMinimap() {
         VBox box = new VBox(4);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
+        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
 
         Label title = new Label("Minimap (Interactive)");
         title.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
@@ -437,7 +437,7 @@ public class GraphCanvas extends StackPane {
         HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.90); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: #e2e8f0; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 6px; -fx-border-width: 1px;");
 
         Label title = new Label("ENTITIES:");
         title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
@@ -802,7 +802,7 @@ public class GraphCanvas extends StackPane {
     }
 
     private void drawGrid(GraphicsContext gc, double w, double h) {
-        gc.setStroke(Color.web("#f1f5f9"));
+        gc.setStroke(Color.web("#cbd5e1", 0.4));
         gc.setLineWidth(1.0);
         double gridSize = 32.0 * zoom;
         double startX = (panX % gridSize + gridSize) % gridSize;

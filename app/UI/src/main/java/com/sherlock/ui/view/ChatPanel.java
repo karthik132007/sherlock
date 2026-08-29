@@ -23,8 +23,6 @@ public class ChatPanel extends VBox {
     private final SherlockBackendClient client;
     private String currentCaseId = "";
 
-    private final ComboBox<String> providerSelector = new ComboBox<>();
-    private final ComboBox<String> modelSelector = new ComboBox<>();
     private final VBox messageContainer = new VBox(12);
     private final ScrollPane scrollPane = new ScrollPane();
     private final TextField inputField = new TextField();
@@ -44,7 +42,7 @@ public class ChatPanel extends VBox {
         
         Label icon = new Label("🤖");
         Label title = new Label("Sherlock Assistant");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -53,30 +51,13 @@ public class ChatPanel extends VBox {
         status.setAlignment(Pos.CENTER);
         Circle dot = new Circle(3, Color.web("#10b981"));
         Label statusLbl = new Label("Ready");
-        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 10px; -fx-font-weight: bold;");
+        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px; -fx-font-weight: bold;");
         status.getChildren().addAll(dot, statusLbl);
-        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-padding: 4px 8px; -fx-background-radius: 12px;");
+        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-padding: 4px 10px; -fx-background-radius: 12px;");
 
         header.getChildren().addAll(icon, title, spacer, status);
 
-        // Config Row
-        HBox configRow = new HBox(8);
-        configRow.setAlignment(Pos.CENTER_LEFT);
-        
-        providerSelector.setStyle("-fx-font-size: 10px; -fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-border-radius: 4px;");
-        providerSelector.setMaxWidth(100);
-        providerSelector.getItems().addAll("Ollama", "OpenAI", "DeepSeek", "OpenRouter", "Groq", "Mistral", "Custom");
-        providerSelector.setValue("Ollama");
-        providerSelector.setOnAction(e -> applyProviderDefaults(providerSelector.getValue()));
-
-        modelSelector.setEditable(true);
-        modelSelector.setStyle("-fx-font-size: 10px; -fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-border-radius: 4px;");
-        modelSelector.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(modelSelector, Priority.ALWAYS);
-
-        applyProviderDefaults(providerSelector.getValue());
-
-        configRow.getChildren().addAll(providerSelector, modelSelector);
+        // Config Row Removed
 
         // Quick suggestions
         FlowPane suggestions = buildQuickSuggestions();
@@ -107,13 +88,13 @@ public class ChatPanel extends VBox {
         });
 
         sendButton.getStyleClass().add("primary-button");
-        sendButton.setStyle("-fx-padding: 6px 12px; -fx-font-size: 12px;");
+        sendButton.setStyle("-fx-padding: 8px 16px; -fx-font-size: 14px;");
         sendButton.setOnAction(e -> sendMessage());
 
         HBox inputRow = new HBox(8, inputField, sendButton);
         inputRow.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(header, configRow, suggestions, scrollPane, inputRow);
+        getChildren().addAll(header, suggestions, scrollPane, inputRow);
 
         addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. How may I assist your investigation?");
     }
@@ -124,48 +105,7 @@ public class ChatPanel extends VBox {
         addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized.");
     }
 
-    private void applyProviderDefaults(String provider) {
-        if (provider == null || provider.isBlank()) return;
 
-        if ("Ollama".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().clear();
-            modelSelector.setValue(null);
-            modelSelector.setPromptText("Loading...");
-            client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
-                if (models != null && !models.isEmpty()) {
-                    modelSelector.getItems().setAll(models);
-                    modelSelector.setValue(models.get(0));
-                    modelSelector.setDisable(false);
-                    modelSelector.setPromptText(null);
-                } else {
-                    modelSelector.getItems().clear();
-                    modelSelector.setValue(null);
-                    modelSelector.setDisable(false);
-                    modelSelector.setPromptText("Type model (e.g. llama3)");
-                }
-            }));
-            return;
-        }
-
-        modelSelector.setDisable(false);
-        modelSelector.setPromptText(null);
-        if ("DeepSeek".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().setAll("deepseek-chat", "deepseek-coder");
-            modelSelector.setValue("deepseek-chat");
-        } else if ("Groq".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
-            modelSelector.setValue("llama-3.3-70b-versatile");
-        } else if ("OpenRouter".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet");
-            modelSelector.setValue("openai/gpt-4o-mini");
-        } else if ("Mistral".equalsIgnoreCase(provider)) {
-            modelSelector.getItems().setAll("mistral-large-latest", "mistral-small-latest");
-            modelSelector.setValue("mistral-large-latest");
-        } else {
-            modelSelector.getItems().setAll("gpt-4o-mini", "gpt-4o", "gpt-4-turbo");
-            modelSelector.setValue("gpt-4o-mini");
-        }
-    }
 
     private FlowPane buildQuickSuggestions() {
         FlowPane pane = new FlowPane(6, 6);
@@ -177,9 +117,9 @@ public class ChatPanel extends VBox {
 
     private Button createSuggestionPill(String query) {
         Button btn = new Button(query);
-        btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #0f172a; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #cbd5e1; -fx-border-radius: 12px;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 10px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;"));
+        btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #0f172a; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #cbd5e1; -fx-border-radius: 12px;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;"));
         btn.setOnAction(e -> {
             inputField.setText(query);
             sendMessage();
@@ -204,8 +144,8 @@ public class ChatPanel extends VBox {
             return;
         }
 
-        String selectedModel = modelSelector.getValue();
-        String selectedProvider = providerSelector.getValue();
+        String selectedModel = null;
+        String selectedProvider = null;
         client.sendChatMessageAsync(currentCaseId, query, selectedModel, selectedProvider)
                 .thenAccept(resp -> Platform.runLater(() -> {
                     sendButton.setDisable(false);
@@ -232,14 +172,14 @@ public class ChatPanel extends VBox {
         bubble.setMaxWidth(260);
 
         Label userLbl = new Label("You");
-        userLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.8);");
+        userLbl.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.8);");
 
         Label content = new Label(text);
         content.setWrapText(true);
-        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffffff; -fx-line-spacing: 2px;");
+        content.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffffff; -fx-line-spacing: 4px;");
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 9px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
+        time.setStyle("-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
         time.setMaxWidth(Double.MAX_VALUE);
 
         bubble.getChildren().addAll(userLbl, content, time);
@@ -259,15 +199,15 @@ public class ChatPanel extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("✨");
         Label sherlockLbl = new Label("Sherlock");
-        sherlockLbl.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
+        sherlockLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
         header.getChildren().addAll(icon, sherlockLbl);
 
         Label content = new Label(text);
         content.setWrapText(true);
-        content.setStyle("-fx-font-size: 12px; -fx-text-fill: #334155; -fx-line-spacing: 2px;");
+        content.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155; -fx-line-spacing: 4px;");
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 9px; -fx-text-fill: #94a3b8;");
+        time.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
 
         bubble.getChildren().addAll(header, content, time);
 

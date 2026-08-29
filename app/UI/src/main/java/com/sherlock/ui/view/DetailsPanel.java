@@ -44,7 +44,7 @@ public class DetailsPanel extends VBox {
     public void showPlaceholder() {
         HBox placeholder = new HBox(14);
         placeholder.setAlignment(Pos.CENTER_LEFT);
-        placeholder.setStyle("-fx-background-color: #ffffff; -fx-padding: 18px 24px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px;");
+        placeholder.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6); -fx-padding: 18px 24px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
 
         Label icon = new Label("🕵️");
         icon.setStyle("-fx-font-size: 28px;");
@@ -168,7 +168,7 @@ public class DetailsPanel extends VBox {
             for (EdgeDto edge : relatedEdges) {
                 HBox card = new HBox(8);
                 card.setAlignment(Pos.CENTER_LEFT);
-                card.setStyle("-fx-background-color: #ffffff; -fx-padding: 6px 10px; -fx-background-radius: 6px; -fx-border-color: #e2e8f0; -fx-border-radius: 6px;");
+                card.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6); -fx-padding: 6px 10px; -fx-background-radius: 6px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 6px;");
 
                 boolean isOutgoing = node.getName() != null && node.getName().equalsIgnoreCase(edge.getSource());
                 String otherNodeName = isOutgoing ? edge.getTarget() : edge.getSource();
@@ -327,7 +327,7 @@ public class DetailsPanel extends VBox {
         }
 
         VBox evidenceBox = new VBox(4);
-        evidenceBox.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 8px;");
+        evidenceBox.setStyle("-fx-background-color: rgba(248, 250, 252, 0.6); -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 8px;");
         HBox.setHgrow(evidenceBox, Priority.ALWAYS);
 
         Label evTitle = new Label("Ground Truth Evidence Citation");

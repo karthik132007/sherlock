@@ -10,6 +10,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
 
@@ -44,8 +47,37 @@ public class MainFrameView extends BorderPane {
         getStyleClass().add("root");
 
         HBox mainLayout = new HBox();
+        mainLayout.setStyle("-fx-background-color: transparent;");
         mainLayout.getChildren().addAll(buildSidebar(), buildCenterView(), buildRightPanel());
-        setCenter(mainLayout);
+        
+        MediaView backgroundVideoView = null;
+        try {
+            java.net.URL videoUrl = getClass().getResource("/BG_video.mp4");
+            if (videoUrl != null) {
+                Media media = new Media(videoUrl.toExternalForm());
+                MediaPlayer mediaPlayer = new MediaPlayer(media);
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                mediaPlayer.setMute(true);
+                mediaPlayer.play();
+                
+                backgroundVideoView = new MediaView(mediaPlayer);
+                backgroundVideoView.setPreserveRatio(false);
+                backgroundVideoView.setOpacity(0.25);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        StackPane rootStack = new StackPane();
+        rootStack.setStyle("-fx-background-color: #f8fafc;");
+        if (backgroundVideoView != null) {
+            rootStack.getChildren().add(backgroundVideoView);
+            backgroundVideoView.fitWidthProperty().bind(rootStack.widthProperty());
+            backgroundVideoView.fitHeightProperty().bind(rootStack.heightProperty());
+        }
+        rootStack.getChildren().add(mainLayout);
+        
+        setCenter(rootStack);
 
         setupInteractionWiring();
     }
@@ -105,20 +137,20 @@ public class MainFrameView extends BorderPane {
     }
 
     private VBox buildSidebar() {
-        VBox sidebar = new VBox(12);
-        sidebar.setPrefWidth(240);
-        sidebar.setMinWidth(240);
+        VBox sidebar = new VBox(16);
+        sidebar.setPrefWidth(260);
+        sidebar.setMinWidth(260);
         sidebar.setPadding(new Insets(20));
-        sidebar.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
+        sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.7); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
 
         // Brand
         HBox brand = new HBox(8);
         brand.setAlignment(Pos.CENTER_LEFT);
         brand.setPadding(new Insets(0, 0, 16, 0));
         Label icon = new Label("✨");
-        icon.setStyle("-fx-font-size: 20px;");
+        icon.setStyle("-fx-font-size: 28px;");
         Label title = new Label("Sherlock");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         brand.getChildren().addAll(icon, title);
 
         // Navigation
@@ -153,11 +185,11 @@ public class MainFrameView extends BorderPane {
         onlineStatus.setAlignment(Pos.CENTER_LEFT);
         Circle dot = new Circle(4, Color.web("#10b981"));
         Label onlineLbl = new Label("System Online");
-        onlineLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
+        onlineLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
         onlineStatus.getChildren().addAll(dot, onlineLbl);
 
         Label version = new Label("v1.0.0");
-        version.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
+        version.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
         statusBox.getChildren().addAll(onlineStatus, version);
 
         // User Profile Mockup
@@ -171,11 +203,11 @@ public class MainFrameView extends BorderPane {
         avatar.setStyle(
                 "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
 
-        VBox userInfo = new VBox(0);
+        VBox userInfo = new VBox(2);
         Label userName = new Label("Sherlock Admin");
-        userName.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        userName.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
         Label userRole = new Label("Investigator");
-        userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
+        userRole.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
         userInfo.getChildren().addAll(userName, userRole);
 
         userBox.getChildren().addAll(avatar, userInfo);
@@ -202,6 +234,7 @@ public class MainFrameView extends BorderPane {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(16, 24, 16, 24));
         header.getStyleClass().add("glass-toolbar");
+        header.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6);");
 
         TextField searchBar = new TextField();
         searchBar.setPromptText("Ask anything or search the graph...");
@@ -216,7 +249,7 @@ public class MainFrameView extends BorderPane {
         graphBtn.setSelected(true);
 
         Runnable updateStyles = () -> {
-            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 12px; -fx-padding: 6px 14px; ";
+            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 14px; -fx-padding: 8px 16px; ";
             String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
             String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
 
@@ -266,7 +299,7 @@ public class MainFrameView extends BorderPane {
 
         investigateBtn = new Button("🚀 Start Extraction");
         investigateBtn.getStyleClass().add("primary-button");
-        investigateBtn.setStyle("-fx-padding: 6px 14px; -fx-font-size: 12px;");
+        investigateBtn.setStyle("-fx-padding: 8px 16px; -fx-font-size: 14px;");
         investigateBtn.setOnAction(e -> startInvestigation());
 
         header.getChildren().addAll(searchBar, toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
@@ -292,8 +325,8 @@ public class MainFrameView extends BorderPane {
     private VBox buildRightPanel() {
         VBox right = new VBox();
         right.setPrefWidth(380);
-        right.setMinWidth(320);
-        right.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 0 1px;");
+        right.setMinWidth(380);
+        right.setStyle("-fx-background-color: rgba(248, 250, 252, 0.7); -fx-border-color: #e2e8f0; -fx-border-width: 0 0 0 1px;");
 
         VBox.setVgrow(chatPanel, Priority.ALWAYS);
         right.getChildren().add(chatPanel);

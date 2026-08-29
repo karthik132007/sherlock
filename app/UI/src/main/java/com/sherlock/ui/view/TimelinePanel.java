@@ -19,11 +19,11 @@ public class TimelinePanel extends ScrollPane {
         this.onGenerateTimelineRequested = onGenerateTimelineRequested;
         container = new VBox();
         container.setPadding(new Insets(20));
-        container.setStyle("-fx-background-color: #ffffff;");
+        container.setStyle("-fx-background-color: transparent;");
 
         setFitToWidth(true);
         setContent(container);
-        setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; -fx-control-inner-background: #ffffff;");
+        setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; -fx-control-inner-background: transparent;");
         
         showPlaceholder();
     }
@@ -109,7 +109,7 @@ public class TimelinePanel extends ScrollPane {
         contentBox.setPadding(new Insets(0, 10, 25, 15));
         
         VBox card = new VBox(6);
-        card.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-padding: 12px;");
+        card.setStyle("-fx-background-color: rgba(248, 250, 252, 0.7); -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px; -fx-padding: 12px;");
         
         String mainText = item.getTitle() != null && !item.getTitle().isBlank() ? item.getTitle() : (item.getEvent() != null ? item.getEvent() : "Event");
         Label titleLabel = new Label(mainText);
