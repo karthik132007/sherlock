@@ -121,7 +121,7 @@ public class Neo4jGraphService {
                 if (!rec.get("data").isNull()) {
                     String dataStr = rec.get("data").asString("{}");
                     try {
-                        node.setData(objectMapper.readValue(dataStr, Map.class));
+                        node.setData(objectMapper.readValue(dataStr, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
                     } catch (Exception ignored) {
                         node.setData(Map.of("raw", dataStr));
                     }

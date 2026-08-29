@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,8 +33,9 @@ class CaseServiceTest {
         appProperties = new AppProperties();
         appProperties.setBaseDirectory(tempDir.toString());
         appProperties.getNeo4j().setEnabled(false);
+
         Neo4jGraphService neo4jGraphService = new Neo4jGraphService(appProperties);
-        OllamaService ollamaService = new OllamaService(appProperties);
+        OllamaService ollamaService = new OllamaService();
         caseService = new CaseService(appProperties, neo4jGraphService, ollamaService);
     }
 
@@ -44,7 +44,8 @@ class CaseServiceTest {
         CaseRequest request = new CaseRequest("Operation Rose");
         request.setCaseId("operation_rose_001");
 
-        LlmConfigRequest llmConfig = new LlmConfigRequest("openai", "gpt-4o-mini", "sk-testkey", "https://api.openai.com/v1", 128000, 0.1);
+        LlmConfigRequest llmConfig = new LlmConfigRequest("openai", "gpt-4o-mini", "sk-testkey",
+                "https://api.openai.com/v1", 128000, 0.1);
         request.setLlmConfig(llmConfig);
 
         CaseResponse response = caseService.createCase(request);
@@ -69,15 +70,13 @@ class CaseServiceTest {
                 "files",
                 "fir.txt",
                 "text/plain",
-                "Rose Mathew was found in Anna Nagar apartment.".getBytes(StandardCharsets.UTF_8)
-        );
+                "Rose Mathew was found in Anna Nagar apartment.".getBytes(StandardCharsets.UTF_8));
 
         MockMultipartFile file2 = new MockMultipartFile(
                 "files",
                 "witness.txt",
                 "text/plain",
-                "Ananya stated she saw Arjun near the apartment at 17:30.".getBytes(StandardCharsets.UTF_8)
-        );
+                "Ananya stated she saw Arjun near the apartment at 17:30.".getBytes(StandardCharsets.UTF_8));
 
         CaseResponse response = caseService.saveUploadedFiles("test_case_001", List.of(file1, file2));
         assertNotNull(response);
