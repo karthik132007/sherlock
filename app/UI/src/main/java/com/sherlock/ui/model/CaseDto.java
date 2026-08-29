@@ -1,54 +1,45 @@
-package com.sherlock.app.model;
+package com.sherlock.ui.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class CaseResponse {
+public class CaseDto {
     private String caseId;
     private String caseName;
     private String caseDirectory;
     private String dataDirectory;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime createdAt;
     private String status;
     private int fileCount;
     private List<String> files = new ArrayList<>();
-    private LlmConfigRequest llmConfig;
+    private LlmConfigDto llmConfig;
 
-    public CaseResponse() {
-    }
-
-    public CaseResponse(String caseId, String caseName, String caseDirectory, String dataDirectory, LocalDateTime createdAt, String status) {
-        this.caseId = caseId;
-        this.caseName = caseName;
-        this.caseDirectory = caseDirectory;
-        this.dataDirectory = dataDirectory;
-        this.createdAt = createdAt;
-        this.status = status;
-    }
+    public CaseDto() {}
 
     public String getCaseId() { return caseId; }
     public void setCaseId(String caseId) { this.caseId = caseId; }
+
     public String getCaseName() { return caseName; }
     public void setCaseName(String caseName) { this.caseName = caseName; }
+
     public String getCaseDirectory() { return caseDirectory; }
     public void setCaseDirectory(String caseDirectory) { this.caseDirectory = caseDirectory; }
+
     public String getDataDirectory() { return dataDirectory; }
     public void setDataDirectory(String dataDirectory) { this.dataDirectory = dataDirectory; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
     public int getFileCount() { return fileCount; }
     public void setFileCount(int fileCount) { this.fileCount = fileCount; }
+
     public List<String> getFiles() { return files; }
     public void setFiles(List<String> files) { this.files = files; }
-    public LlmConfigRequest getLlmConfig() { return llmConfig; }
-    public void setLlmConfig(LlmConfigRequest llmConfig) { this.llmConfig = llmConfig; }
+
+    public LlmConfigDto getLlmConfig() { return llmConfig; }
+    public void setLlmConfig(LlmConfigDto llmConfig) { this.llmConfig = llmConfig; }
 }

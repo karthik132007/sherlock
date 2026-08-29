@@ -1,4 +1,4 @@
-package com.sherlock.app.model;
+package com.sherlock.ui.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ProcessingStatus {
+public class ProcessingStatusDto {
     private String caseId;
     private String status;
     private String message;
@@ -17,7 +17,7 @@ public class ProcessingStatus {
     private boolean completed;
     private boolean success;
 
-    public ProcessingStatus() {}
+    public ProcessingStatusDto() {}
 
     public String getCaseId() { return caseId; }
     public void setCaseId(String caseId) { this.caseId = caseId; }

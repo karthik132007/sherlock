@@ -1,9 +1,11 @@
 package com.sherlock.ui;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.sherlock.ui.model.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,19 +13,26 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class SherlockBackendClient {
 
-    private static final String BASE_URL = "http://localhost:8080/api";
+    private static final String DEFAULT_BASE_URL = "http://localhost:8080/api";
+    private final String baseUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
     public SherlockBackendClient() {
+        this(DEFAULT_BASE_URL);
+    }
+
+    public SherlockBackendClient(String baseUrl) {
+        this.baseUrl = baseUrl;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -33,82 +42,182 @@ public class SherlockBackendClient {
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    public CaseCreateResponse createCase(String caseName) throws IOException, InterruptedException {
-        String json = objectMapper.writeValueAsString(Map.of("caseName", caseName));
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/cases"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                .timeout(Duration.ofSeconds(20))
-                .build();
+    public CompletableFuture<CaseDto> createCaseAsync(String caseName, String caseId, LlmConfigDto llmConfig) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("caseName", caseName);
+                if (caseId != null && !caseId.isBlank()) {
+                    payload.put("caseId", caseId);
+                }
+                if (llmConfig != null) {
+                    payload.put("llmConfig", llmConfig);
+                }
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 400) {
-            throw new IOException("Backend error creating case: " + response.body());
-        }
-        return objectMapper.readValue(response.body(), CaseCreateResponse.class);
+                String json = objectMapper.writeValueAsString(payload);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                        .timeout(Duration.ofSeconds(20))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), CaseDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create case: " + e.getMessage(), e);
+            }
+        });
     }
 
-    public CaseCreateResponse uploadFiles(String caseId, List<File> files) throws IOException, InterruptedException {
-        var multipart = new MultipartFormDataBuilder();
-        for (File file : files) {
-            multipart.addFile("files", file);
-        }
+    public CompletableFuture<CaseDto> uploadFilesAsync(String caseId, List<File> files) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                var multipart = new MultipartFormDataBuilder();
+                for (File file : files) {
+                    multipart.addFile("files", file);
+                }
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/cases/" + caseId + "/files"))
-                .header("Content-Type", multipart.contentType())
-                .POST(HttpRequest.BodyPublishers.ofByteArray(multipart.build()))
-                .timeout(Duration.ofSeconds(30))
-                .build();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/files"))
+                        .header("Content-Type", multipart.contentType())
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(multipart.build()))
+                        .timeout(Duration.ofSeconds(60))
+                        .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 400) {
-            throw new IOException("Backend error uploading files: " + response.body());
-        }
-        return objectMapper.readValue(response.body(), CaseCreateResponse.class);
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), CaseDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to upload files: " + e.getMessage(), e);
+            }
+        });
     }
 
-    public ProcessingStatusResponse startProcessing(String caseId) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/cases/" + caseId + "/process"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .timeout(Duration.ofSeconds(25))
-                .build();
+    public CompletableFuture<ProcessingStatusDto> startProcessingAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/process"))
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .timeout(Duration.ofSeconds(25))
+                        .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 400) {
-            throw new IOException("Backend error starting process: " + response.body());
-        }
-        return objectMapper.readValue(response.body(), ProcessingStatusResponse.class);
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to start processing: " + e.getMessage(), e);
+            }
+        });
     }
 
-    public static class CaseCreateResponse {
-        private String caseId;
-        private String caseName;
-        private String caseDirectory;
-        private String status;
+    public CompletableFuture<ProcessingStatusDto> getProcessingStatusAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/status"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(10))
+                        .build();
 
-        public String getCaseId() { return caseId; }
-        public void setCaseId(String caseId) { this.caseId = caseId; }
-        public String getCaseName() { return caseName; }
-        public void setCaseName(String caseName) { this.caseName = caseName; }
-        public String getCaseDirectory() { return caseDirectory; }
-        public void setCaseDirectory(String caseDirectory) { this.caseDirectory = caseDirectory; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get processing status: " + e.getMessage(), e);
+            }
+        });
     }
 
-    public static class ProcessingStatusResponse {
-        private String caseId;
-        private String status;
-        private String message;
+    public CompletableFuture<GraphDataDto> getGraphDataAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/graph"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
 
-        public String getCaseId() { return caseId; }
-        public void setCaseId(String caseId) { this.caseId = caseId; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), GraphDataDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to fetch graph data: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<TimelineEventDto> getTimelineAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/timeline"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), TimelineEventDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to fetch timeline: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String json = objectMapper.writeValueAsString(Map.of("query", query));
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                        .timeout(Duration.ofSeconds(30))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), ChatMessageDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to query Sherlock chat: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<List<CaseDto>> listCasesAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(10))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), new TypeReference<List<CaseDto>>() {});
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to list cases: " + e.getMessage(), e);
+            }
+        });
     }
 }

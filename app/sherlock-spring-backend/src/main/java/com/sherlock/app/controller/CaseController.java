@@ -1,8 +1,6 @@
 package com.sherlock.app.controller;
 
-import com.sherlock.app.model.CaseRequest;
-import com.sherlock.app.model.CaseResponse;
-import com.sherlock.app.model.ProcessingStatus;
+import com.sherlock.app.model.*;
 import com.sherlock.app.service.CaseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -16,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins = "*")
 public class CaseController {
 
     private final CaseService caseService;
@@ -26,13 +25,18 @@ public class CaseController {
 
     @PostMapping("/cases")
     public ResponseEntity<CaseResponse> createCase(@Valid @RequestBody CaseRequest request) {
-        CaseResponse response = caseService.createCase(request.getCaseName());
+        CaseResponse response = caseService.createCase(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/cases")
     public ResponseEntity<List<CaseResponse>> listCases() {
         return ResponseEntity.ok(caseService.listCases());
+    }
+
+    @GetMapping("/cases/{caseId}")
+    public ResponseEntity<CaseResponse> getCase(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getCase(caseId));
     }
 
     @PostMapping(value = "/cases/{caseId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -47,8 +51,25 @@ public class CaseController {
         return ResponseEntity.ok(caseService.startProcessing(caseId));
     }
 
-    @GetMapping("/cases/{caseId}")
-    public ResponseEntity<CaseResponse> getCase(@PathVariable String caseId) {
-        return ResponseEntity.ok(caseService.getCase(caseId));
+    @GetMapping("/cases/{caseId}/status")
+    public ResponseEntity<ProcessingStatus> getProcessingStatus(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getProcessingStatus(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/graph")
+    public ResponseEntity<GraphDataResponse> getGraphData(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getGraphData(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/timeline")
+    public ResponseEntity<TimelineEventResponse> getTimeline(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getTimeline(caseId));
+    }
+
+    @PostMapping("/cases/{caseId}/chat")
+    public ResponseEntity<ChatResponse> chatWithSherlock(
+            @PathVariable String caseId,
+            @RequestBody ChatRequest request) {
+        return ResponseEntity.ok(caseService.chatWithSherlock(caseId, request));
     }
 }
