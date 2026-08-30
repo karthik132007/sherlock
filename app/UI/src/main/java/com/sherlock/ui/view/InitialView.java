@@ -40,7 +40,7 @@ public class InitialView extends BorderPane {
     private final ComboBox<String> providerCombo = new ComboBox<>();
     private final ComboBox<String> modelCombo = new ComboBox<>();
     private final CheckBox termsCheckBox = new CheckBox("Accept our Terms and conditions");
-    private final Button proceedBtn = new Button("Let's Lock in with SHERLOCK ✦");
+    private final Button proceedBtn = new Button("Create investigation workspace");
     private final Label statusLabel = new Label();
     private final ProgressIndicator loadingIndicator = new ProgressIndicator();
 
@@ -184,7 +184,7 @@ public class InitialView extends BorderPane {
         VBox titleBox = new VBox(0);
         Label title = new Label("Sherlock");
         title.setStyle("-fx-font-size: 38.4px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
-        Label subTitle = new Label("AI INVESTIGATION INTELLIGENCE");
+        Label subTitle = new Label("EVIDENCE INTELLIGENCE WORKSPACE");
         subTitle.setStyle(
                 "-fx-font-size: 15.6px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
         titleBox.getChildren().addAll(title, subTitle);
@@ -234,36 +234,31 @@ public class InitialView extends BorderPane {
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("👋");
         icon.setStyle("-fx-font-size: 28.8px;");
-        Label title = new Label("Welcome to SHERLOCK");
+        Label title = new Label("Turn evidence into answers.");
         title.setStyle("-fx-font-size: 26.4px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
-        Label subTitle = new Label("AI-Powered Investigation Intelligence Platform");
+        Label subTitle = new Label("A defensible investigation workspace, grounded in source evidence.");
         subTitle.setStyle("-fx-font-size: 16.8px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
 
         VBox bulletPoints = new VBox(16);
         bulletPoints.setPadding(new Insets(16, 0, 0, 0));
 
         Label description = new Label(
-                "Sherlock transforms unstructured case evidence into an interactive, explainable knowledge graph. It enables investigators to instantly uncover hidden connections, reconstruct timelines, and map out complex relationships.");
+                "Bring together documents, reports, and logs. Sherlock maps the connections, reconstructs the sequence, and keeps every finding tied to its original evidence.");
         description.setWrapText(true);
         description.setStyle("-fx-font-size: 18px; -fx-text-fill: #334155; -fx-line-spacing: 6px;");
 
-        Label howItWorksTitle = new Label("How it works:");
+        Label howItWorksTitle = new Label("Your investigation, in three deliberate steps");
         howItWorksTitle.setStyle("-fx-font-size: 16.8px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         VBox.setMargin(howItWorksTitle, new Insets(10, 0, 0, 0));
 
         bulletPoints.getChildren().addAll(
                 description,
                 howItWorksTitle,
-                createBullet("📁",
-                        "1. Create a Case: Name your investigation and upload raw evidence (documents, reports, logs)."),
-                createBullet("🧠",
-                        "2. Connect an AI Model: Configure your preferred local or cloud LLM to power the engine."),
-                createBullet("⚡",
-                        "3. Automatic Extraction: Sherlock autonomously processes data to discover entities and relationships."),
-                createBullet("🕸️",
-                        "4. Explore the Graph: Visually navigate the knowledge graph, fully grounded with source citations."));
+                createBullet("01", "Name the case and add the evidence you want to investigate."),
+                createBullet("02", "Choose the analysis model that fits your environment."),
+                createBullet("03", "Explore entities, relationships, timelines, and cited findings in one place."));
 
         card.getChildren().addAll(titleRow, subTitle, bulletPoints);
         return card;
@@ -293,11 +288,11 @@ public class InitialView extends BorderPane {
         Label icon = new Label("📁");
         icon.setStyle("-fx-font-size: 24px;");
 
-        Label title = new Label("New / Open Case");
+        Label title = new Label("Start a new investigation");
         title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         headerRow.getChildren().addAll(icon, title);
 
-        caseNameField.setPromptText("Enter Case Name or ID");
+        caseNameField.setPromptText("e.g. CASE-001 or Project Aurora");
         caseNameField.getStyleClass().add("text-field");
         caseNameField.setStyle("-fx-font-weight: bold; -fx-text-fill: #2563eb;");
 
@@ -310,10 +305,10 @@ public class InitialView extends BorderPane {
         Label dropIcon = new Label("☁️");
         dropIcon.setStyle("-fx-font-size: 33.6px;");
 
-        Label dropTitle = new Label("Upload files here (or drag & drop)");
+        Label dropTitle = new Label("Drop evidence here, or choose files");
         dropTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
 
-        Label formats = new Label("• .txt   • .pdf   • .png allowed");
+        Label formats = new Label("Reports, statements, logs, text, PDFs, and images");
         formats.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #64748b;");
 
         Button browseBtn = new Button("Browse Files");
@@ -342,7 +337,7 @@ public class InitialView extends BorderPane {
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🔌");
         icon.setStyle("-fx-font-size: 24px;");
-        Label title = new Label("Connect AI & Models");
+        Label title = new Label("Analysis model");
         title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
@@ -358,7 +353,7 @@ public class InitialView extends BorderPane {
 
         // 1. API Key Input with Eye Toggle
         VBox keyBox = new VBox(8);
-        Label keyLabel = new Label("Provide API key (Optional for local/demo)");
+        Label keyLabel = new Label("API key (not needed for local Ollama)");
         keyLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         apiKeyField.setPromptText("sk-... (optional)");
@@ -423,7 +418,7 @@ public class InitialView extends BorderPane {
 
         // 3. Provider Selection
         VBox providerBox = new VBox(8);
-        Label providerLabel = new Label("Provider Name");
+        Label providerLabel = new Label("Model provider");
         providerLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama",
@@ -479,7 +474,7 @@ public class InitialView extends BorderPane {
         // 4. Docs Hint
         VBox hintBox = new VBox(4);
         hintBox.setAlignment(Pos.CENTER_LEFT);
-        Label hintLbl = new Label("Please use the exact Provider and Model Name from the Docs");
+        Label hintLbl = new Label("Your configuration is stored with this case and can be changed later.");
         hintLbl.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
         hintBox.getChildren().add(hintLbl);
 

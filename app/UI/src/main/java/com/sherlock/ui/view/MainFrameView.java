@@ -10,14 +10,15 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
-import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,17 +44,26 @@ public class MainFrameView extends BorderPane {
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
     private Button investigateBtn;
-    private StackPane centerContainer;
-    private ToggleButton graphBtn;
-    private ToggleButton timelineBtn;
-    private ToggleButton contradictionsBtn;
-    private ToggleButton opinionBtn;
 
-    private boolean isSidebarCollapsed = false;
-    private final VBox sidebar = new VBox(14);
+    // Navigation tabs
     private Button navDocs;
+    private Button navGraph;
+    private Button navTimeline;
+    private Button navContradictions;
+    private Button navOpinion;
+
     private StackPane viewStack;
     private SplitPane mainAreaSplit;
+    private VBox rightPanel;
+    private boolean isChatCollapsed = false;
+    private Button chatCollapseBtn;
+
+    // Status bar labels
+    private final Label statusOnlineLbl = new Label("System Online");
+    private final Label statusVersionLbl = new Label("v1.0.1");
+    private final Label statusDataSourcesLbl = new Label("Data Sources: 0");
+    private final Label statusEvidenceLbl = new Label("Evidence Files: 0");
+    private final Label statusLastUpdatedLbl = new Label("Last Updated: —");
 
     public MainFrameView(SherlockBackendClient client, Runnable onNewCaseRequested) {
         this.client = client;
@@ -64,38 +74,25 @@ public class MainFrameView extends BorderPane {
 
         getStyleClass().add("root");
 
-        HBox mainLayout = new HBox();
-        mainLayout.setStyle("-fx-background-color: transparent;");
-        mainLayout.getChildren().addAll(buildSidebar(), buildCenterView(), buildRightPanel());
-        
-        MediaView backgroundVideoView = null;
-        try {
-            java.net.URL videoUrl = getClass().getResource("/BG_video.mp4");
-            if (videoUrl != null) {
-                Media media = new Media(videoUrl.toExternalForm());
-                MediaPlayer mediaPlayer = new MediaPlayer(media);
-                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                mediaPlayer.setMute(true);
-                mediaPlayer.play();
-                
-                backgroundVideoView = new MediaView(mediaPlayer);
-                backgroundVideoView.setPreserveRatio(false);
-                backgroundVideoView.setOpacity(0.25);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Top: navigation bar
+        HBox topNavBar = buildTopNavBar();
+        setTop(topNavBar);
 
-        StackPane rootStack = new StackPane();
-        rootStack.setStyle("-fx-background-color: #f8fafc;");
-        if (backgroundVideoView != null) {
-            rootStack.getChildren().add(backgroundVideoView);
-            backgroundVideoView.fitWidthProperty().bind(rootStack.widthProperty());
-            backgroundVideoView.fitHeightProperty().bind(rootStack.heightProperty());
-        }
-        rootStack.getChildren().add(mainLayout);
-        
-        setCenter(rootStack);
+        // Center: graph area + right chat panel
+        HBox contentArea = new HBox(0);
+        contentArea.getStyleClass().add("app-shell");
+
+        VBox centerView = buildCenterView();
+        HBox.setHgrow(centerView, Priority.ALWAYS);
+
+        rightPanel = buildRightPanel();
+
+        contentArea.getChildren().addAll(centerView, rightPanel);
+        setCenter(contentArea);
+
+        // Bottom: status bar
+        HBox statusBar = buildStatusBar();
+        setBottom(statusBar);
 
         setupInteractionWiring();
         chatPanel.setOnQueryResult(result -> {
@@ -115,6 +112,7 @@ public class MainFrameView extends BorderPane {
         caseBadge.setText("CASE: " + caseId.toUpperCase());
         chatPanel.setCaseId(caseId);
         documentsPanel.setCase(caseDto);
+        detailsPanel.setClientAndCaseId(client, caseDto != null ? caseDto.getCaseId() : null);
 
         refreshGraphData();
     }
@@ -144,6 +142,12 @@ public class MainFrameView extends BorderPane {
 
                     nodeCountBadge.setText(nodes + " Node" + (nodes == 1 ? "" : "s"));
                     edgeCountBadge.setText(edges + " Edge" + (edges == 1 ? "" : "s"));
+
+                    // Update status bar
+                    statusDataSourcesLbl.setText("Data Sources: " + (nodes > 0 ? Math.max(1, nodes / 4) : 0));
+                    statusEvidenceLbl.setText("Evidence Files: " + edges);
+                    statusLastUpdatedLbl.setText("Last Updated: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")));
+
                     detailsPanel.showPlaceholder();
                     graphCanvas.fitToView();
                 }))
@@ -185,231 +189,231 @@ public class MainFrameView extends BorderPane {
         documentsPanel.refreshFiles();
     }
 
-    private VBox buildSidebar() {
-        updateSidebarLayout();
-        return sidebar;
-    }
+    // =========================================================================
+    // TOP NAVIGATION BAR
+    // =========================================================================
 
-    private void toggleSidebar() {
-        isSidebarCollapsed = !isSidebarCollapsed;
-        updateSidebarLayout();
-    }
+    private HBox buildTopNavBar() {
+        HBox navBar = new HBox(0);
+        navBar.setAlignment(Pos.CENTER_LEFT);
+        navBar.setPadding(new Insets(0, 20, 0, 16));
+        navBar.setPrefHeight(52);
+        navBar.setMinHeight(52);
+        navBar.setMaxHeight(52);
+        navBar.getStyleClass().add("top-nav-bar");
 
-    private void updateSidebarLayout() {
-        sidebar.getChildren().clear();
+        // Brand: Logo + "Sherlock"
+        HBox brand = new HBox(8);
+        brand.setAlignment(Pos.CENTER_LEFT);
 
-        if (isSidebarCollapsed) {
-            sidebar.setPrefWidth(68);
-            sidebar.setMinWidth(68);
-            sidebar.setMaxWidth(68);
-            sidebar.setPadding(new Insets(16, 8, 16, 8));
-            sidebar.setAlignment(Pos.TOP_CENTER);
-            sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.85); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
-
-            // Hamburger button
-            Button hamburgerBtn = new Button("☰");
-            hamburgerBtn.getStyleClass().add("tool-button");
-            hamburgerBtn.setStyle("-fx-font-size: 16px; -fx-padding: 6px 10px;");
-            hamburgerBtn.setTooltip(new Tooltip("Expand sidebar"));
-            hamburgerBtn.setOnAction(e -> toggleSidebar());
-
-            // Nav Menu (icons only)
-            VBox navMenu = new VBox(8);
-            navMenu.setAlignment(Pos.TOP_CENTER);
-
-            navDocs = createNavIconButton("📄", "Documents");
-            navDocs.setOnAction(e -> switchToView("DOCUMENTS"));
-
-            Button navSettings = createNavIconButton("⚙️", "Settings");
-            navSettings.setOnAction(e -> showSettingsDialog());
-
-            navMenu.getChildren().addAll(navDocs, navSettings);
-
-            Region spacer = new Region();
-            VBox.setVgrow(spacer, Priority.ALWAYS);
-
-            // Collapsed status dot
-            Circle dot = new Circle(5, Color.web("#10b981"));
-            Tooltip.install(dot, new Tooltip("System Online • v1.0.0"));
-
-            // Collapsed avatar
-            Label avatar = new Label("S");
-            avatar.setAlignment(Pos.CENTER);
-            avatar.setMinSize(32, 32);
-            avatar.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
-            Tooltip.install(avatar, new Tooltip("Sherlock Admin (Investigator)"));
-
-            sidebar.getChildren().addAll(hamburgerBtn, navMenu, spacer, dot, avatar);
-        } else {
-            sidebar.setPrefWidth(240);
-            sidebar.setMinWidth(240);
-            sidebar.setMaxWidth(240);
-            sidebar.setPadding(new Insets(16));
-            sidebar.setAlignment(Pos.TOP_LEFT);
-            sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.85); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
-
-            // Header with Brand and Hamburger
-            HBox brandHeader = new HBox(8);
-            brandHeader.setAlignment(Pos.CENTER_LEFT);
-            brandHeader.setPadding(new Insets(0, 0, 8, 0));
-
-            Label icon = new Label("✨");
-            icon.setStyle("-fx-font-size: 24px;");
-            Label title = new Label("Sherlock");
-            title.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
-
-            Region hSpacer = new Region();
-            HBox.setHgrow(hSpacer, Priority.ALWAYS);
-
-            Button hamburgerBtn = new Button("☰");
-            hamburgerBtn.getStyleClass().add("tool-button");
-            hamburgerBtn.setStyle("-fx-font-size: 15px; -fx-padding: 4px 8px;");
-            hamburgerBtn.setTooltip(new Tooltip("Collapse sidebar"));
-            hamburgerBtn.setOnAction(e -> toggleSidebar());
-
-            brandHeader.getChildren().addAll(icon, title, hSpacer, hamburgerBtn);
-
-            // Nav Menu (Documents, Settings)
-            VBox navMenu = new VBox(4);
-
-            navDocs = createNavButton("📄", "Documents");
-            navDocs.setOnAction(e -> switchToView("DOCUMENTS"));
-
-            Button navSettings = createNavButton("⚙️", "Settings");
-            navSettings.setOnAction(e -> showSettingsDialog());
-
-            navMenu.getChildren().addAll(navDocs, navSettings);
-
-            Region spacer = new Region();
-            VBox.setVgrow(spacer, Priority.ALWAYS);
-
-            // System Online Status
-            VBox statusBox = new VBox(4);
-            statusBox.setPadding(new Insets(10));
-            statusBox.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-background-radius: 8px; -fx-border-radius: 8px;");
-            HBox onlineStatus = new HBox(6);
-            onlineStatus.setAlignment(Pos.CENTER_LEFT);
-            Circle dot = new Circle(4, Color.web("#10b981"));
-            Label onlineLbl = new Label("System Online");
-            onlineLbl.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
-            onlineStatus.getChildren().addAll(dot, onlineLbl);
-
-            Label version = new Label("v1.0.0");
-            version.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #94a3b8;");
-            statusBox.getChildren().addAll(onlineStatus, version);
-
-            // User Profile
-            HBox userBox = new HBox(10);
-            userBox.setAlignment(Pos.CENTER_LEFT);
-            userBox.setPadding(new Insets(6, 0, 0, 0));
-
-            Label avatar = new Label("S");
-            avatar.setAlignment(Pos.CENTER);
-            avatar.setMinSize(32, 32);
-            avatar.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
-
-            VBox userInfo = new VBox(2);
-            Label userName = new Label("Sherlock Admin");
-            userName.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
-            Label userRole = new Label("Investigator");
-            userRole.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
-            userInfo.getChildren().addAll(userName, userRole);
-
-            userBox.getChildren().addAll(avatar, userInfo);
-
-            sidebar.getChildren().addAll(brandHeader, navMenu, spacer, statusBox, userBox);
+        ImageView logoView = new ImageView();
+        try {
+            java.net.URL logoUrl = getClass().getResource("/logo.png");
+            if (logoUrl != null) {
+                Image logoImage = new Image(logoUrl.toExternalForm(), 28, 28, true, true);
+                logoView.setImage(logoImage);
+                logoView.setFitWidth(28);
+                logoView.setFitHeight(28);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        // Maintain active class on navDocs if currently viewing documents
-        if (documentsPanel != null && documentsPanel.isVisible() && navDocs != null) {
-            navDocs.getStyleClass().add("nav-item-active");
+        // Wrap logo in a dark circular background for visibility
+        StackPane logoBg = new StackPane(logoView);
+        logoBg.setMinSize(34, 34);
+        logoBg.setMaxSize(34, 34);
+        logoBg.setStyle("-fx-background-color: #0f172a; -fx-background-radius: 8px;");
+        logoBg.setAlignment(Pos.CENTER);
+
+        Label brandTitle = new Label("Sherlock");
+        brandTitle.getStyleClass().add("brand-title");
+
+        brand.getChildren().addAll(logoBg, brandTitle);
+
+        // Navigation tabs
+        HBox navTabs = new HBox(0);
+        navTabs.setAlignment(Pos.CENTER_LEFT);
+        navTabs.setPadding(new Insets(0, 0, 0, 32));
+
+        navDocs = createNavTab("Documents");
+        navGraph = createNavTab("Graph View");
+        navTimeline = createNavTab("Timeline View");
+        navContradictions = createNavTab("Contradictions");
+        navOpinion = createNavTab("Sherlock's Opinion");
+
+        navDocs.setOnAction(e -> switchToView("DOCUMENTS"));
+        navGraph.setOnAction(e -> switchToView("GRAPH"));
+        navTimeline.setOnAction(e -> switchToView("TIMELINE"));
+        navContradictions.setOnAction(e -> switchToView("CONTRADICTIONS"));
+        navOpinion.setOnAction(e -> switchToView("OPINION"));
+
+        navTabs.getChildren().addAll(navDocs, navGraph, navTimeline, navContradictions, navOpinion);
+
+        // Right side: case badge, counts, settings
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox rightControls = new HBox(10);
+        rightControls.setAlignment(Pos.CENTER_RIGHT);
+
+        caseBadge.getStyleClass().add("case-badge");
+        nodeCountBadge.getStyleClass().add("metric-badge");
+        edgeCountBadge.getStyleClass().add("metric-badge");
+
+        refreshIndicator.setMaxSize(16, 16);
+        refreshIndicator.setVisible(false);
+
+        investigateBtn = new Button("Analyze evidence");
+        investigateBtn.getStyleClass().add("primary-button-sm");
+        investigateBtn.setOnAction(e -> startInvestigation());
+
+        Button settingsBtn = new Button("⚙");
+        settingsBtn.getStyleClass().add("nav-settings-btn");
+        settingsBtn.setTooltip(new Tooltip("Settings"));
+        settingsBtn.setOnAction(e -> showSettingsDialog());
+
+        rightControls.getChildren().addAll(investigateBtn, refreshIndicator, caseBadge, nodeCountBadge, edgeCountBadge, settingsBtn);
+
+        navBar.getChildren().addAll(brand, navTabs, spacer, rightControls);
+        return navBar;
+    }
+
+    private Button createNavTab(String text) {
+        Button tab = new Button(text);
+        tab.getStyleClass().add("nav-tab");
+        tab.setMnemonicParsing(false);
+        return tab;
+    }
+
+    private void setActiveNavTab(Button activeTab) {
+        Button[] allTabs = {navDocs, navGraph, navTimeline, navContradictions, navOpinion};
+        for (Button tab : allTabs) {
+            if (tab != null) {
+                tab.getStyleClass().remove("nav-tab-active");
+            }
+        }
+        if (activeTab != null && !activeTab.getStyleClass().contains("nav-tab-active")) {
+            activeTab.getStyleClass().add("nav-tab-active");
         }
     }
 
-    private Button createNavButton(String iconText, String text) {
-        Button btn = new Button(iconText + "   " + text);
-        btn.getStyleClass().add("nav-item");
-        btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setAlignment(Pos.CENTER_LEFT);
-        return btn;
-    }
-
-    private Button createNavIconButton(String iconText, String tooltipText) {
-        Button btn = new Button(iconText);
-        btn.getStyleClass().add("nav-item");
-        btn.setStyle("-fx-font-size: 16px; -fx-padding: 8px; -fx-alignment: center;");
-        btn.setTooltip(new Tooltip(tooltipText));
-        btn.setMaxWidth(Double.MAX_VALUE);
-        return btn;
-    }
+    // =========================================================================
+    // CENTER VIEW (graph toolbar + view stack + details split)
+    // =========================================================================
 
     private VBox buildCenterView() {
         VBox center = new VBox(0);
-        HBox.setHgrow(center, Priority.ALWAYS);
         center.setFillWidth(true);
+        center.setMinWidth(0); // Ensure it can shrink so it doesn't push rightPanel off screen
 
-        // Header
-        HBox header = new HBox(16);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(16, 24, 16, 24));
-        header.getStyleClass().add("glass-toolbar");
-        header.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6);");
-
-        ToggleGroup group = new ToggleGroup();
-        graphBtn = new ToggleButton("🕸 Graph View");
-        timelineBtn = new ToggleButton("⏳ Timeline View");
-        contradictionsBtn = new ToggleButton("⚡ Contradictions");
-        opinionBtn = new ToggleButton("🧠 Sherlock's Opinion");
-
-        graphBtn.setToggleGroup(group);
-        timelineBtn.setToggleGroup(group);
-        contradictionsBtn.setToggleGroup(group);
-        opinionBtn.setToggleGroup(group);
-
-        graphBtn.setOnAction(e -> switchToView("GRAPH"));
-        timelineBtn.setOnAction(e -> switchToView("TIMELINE"));
-        contradictionsBtn.setOnAction(e -> switchToView("CONTRADICTIONS"));
-        opinionBtn.setOnAction(e -> switchToView("OPINION"));
-
-        HBox toggleWrapper = new HBox(4);
-        toggleWrapper.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 8px; -fx-padding: 4px;");
-        toggleWrapper.getChildren().addAll(graphBtn, timelineBtn, contradictionsBtn, opinionBtn);
-
-        Region hSpacer = new Region();
-        HBox.setHgrow(hSpacer, Priority.ALWAYS);
-
-        Button refreshBtn = new Button("↻");
-        refreshBtn.getStyleClass().add("tool-button");
-        refreshBtn.setOnAction(e -> refreshGraphData());
-
-        investigateBtn = new Button("🚀 Start Extraction");
-        investigateBtn.getStyleClass().add("primary-button");
-        investigateBtn.setStyle("-fx-padding: 6px 12px; -fx-font-size: 14px;");
-        investigateBtn.setOnAction(e -> startInvestigation());
-
-        header.getChildren().addAll(toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
-                nodeCountBadge, edgeCountBadge, refreshBtn);
-
-        // Stack for Graph/Timeline/Contradictions/Opinion/Documents
+        // View stack for Graph/Timeline/Contradictions/Opinion/Documents
         viewStack = new StackPane();
+        viewStack.setMinWidth(0);
         VBox.setVgrow(viewStack, Priority.ALWAYS);
-
         viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel, opinionPanel, documentsPanel);
 
         detailsPanel.setMinHeight(150.0);
-        detailsPanel.setPrefHeight(300.0);
+        detailsPanel.setPrefHeight(280.0);
         detailsPanel.setMaxHeight(600.0);
 
         mainAreaSplit = new SplitPane();
         mainAreaSplit.setOrientation(javafx.geometry.Orientation.VERTICAL);
         VBox.setVgrow(mainAreaSplit, Priority.ALWAYS);
-        
-        mainAreaSplit.getItems().addAll(viewStack, detailsPanel);
-        mainAreaSplit.setDividerPositions(0.7);
 
-        center.getChildren().addAll(header, mainAreaSplit);
+        mainAreaSplit.getItems().addAll(viewStack, detailsPanel);
+        mainAreaSplit.setDividerPositions(0.68);
+
+        center.getChildren().add(mainAreaSplit);
         return center;
     }
+
+    // =========================================================================
+    // RIGHT PANEL (Chat)
+    // =========================================================================
+
+    private VBox buildRightPanel() {
+        VBox right = new VBox(0);
+        rightPanel = right;
+        right.setPrefWidth(360);
+        right.setMinWidth(360);
+        right.getStyleClass().add("assistant-rail");
+
+        // Collapse toggle header
+        HBox collapseHeader = new HBox(6);
+        collapseHeader.setAlignment(Pos.CENTER_LEFT);
+        collapseHeader.setPadding(new Insets(8, 12, 4, 12));
+
+        chatCollapseBtn = new Button("‹");
+        chatCollapseBtn.getStyleClass().add("chat-collapse-btn");
+        chatCollapseBtn.setTooltip(new Tooltip("Collapse assistant panel"));
+        chatCollapseBtn.setOnAction(e -> toggleChatPanel());
+
+        collapseHeader.getChildren().add(chatCollapseBtn);
+
+        VBox.setVgrow(chatPanel, Priority.ALWAYS);
+        right.getChildren().addAll(collapseHeader, chatPanel);
+        return right;
+    }
+
+    private void toggleChatPanel() {
+        isChatCollapsed = !isChatCollapsed;
+        if (isChatCollapsed) {
+            rightPanel.setPrefWidth(36);
+            rightPanel.setMinWidth(36);
+            rightPanel.setMaxWidth(36);
+            chatPanel.setVisible(false);
+            chatPanel.setManaged(false);
+            chatCollapseBtn.setText("›");
+            chatCollapseBtn.setTooltip(new Tooltip("Expand assistant panel"));
+        } else {
+            rightPanel.setPrefWidth(360);
+            rightPanel.setMinWidth(360);
+            rightPanel.setMaxWidth(Double.MAX_VALUE);
+            chatPanel.setVisible(true);
+            chatPanel.setManaged(true);
+            chatCollapseBtn.setText("‹");
+            chatCollapseBtn.setTooltip(new Tooltip("Collapse assistant panel"));
+        }
+        Platform.runLater(graphCanvas::fitToView);
+    }
+
+    // =========================================================================
+    // BOTTOM STATUS BAR
+    // =========================================================================
+
+    private HBox buildStatusBar() {
+        HBox statusBar = new HBox(16);
+        statusBar.setAlignment(Pos.CENTER_LEFT);
+        statusBar.setPadding(new Insets(6, 20, 6, 20));
+        statusBar.getStyleClass().add("status-bar");
+
+        // Online indicator
+        HBox onlineGroup = new HBox(6);
+        onlineGroup.setAlignment(Pos.CENTER_LEFT);
+        Circle onlineDot = new Circle(4, Color.web("#10b981"));
+        statusOnlineLbl.getStyleClass().add("status-label");
+        onlineGroup.getChildren().addAll(onlineDot, statusOnlineLbl);
+
+        statusVersionLbl.getStyleClass().add("status-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        statusDataSourcesLbl.getStyleClass().add("status-label");
+        statusEvidenceLbl.getStyleClass().add("status-label");
+        statusLastUpdatedLbl.getStyleClass().add("status-label");
+
+        // Health check dot
+        Circle healthDot = new Circle(4, Color.web("#10b981"));
+
+        statusBar.getChildren().addAll(onlineGroup, statusVersionLbl, spacer, statusDataSourcesLbl, statusEvidenceLbl, statusLastUpdatedLbl, healthDot);
+        return statusBar;
+    }
+
+    // =========================================================================
+    // VIEW SWITCHING
+    // =========================================================================
 
     public void switchToView(String viewName) {
         boolean isGraph = "GRAPH".equalsIgnoreCase(viewName);
@@ -418,43 +422,14 @@ public class MainFrameView extends BorderPane {
         boolean isOpinion = "OPINION".equalsIgnoreCase(viewName);
         boolean isDocs = "DOCUMENTS".equalsIgnoreCase(viewName);
 
-        // 1. Sidebar active styles
-        if (navDocs != null) {
-            if (isDocs) {
-                if (!navDocs.getStyleClass().contains("nav-item-active")) {
-                    navDocs.getStyleClass().add("nav-item-active");
-                }
-            } else {
-                navDocs.getStyleClass().remove("nav-item-active");
-            }
-        }
+        // Active tab styling
+        if (isGraph) setActiveNavTab(navGraph);
+        else if (isTimeline) setActiveNavTab(navTimeline);
+        else if (isContra) setActiveNavTab(navContradictions);
+        else if (isOpinion) setActiveNavTab(navOpinion);
+        else if (isDocs) setActiveNavTab(navDocs);
 
-        // 2. Top toggle selection
-        if (isGraph && graphBtn != null) graphBtn.setSelected(true);
-        else if (isTimeline && timelineBtn != null) timelineBtn.setSelected(true);
-        else if (isContra && contradictionsBtn != null) contradictionsBtn.setSelected(true);
-        else if (isOpinion && opinionBtn != null) opinionBtn.setSelected(true);
-        else if (isDocs) {
-            if (graphBtn != null) graphBtn.setSelected(false);
-            if (timelineBtn != null) timelineBtn.setSelected(false);
-            if (contradictionsBtn != null) contradictionsBtn.setSelected(false);
-            if (opinionBtn != null) opinionBtn.setSelected(false);
-        }
-
-        // 3. Update top toggle button styling
-        Runnable updateToggleStyles = () -> {
-            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 13.5px; -fx-padding: 6px 12px; ";
-            String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
-            String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
-
-            if (graphBtn != null) graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
-            if (timelineBtn != null) timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
-            if (contradictionsBtn != null) contradictionsBtn.setStyle(baseStyle + (contradictionsBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
-            if (opinionBtn != null) opinionBtn.setStyle(baseStyle + (opinionBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
-        };
-        updateToggleStyles.run();
-
-        // 4. Update view visibility
+        // View visibility
         graphCanvas.setVisible(isGraph);
         graphCanvas.setManaged(isGraph);
 
@@ -470,12 +445,12 @@ public class MainFrameView extends BorderPane {
         documentsPanel.setVisible(isDocs);
         documentsPanel.setManaged(isDocs);
 
-        // 5. Manage details panel in mainAreaSplit
+        // Manage details panel in mainAreaSplit
         if (mainAreaSplit != null) {
             if (isGraph || isTimeline) {
                 if (!mainAreaSplit.getItems().contains(detailsPanel)) {
                     mainAreaSplit.getItems().add(detailsPanel);
-                    mainAreaSplit.setDividerPositions(0.70);
+                    mainAreaSplit.setDividerPositions(0.68);
                 }
             } else {
                 mainAreaSplit.getItems().remove(detailsPanel);
@@ -489,16 +464,9 @@ public class MainFrameView extends BorderPane {
         }
     }
 
-    private VBox buildRightPanel() {
-        VBox right = new VBox();
-        right.setPrefWidth(380);
-        right.setMinWidth(380);
-        right.setStyle("-fx-background-color: rgba(248, 250, 252, 0.7); -fx-border-color: #e2e8f0; -fx-border-width: 0 0 0 1px;");
-
-        VBox.setVgrow(chatPanel, Priority.ALWAYS);
-        right.getChildren().add(chatPanel);
-        return right;
-    }
+    // =========================================================================
+    // INTERACTION WIRING
+    // =========================================================================
 
     private void setupInteractionWiring() {
         graphCanvas.setOnNodeSelected(node -> {
@@ -551,9 +519,9 @@ public class MainFrameView extends BorderPane {
         });
     }
 
-    // (Timeline processing, Investigation progress dialogs, and settings dialogs
-    // remain mostly structurally the same but their styles have been removed to let
-    // CSS take over, or adjusted slightly for light theme)
+    // =========================================================================
+    // PROCESSING ACTIONS
+    // =========================================================================
 
     private void startTimelineExtraction() {
         if (currentCase == null || currentCase.getCaseId() == null)
@@ -634,6 +602,10 @@ public class MainFrameView extends BorderPane {
             });
         });
     }
+
+    // =========================================================================
+    // SETTINGS DIALOG
+    // =========================================================================
 
     private void showSettingsDialog() {
         if (currentCase == null)
@@ -786,13 +758,13 @@ public class MainFrameView extends BorderPane {
         // 4. Docs Hint / Base URL
         VBox hintBox = new VBox(8);
         hintBox.setAlignment(Pos.CENTER_LEFT);
-        
+
         TextField baseUrl = new TextField();
         baseUrl.setPromptText("Optional Custom Base URL");
-        
+
         Label hintLbl = new Label("Please use the exact Provider and Model Name from the Docs");
         hintLbl.setStyle("-fx-font-size: 17.3px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
-        
+
         hintBox.getChildren().addAll(baseUrl, hintLbl);
 
         grid.add(keyBox, 0, 0);
@@ -835,7 +807,7 @@ public class MainFrameView extends BorderPane {
             if (button == ButtonType.OK) {
                 LlmConfigDto config = currentCase.getLlmConfig() != null ? currentCase.getLlmConfig()
                         : new LlmConfigDto();
-                
+
                 config.setProvider(providerCombo.getValue() != null ? providerCombo.getValue().toLowerCase() : "openai");
                 config.setModel(LlmModelHelper.getSelectedModel(modelCombo));
                 config.setBaseUrl(baseUrl.getText());

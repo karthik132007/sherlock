@@ -72,28 +72,35 @@ public class ChatPanel extends VBox {
     private HBox buildTopBar() {
         HBox topBar = new HBox(8);
         topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(4, 0, 8, 0));
+        topBar.setStyle("-fx-border-color: #edf1f6; -fx-border-width: 0 0 1px 0;");
 
-        Label icon = new Label("🤖");
-        icon.setStyle("-fx-font-size: 18px;");
+        Label icon = new Label("✦");
+        icon.setStyle("-fx-font-size: 16px; -fx-text-fill: #1d4ed8;");
 
         VBox titleBox = new VBox(2);
         Label title = new Label("Sherlock Assistant");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
-        sessionTitleLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: 600;");
-        sessionTitleLbl.setMaxWidth(130);
-        titleBox.getChildren().addAll(title, sessionTitleLbl);
+        HBox onlineRow = new HBox(4);
+        onlineRow.setAlignment(Pos.CENTER_LEFT);
+        Circle onlineDot = new Circle(3.5, Color.web("#10b981"));
+        Label onlineLbl = new Label("Who is online");
+        onlineLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #10b981; -fx-font-weight: 600;");
+        onlineRow.getChildren().addAll(onlineDot, onlineLbl);
+
+        titleBox.getChildren().addAll(title, onlineRow);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        newChatBtn.getStyleClass().add("primary-button");
-        newChatBtn.setStyle("-fx-font-size: 12px; -fx-padding: 5px 10px; -fx-font-weight: 700;");
+        newChatBtn.setText("🗨 New Chat");
+        newChatBtn.setStyle("-fx-background-color: #1e40af; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 12px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand;");
         newChatBtn.setTooltip(new Tooltip("Start a brand new investigation chat"));
         newChatBtn.setOnAction(e -> startNewChat());
 
-        historyToggleBtn.getStyleClass().add("secondary-button");
-        historyToggleBtn.setStyle("-fx-font-size: 12px; -fx-padding: 5px 10px; -fx-font-weight: 600;");
+        historyToggleBtn.setText("⋮");
+        historyToggleBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-font-size: 16px; -fx-padding: 2px 6px; -fx-cursor: hand;");
         historyToggleBtn.setTooltip(new Tooltip("View all previous chat sessions"));
         historyToggleBtn.setOnAction(e -> {
             if (historyView.isVisible()) {

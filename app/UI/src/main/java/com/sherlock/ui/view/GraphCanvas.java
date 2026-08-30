@@ -79,9 +79,9 @@ public class GraphCanvas extends StackPane {
     private TextField searchField;
 
     public GraphCanvas() {
-        setStyle(
-                "-fx-background-color: transparent; -fx-background-radius: 10px; -fx-border-color: rgba(226, 232, 240, 0.3); -fx-border-radius: 10px; -fx-border-width: 1px;");
+        getStyleClass().add("investigation-canvas");
         setMinSize(300, 200);
+        setFocusTraversable(true);
 
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
@@ -89,23 +89,19 @@ public class GraphCanvas extends StackPane {
         widthProperty().addListener((obs, oldVal, newVal) -> render());
         heightProperty().addListener((obs, oldVal, newVal) -> render());
 
-        VBox searchFilterOverlay = buildSearchFilterOverlay();
-        StackPane.setAlignment(searchFilterOverlay, Pos.TOP_LEFT);
-        StackPane.setMargin(searchFilterOverlay, new Insets(12));
-
-        HBox toolbar = buildToolbar();
-        StackPane.setAlignment(toolbar, Pos.TOP_RIGHT);
-        StackPane.setMargin(toolbar, new Insets(12));
+        HBox topToolbar = buildGraphTopToolbar();
+        StackPane.setAlignment(topToolbar, Pos.TOP_CENTER);
+        StackPane.setMargin(topToolbar, new Insets(10, 12, 0, 12));
 
         VBox minimapBox = buildMinimap();
         StackPane.setAlignment(minimapBox, Pos.BOTTOM_LEFT);
         StackPane.setMargin(minimapBox, new Insets(12));
 
         HBox legendBox = buildLegend();
-        StackPane.setAlignment(legendBox, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(legendBox, new Insets(12));
+        StackPane.setAlignment(legendBox, Pos.BOTTOM_LEFT);
+        StackPane.setMargin(legendBox, new Insets(0, 0, 12, 160));
 
-        getChildren().addAll(canvas, searchFilterOverlay, toolbar, minimapBox, legendBox);
+        getChildren().addAll(canvas, topToolbar, minimapBox, legendBox);
 
         setupMouseHandlers();
         setupMinimapHandlers();
@@ -296,22 +292,25 @@ public class GraphCanvas extends StackPane {
         render();
     }
 
-    private VBox buildSearchFilterOverlay() {
-        VBox overlay = new VBox(6);
-        overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        overlay.setStyle(
-                "-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 8px 12px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 3);");
+    private HBox buildGraphTopToolbar() {
+        HBox toolbar = new HBox(8);
+        toolbar.setMaxHeight(Region.USE_PREF_SIZE);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.getStyleClass().add("graph-top-toolbar");
+        toolbar.setPadding(new Insets(6, 14, 6, 14));
 
-        HBox searchRow = new HBox(6);
-        searchRow.setAlignment(Pos.CENTER_LEFT);
+        // Search
+        HBox searchBox = new HBox(4);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchBox.getStyleClass().add("graph-search-box");
 
         Label searchIcon = new Label("🔍");
-        searchIcon.setStyle("-fx-font-size: 13.2px;");
+        searchIcon.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
         searchField = new TextField();
         searchField.setPromptText("Search entity / connection...");
-        searchField.setStyle(
-                "-fx-font-size: 13.2px; -fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
+        searchField.getStyleClass().add("graph-search");
+        searchField.setPrefWidth(180);
         searchField.textProperty().addListener((obs, oldV, newV) -> {
             searchQuery = newV != null ? newV.trim().toLowerCase(Locale.ROOT) : "";
             render();
@@ -325,51 +324,21 @@ public class GraphCanvas extends StackPane {
             }
         });
 
-        Button clearSearchBtn = new Button("✕");
-        clearSearchBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-padding: 0 4px; -fx-cursor: hand;");
-        clearSearchBtn.setOnAction(e -> searchField.clear());
+        Button filterToggle = new Button("⧩");
+        filterToggle.getStyleClass().add("toolbar-icon-btn");
+        filterToggle.setTooltip(new Tooltip("Filter entities"));
 
-        searchRow.getChildren().addAll(searchIcon, searchField, clearSearchBtn);
+        searchBox.getChildren().addAll(searchIcon, searchField, filterToggle);
 
-        HBox filterRow = new HBox(4);
-        filterRow.setAlignment(Pos.CENTER_LEFT);
+        // Separator
+        Region sep1 = new Region();
+        sep1.setPrefWidth(1);
+        sep1.setMinWidth(1);
+        sep1.setMaxWidth(1);
+        sep1.setStyle("-fx-background-color: #e2e8f0;");
+        sep1.setPrefHeight(28);
 
-        String[] types = { "ALL", "PERSON", "LOCATION", "ORG", "DOC", "PHONE", "EVENT" };
-        for (String t : types) {
-            Button pill = new Button(t);
-            pill.getStyleClass().add("filter-pill");
-            updateFilterPillStyle(pill, t.equals(filterType));
-            pill.setOnAction(e -> {
-                filterType = t;
-                for (javafx.scene.Node child : filterRow.getChildren()) {
-                    if (child instanceof Button b) {
-                        updateFilterPillStyle(b, b.getText().equals(filterType));
-                    }
-                }
-                render();
-            });
-            filterRow.getChildren().add(pill);
-        }
-
-        overlay.getChildren().addAll(searchRow, filterRow);
-        return overlay;
-    }
-
-    private void updateFilterPillStyle(Button pill, boolean isSelected) {
-        if (isSelected) {
-            pill.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: #ffffff; -fx-font-size: 10.8px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
-        } else {
-            pill.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #64748b; -fx-font-size: 10.8px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
-        }
-    }
-
-    private HBox buildToolbar() {
-        HBox toolbar = new HBox(6);
-        toolbar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        toolbar.setAlignment(Pos.CENTER_RIGHT);
-        toolbar.setStyle(
-                "-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 6px 10px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
-
+        // Layout, Filters, Focus buttons
         ComboBox<LayoutMode> layoutCombo = new ComboBox<>();
         layoutCombo.getItems().addAll(LayoutMode.values());
         layoutCombo.setValue(LayoutMode.FORCE_DIRECTED);
@@ -384,35 +353,61 @@ public class GraphCanvas extends StackPane {
             @Override
             protected void updateItem(LayoutMode item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getLabel());
+                setText(empty || item == null ? null : "⊞ Layout");
             }
         });
         layoutCombo.getStyleClass().add("layout-combo");
         layoutCombo.setOnAction(e -> applyLayout(layoutCombo.getValue()));
 
-        Button selectBtn = new Button("↖");
-        selectBtn.setTooltip(new Tooltip("Select & Move Tool"));
-        selectBtn.getStyleClass().add("tool-button-active");
+        // Filter popup button
+        MenuButton filtersBtn = new MenuButton("⧫ Filters");
+        filtersBtn.getStyleClass().add("toolbar-menu-btn");
+        String[] types = { "ALL", "PERSON", "LOCATION", "ORG", "DOC", "PHONE", "MESSAGE", "MEDICAL", "EVENT" };
+        for (String t : types) {
+            CheckMenuItem item = new CheckMenuItem(t);
+            item.setSelected("ALL".equals(t));
+            item.setOnAction(ev -> {
+                filterType = t;
+                for (MenuItem mi : filtersBtn.getItems()) {
+                    if (mi instanceof CheckMenuItem ci) ci.setSelected(ci.getText().equals(t));
+                }
+                render();
+            });
+            filtersBtn.getItems().add(item);
+        }
 
-        Button panBtn = new Button("✋");
-        panBtn.setTooltip(new Tooltip("Pan Graph Tool"));
-        panBtn.getStyleClass().add("tool-button");
+        Button focusBtn = new Button("◎ Focus");
+        focusBtn.getStyleClass().add("toolbar-text-btn");
+        focusBtn.setOnAction(e -> fitToView());
 
-        selectBtn.setOnAction(e -> {
-            isPanMode = false;
-            selectBtn.getStyleClass().setAll("tool-button-active");
-            panBtn.getStyleClass().setAll("tool-button");
-        });
+        // Separator
+        Region sep2 = new Region();
+        sep2.setPrefWidth(1);
+        sep2.setMinWidth(1);
+        sep2.setMaxWidth(1);
+        sep2.setStyle("-fx-background-color: #e2e8f0;");
+        sep2.setPrefHeight(28);
 
-        panBtn.setOnAction(e -> {
-            isPanMode = true;
-            panBtn.getStyleClass().setAll("tool-button-active");
-            selectBtn.getStyleClass().setAll("tool-button");
-        });
+        // Zoom controls
+        Button zoomOutBtn = new Button("−");
+        zoomOutBtn.getStyleClass().add("toolbar-icon-btn");
+        zoomOutBtn.setTooltip(new Tooltip("Zoom Out"));
+        zoomOutBtn.setOnAction(e -> { zoom = Math.max(0.15, zoom / 1.2); render(); });
 
+        Button zoomInBtn = new Button("+");
+        zoomInBtn.getStyleClass().add("toolbar-icon-btn");
+        zoomInBtn.setTooltip(new Tooltip("Zoom In"));
+        zoomInBtn.setOnAction(e -> { zoom = Math.min(3.5, zoom * 1.2); render(); });
+
+        Button fitBtn = new Button("⛶ Fit");
+        fitBtn.getStyleClass().add("toolbar-text-btn");
+        fitBtn.setTooltip(new Tooltip("Fit Graph to Screen"));
+        fitBtn.setOnAction(e -> fitToView());
+
+        // Play/pause
         playPauseBtn = new Button("⏸");
         playPauseBtn.setTooltip(new Tooltip("Pause / Resume Physics"));
-        playPauseBtn.getStyleClass().add("tool-button");
+        playPauseBtn.getStyleClass().add("toolbar-icon-btn");
         playPauseBtn.setOnAction(e -> {
             isSimulating = !isSimulating;
             if (isSimulating) {
@@ -423,42 +418,32 @@ public class GraphCanvas extends StackPane {
             }
         });
 
-        Button zoomInBtn = new Button("＋");
-        zoomInBtn.setTooltip(new Tooltip("Zoom In"));
-        zoomInBtn.getStyleClass().add("tool-button");
-        zoomInBtn.setOnAction(e -> { zoom = Math.min(3.5, zoom * 1.2); render(); });
-
-        Button zoomOutBtn = new Button("－");
-        zoomOutBtn.setTooltip(new Tooltip("Zoom Out"));
-        zoomOutBtn.getStyleClass().add("tool-button");
-        zoomOutBtn.setOnAction(e -> { zoom = Math.max(0.15, zoom / 1.2); render(); });
-
-        Button fitBtn = new Button("⛶");
-        fitBtn.setTooltip(new Tooltip("Fit Graph to Screen"));
-        fitBtn.getStyleClass().add("tool-button");
-        fitBtn.setOnAction(e -> fitToView());
-
-        Button resetBtn = new Button("↺");
-        resetBtn.setTooltip(new Tooltip("Reset Layout"));
-        resetBtn.getStyleClass().add("tool-button");
-        resetBtn.setOnAction(e -> applyLayout(currentLayout));
-
         Button clearHighlightsBtn = new Button("✕");
         clearHighlightsBtn.setTooltip(new Tooltip("Clear Query Highlights"));
-        clearHighlightsBtn.getStyleClass().add("tool-button");
+        clearHighlightsBtn.getStyleClass().add("toolbar-icon-btn");
         clearHighlightsBtn.setOnAction(e -> clearQueryHighlights());
 
-        toolbar.getChildren().addAll(layoutCombo, selectBtn, panBtn, playPauseBtn, zoomInBtn, zoomOutBtn, fitBtn, resetBtn, clearHighlightsBtn);
+        toolbar.getChildren().addAll(searchBox, sep1, layoutCombo, filtersBtn, focusBtn, sep2, zoomOutBtn, zoomInBtn, fitBtn, playPauseBtn, clearHighlightsBtn);
         return toolbar;
     }
+
+    private void updateFilterPillStyle(Button pill, boolean isSelected) {
+        if (isSelected) {
+            pill.setStyle("-fx-background-color: #2563EB; -fx-text-fill: #ffffff; -fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 4px 8px; -fx-background-radius: 5px; -fx-cursor: hand;");
+        } else {
+            pill.setStyle("-fx-background-color: #F1F5F9; -fx-text-fill: #475569; -fx-font-size: 12px; -fx-padding: 4px 8px; -fx-background-radius: 5px; -fx-cursor: hand;");
+        }
+    }
+
+    // buildToolbar() removed — merged into buildGraphTopToolbar()
 
     private VBox buildMinimap() {
         VBox box = new VBox(4);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
+        box.getStyleClass().add("graph-overlay");
 
-        Label title = new Label("Minimap (Interactive)");
-        title.setStyle("-fx-font-size: 11.4px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        Label title = new Label("Map overview");
+        title.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
 
         minimapCanvas.setWidth(130);
         minimapCanvas.setHeight(85);
@@ -468,31 +453,29 @@ public class GraphCanvas extends StackPane {
     }
 
     private HBox buildLegend() {
-        HBox box = new HBox(8);
+        HBox box = new HBox(10);
         box.setAlignment(Pos.CENTER_LEFT);
         box.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 6px; -fx-border-width: 1px;");
-
-        Label title = new Label("ENTITIES:");
-        title.setStyle("-fx-font-size: 10.2px; -fx-text-fill: #475569; -fx-font-weight: bold;");
-        box.getChildren().add(title);
+        box.getStyleClass().add("graph-legend");
 
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
+        box.getChildren().add(legendItem(Color.web("#10B981"), "Location"));
+        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Organization"));
+        box.getChildren().add(legendItem(Color.web("#F59E0B"), "Document"));
         box.getChildren().add(legendItem(Color.web("#06B6D4"), "Phone"));
-        box.getChildren().add(legendItem(Color.web("#10B981"), "Doc"));
-        box.getChildren().add(legendItem(Color.web("#F59E0B"), "Location"));
-        box.getChildren().add(legendItem(Color.web("#F43F5E"), "Event"));
-        box.getChildren().add(legendItem(Color.web("#8B5CF6"), "Org"));
+        box.getChildren().add(legendItem(Color.web("#0D9488"), "Message"));
+        box.getChildren().add(legendItem(Color.web("#F43F5E"), "Medical"));
+        box.getChildren().add(legendItem(Color.web("#64748B"), "Other"));
 
         return box;
     }
 
     private HBox legendItem(Color color, String text) {
-        HBox row = new HBox(3);
+        HBox row = new HBox(4);
         row.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(3, color);
+        Circle dot = new Circle(4.5, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 10.2px; -fx-text-fill: #64748b;");
+        label.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748B; -fx-font-weight: 500;");
         row.getChildren().addAll(dot, label);
         return row;
     }
@@ -739,13 +722,13 @@ public class GraphCanvas extends StackPane {
 
         if (nodes.isEmpty()) {
             gc.setFont(Font.font("System", FontWeight.BOLD, 15));
-            gc.setFill(Color.web("#94A3B8"));
+            gc.setFill(Color.web("#334155"));
             gc.setTextAlign(TextAlignment.CENTER);
-            gc.fillText("Knowledge Graph Ready", w / 2, h / 2 - 14);
+            gc.fillText("Your investigation graph will appear here", w / 2, h / 2 - 14);
 
             gc.setFont(Font.font("System", FontWeight.NORMAL, 12));
             gc.setFill(Color.web("#64748B"));
-            gc.fillText("Upload evidence files or click '↺ Refresh' once extraction finishes.", w / 2, h / 2 + 12);
+            gc.fillText("Add evidence, run analysis, then explore every fact with its source context.", w / 2, h / 2 + 12);
             drawMinimap();
             return;
         }
@@ -820,6 +803,8 @@ public class GraphCanvas extends StackPane {
             case "ORG", "ORGANIZATION" -> t.contains("ORG");
             case "DOC", "DOCUMENT" -> t.contains("DOC") || t.contains("TRANSCRIPT");
             case "PHONE" -> t.contains("PHONE");
+            case "MESSAGE" -> t.contains("MESSAGE") || t.contains("MSG");
+            case "MEDICAL" -> t.contains("MEDICAL") || t.contains("HOSPITAL") || t.contains("HEALTH");
             case "EVENT" -> t.contains("EVENT");
             default -> true;
         };
@@ -839,7 +824,7 @@ public class GraphCanvas extends StackPane {
     }
 
     private void drawGrid(GraphicsContext gc, double w, double h) {
-        gc.setStroke(Color.web("#cbd5e1", 0.4));
+        gc.setStroke(Color.web("#CBD5E1", 0.45));
         gc.setLineWidth(1.0);
         double gridSize = 32.0 * zoom;
         double startX = (panX % gridSize + gridSize) % gridSize;
@@ -891,14 +876,14 @@ public class GraphCanvas extends StackPane {
             double textWidth = relLabel.length() * 5.5 + 12;
             double textHeight = 16;
 
-            Color badgeBg = isSelected ? Color.web("#dbeafe") : Color.web("#f1f5f9");
+            Color badgeBg = isSelected ? Color.web("#DBEAFE") : Color.web("#FFFFFF");
             gc.setFill(Color.color(badgeBg.getRed(), badgeBg.getGreen(), badgeBg.getBlue(), opacity));
             gc.setStroke(strokeColor);
             gc.setLineWidth(1.0);
             gc.fillRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
             gc.strokeRoundRect(midX - textWidth / 2, midY - textHeight / 2, textWidth, textHeight, 6, 6);
 
-            Color textCol = isSelected ? Color.web("#1e40af") : Color.web("#475569");
+            Color textCol = isSelected ? Color.web("#1E40AF") : Color.web("#475569");
             gc.setFill(Color.color(textCol.getRed(), textCol.getGreen(), textCol.getBlue(), opacity));
             gc.setTextAlign(TextAlignment.CENTER);
             gc.fillText(relLabel, midX, midY + 3.5);
@@ -928,21 +913,25 @@ public class GraphCanvas extends StackPane {
         int degree = getNodeDegree(node);
         Color typeColor = getTypeColor(node.getType());
 
+        // Outer glow for high-degree nodes
         if (degree >= 3 && opacity > 0.5) {
-            Color glowColor = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.18 + Math.min(0.25, degree * 0.03));
+            Color glowColor = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.12 + Math.min(0.18, degree * 0.02));
             gc.setFill(glowColor);
-            gc.fillOval(x - radius - 10, y - radius - 10, (radius + 10) * 2, (radius + 10) * 2);
+            gc.fillOval(x - radius - 14, y - radius - 14, (radius + 14) * 2, (radius + 14) * 2);
         }
 
+        // Selection / hover / highlight rings
         if (isSelected) {
-            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.40 * opacity));
-            gc.fillOval(x - radius - 8, y - radius - 8, (radius + 8) * 2, (radius + 8) * 2);
-            gc.setStroke(Color.color(typeColor.brighter().getRed(), typeColor.brighter().getGreen(), typeColor.brighter().getBlue(), opacity));
-            gc.setLineWidth(2.8);
-            gc.strokeOval(x - radius - 3, y - radius - 3, (radius + 3) * 2, (radius + 3) * 2);
+            // Soft colored halo
+            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.20 * opacity));
+            gc.fillOval(x - radius - 10, y - radius - 10, (radius + 10) * 2, (radius + 10) * 2);
+            // Bright ring
+            gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
+            gc.setLineWidth(3.0);
+            gc.strokeOval(x - radius - 4, y - radius - 4, (radius + 4) * 2, (radius + 4) * 2);
         } else if (isHovered) {
-            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.25 * opacity));
-            gc.fillOval(x - radius - 6, y - radius - 6, (radius + 6) * 2, (radius + 6) * 2);
+            gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.15 * opacity));
+            gc.fillOval(x - radius - 8, y - radius - 8, (radius + 8) * 2, (radius + 8) * 2);
         } else if (isQueryHighlighted) {
             gc.setStroke(Color.web("#D946EF"));
             gc.setLineWidth(3.2);
@@ -953,38 +942,49 @@ public class GraphCanvas extends StackPane {
             gc.strokeOval(x - radius - 4, y - radius - 4, (radius + 4) * 2, (radius + 4) * 2);
         }
 
+        // White fill circle
         gc.setFill(Color.color(1.0, 1.0, 1.0, opacity));
         gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
 
+        // Colored border ring — thicker and more prominent
         gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
-        gc.setLineWidth(isSelected ? 3.2 : degree >= 3 ? 2.5 : 2.0);
+        gc.setLineWidth(isSelected ? 3.5 : degree >= 3 ? 3.0 : 2.5);
         gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
 
+        // Inner colored icon circle (matching reference design)
+        double innerR = radius * 0.55;
+        Color innerBg = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.12 * opacity);
+        gc.setFill(innerBg);
+        gc.fillOval(x - innerR, y - innerR - 2, innerR * 2, innerR * 2);
+
+        // Icon symbol
         String symbol = getTypeSymbol(node.getType());
-        gc.setFont(Font.font("System", FontWeight.BOLD, 15));
+        gc.setFont(Font.font("System", FontWeight.BOLD, Math.max(13, radius * 0.45)));
         Color symColor = typeColor.darker();
         gc.setFill(Color.color(symColor.getRed(), symColor.getGreen(), symColor.getBlue(), opacity));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(symbol, x, y - 5);
+        gc.fillText(symbol, x, y - 1);
 
+        // Entity name label below node
         String label = node.getName() != null ? node.getName() : "Entity";
-        if (label.length() > 16) label = label.substring(0, 14) + "..";
-        gc.setFont(Font.font("System", FontWeight.BOLD, 10.5));
+        if (label.length() > 18) label = label.substring(0, 16) + "…";
+        gc.setFont(Font.font("System", FontWeight.BOLD, 11));
         gc.setFill(Color.color(0.06, 0.09, 0.16, opacity));
-        gc.fillText(label, x, y + 14);
+        gc.fillText(label, x, y + radius + 14);
 
+        // Degree badge (top-right corner)
         if (degree > 0 && opacity > 0.4) {
-            double badgeX = x + radius * 0.70;
-            double badgeY = y - radius * 0.70;
-            double bR = 9.0;
-            gc.setFill(Color.web("#F8FAFC"));
+            double badgeX = x + radius * 0.65;
+            double badgeY = y - radius * 0.65;
+            double bR = 10.0;
+            gc.setFill(Color.color(1.0, 1.0, 1.0, opacity));
             gc.fillOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
-            gc.setStroke(degree >= 4 ? Color.web("#0284C7") : Color.web("#94A3B8"));
-            gc.setLineWidth(1.2);
+            gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity * 0.6));
+            gc.setLineWidth(1.5);
             gc.strokeOval(badgeX - bR, badgeY - bR, bR * 2, bR * 2);
-            gc.setFont(Font.font("System", FontWeight.BOLD, 8.5));
-            gc.setFill(degree >= 4 ? Color.web("#0284C7") : Color.web("#475569"));
-            gc.fillText(String.valueOf(degree), badgeX, badgeY + 3.0);
+            gc.setFont(Font.font("System", FontWeight.BOLD, 9));
+            gc.setFill(Color.color(typeColor.darker().getRed(), typeColor.darker().getGreen(), typeColor.darker().getBlue(), opacity));
+            gc.fillText(String.valueOf(degree), badgeX, badgeY + 3.5);
         }
     }
 
@@ -1019,18 +1019,18 @@ public class GraphCanvas extends StackPane {
         double tx = Math.max(10, Math.min(canvas.getWidth() - w - 10, screenX - w / 2));
         double ty = Math.max(10, screenY - h);
 
-        gc.setFill(Color.web("#ffffff", 0.95));
+        gc.setFill(Color.web("#FFFFFF", 0.98));
         gc.fillRoundRect(tx, ty, w, h, 8, 8);
-        gc.setStroke(Color.web("#cbd5e1"));
+        gc.setStroke(Color.web("#CBD5E1"));
         gc.setLineWidth(1.2);
         gc.strokeRoundRect(tx, ty, w, h, 8, 8);
 
-        gc.setFill(Color.web("#0f172a"));
+        gc.setFill(Color.web("#0F172A"));
         gc.setTextAlign(TextAlignment.LEFT);
         gc.fillText(title, tx + 10, ty + 16);
 
         gc.setFont(Font.font("System", FontWeight.NORMAL, 9.5));
-        gc.setFill(Color.web("#64748b"));
+        gc.setFill(Color.web("#64748B"));
         gc.fillText(stats, tx + 10, ty + 32);
     }
 
@@ -1040,7 +1040,7 @@ public class GraphCanvas extends StackPane {
         double mh = minimapCanvas.getHeight();
         mgc.clearRect(0, 0, mw, mh);
 
-        mgc.setFill(Color.web("#f8fafc"));
+        mgc.setFill(Color.web("#F8FAFC"));
         mgc.fillRect(0, 0, mw, mh);
 
         if (nodes.isEmpty()) return;
@@ -1160,10 +1160,12 @@ public class GraphCanvas extends StackPane {
         return switch (t) {
             case "PERSON" -> Color.web("#3B82F6");
             case "PHONE_NUMBER", "PHONE" -> Color.web("#06B6D4");
-            case "DOCUMENT", "TRANSCRIPT" -> Color.web("#10B981");
-            case "LOCATION" -> Color.web("#F59E0B");
+            case "DOCUMENT", "TRANSCRIPT" -> Color.web("#F59E0B");
+            case "LOCATION" -> Color.web("#10B981");
             case "ORGANIZATION", "ORG" -> Color.web("#8B5CF6");
-            case "EVENT" -> Color.web("#F43F5E");
+            case "MESSAGE", "MSG" -> Color.web("#0D9488");
+            case "MEDICAL", "HOSPITAL", "HEALTH" -> Color.web("#F43F5E");
+            case "EVENT" -> Color.web("#EF4444");
             default -> Color.web("#64748B");
         };
     }
@@ -1177,6 +1179,8 @@ public class GraphCanvas extends StackPane {
             case "DOCUMENT", "TRANSCRIPT" -> "📄";
             case "LOCATION" -> "📍";
             case "ORGANIZATION", "ORG" -> "🏢";
+            case "MESSAGE", "MSG" -> "💬";
+            case "MEDICAL", "HOSPITAL", "HEALTH" -> "✚";
             case "EVENT" -> "⚡";
             default -> "●";
         };

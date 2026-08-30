@@ -142,6 +142,25 @@ public class SherlockBackendClient {
         }, ioExecutor);
     }
 
+    public CompletableFuture<String> getChunksAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chunks"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return response.body();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load chunks: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
     public CompletableFuture<String> getWarehouseContentAsync(String caseId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
