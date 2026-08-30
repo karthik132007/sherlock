@@ -14,6 +14,11 @@ public class ChatResponse {
     private List<String> referencedEntities = new ArrayList<>();
     private List<String> referencedSources = new ArrayList<>();
     private List<String> evidenceSnippets = new ArrayList<>();
+    /** Exact graph identifiers returned by the Python query agent for UI highlighting. */
+    private List<String> highlightNodeIds = new ArrayList<>();
+    private List<String> highlightRelationIds = new ArrayList<>();
+    private List<String> cypherQueries = new ArrayList<>();
+    private Integer toolCallsUsed = 0;
     private String timestamp;
 
     public ChatResponse() {
@@ -36,6 +41,18 @@ public class ChatResponse {
 
     public List<String> getEvidenceSnippets() { return evidenceSnippets; }
     public void setEvidenceSnippets(List<String> evidenceSnippets) { this.evidenceSnippets = evidenceSnippets; }
+
+    public List<String> getHighlightNodeIds() { return highlightNodeIds; }
+    public void setHighlightNodeIds(List<String> highlightNodeIds) { this.highlightNodeIds = highlightNodeIds; }
+
+    public List<String> getHighlightRelationIds() { return highlightRelationIds; }
+    public void setHighlightRelationIds(List<String> highlightRelationIds) { this.highlightRelationIds = highlightRelationIds; }
+
+    public List<String> getCypherQueries() { return cypherQueries; }
+    public void setCypherQueries(List<String> cypherQueries) { this.cypherQueries = cypherQueries; }
+
+    public Integer getToolCallsUsed() { return toolCallsUsed; }
+    public void setToolCallsUsed(Integer toolCallsUsed) { this.toolCallsUsed = toolCallsUsed; }
 
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }

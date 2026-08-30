@@ -3,6 +3,8 @@ package com.sherlock.app;
 import com.sherlock.app.config.AppProperties;
 import com.sherlock.app.model.CaseRequest;
 import com.sherlock.app.model.CaseResponse;
+import com.sherlock.app.model.ChatRequest;
+import com.sherlock.app.model.ChatResponse;
 import com.sherlock.app.model.LlmConfigRequest;
 import com.sherlock.app.service.CaseService;
 import com.sherlock.app.service.Neo4jGraphService;
@@ -92,5 +94,22 @@ class CaseServiceTest {
         assertTrue(warehouseContent.contains("END_SOURCE: witness.txt"));
         assertTrue(warehouseContent.contains("Rose Mathew was found"));
         assertTrue(warehouseContent.contains("Ananya stated she saw Arjun"));
+    }
+
+    @Test
+    void testChatExchangeIsPersistedAtCaseRoot() throws IOException {
+        CaseRequest request = new CaseRequest("Chat Case");
+        request.setCaseId("chat_case_001");
+        caseService.createCase(request);
+
+        ChatResponse response = caseService.chatWithSherlock("chat_case_001", new ChatRequest("Who is Rose?"));
+
+        assertNotNull(response);
+        Path historyFile = tempDir.resolve("chat_case_001").resolve("agent_responses.json");
+        assertTrue(Files.exists(historyFile));
+        String history = Files.readString(historyFile);
+        assertTrue(history.contains("Who is Rose?"));
+        assertTrue(history.contains("No processed knowledge graph"));
+        assertEquals(2, caseService.getChatHistory("chat_case_001").size());
     }
 }

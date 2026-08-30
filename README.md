@@ -207,9 +207,38 @@ processed/
 └── timeline.json      # chronologically sorted timeline events
 ```
 
-### 8. Neo4j sync (optional)
-One click syncs the file graph into Neo4j with `project_id` isolation between cases — then Sherlock
-can answer natural-language questions by having the LLM generate **Cypher queries** against the graph.
+### 8. Neo4j sync and investigation queries (optional)
+One click syncs the file graph into Neo4j with `project_id` isolation between cases. The chat panel then
+uses the case's configured Python LLM engine to answer natural-language investigation questions.
+
+```
+Investigator question in JavaFX
+        ↓ REST
+Spring starts Python query agent with the case llm.json
+        ↓ JSON tool-call protocol
+Python asks for a read-only, project-scoped Cypher query
+        ↓
+Spring validates it, injects $caseId, and executes it in Neo4j
+        ↓ JSON tool result
+Python analyses the evidence and returns Markdown + node IDs + relation IDs
+        ↓
+Chat renders Markdown; graph highlights the supporting evidence
+```
+
+The agent receives Sherlock's evidence/provenance story and the Neo4j schema in every prompt. It can call
+the `run_cypher` tool at most **five times** per question. Spring is the only component that talks to Neo4j:
+it rejects writes, procedures, multiple statements, unscoped queries, and result limits over 100. This keeps
+an LLM-generated query read-only and confined to the active case. If the budget is reached, the agent must
+answer from the evidence it has already received.
+
+The `/api/cases/{caseId}/chat` response includes `answer`, `highlightNodeIds`, `highlightRelationIds`,
+`cypherQueries`, and `toolCallsUsed`. The JavaFX client uses the highlight IDs directly instead of trying to
+infer evidence from the answer text.
+
+Each case stores its complete user/assistant transcript in `<case>/agent_responses.json`. The desktop chat
+restores this file when reopening a case, while the Python agent supplies the most recent 12 turns to the LLM
+alongside the current question. The graph schema and Sherlock evidence/provenance story are still included on
+every LLM turn.
 
 ---
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
@@ -232,6 +233,23 @@ class Neo4jStore:
 			record = session.run(query, project_id=project_id, node_id=node_id).single()
 		return bool(record and record["deleted"])
 
+	@staticmethod
+	def _sanitize_relation_type(relation: Any) -> str:
+		"""Turn a relation label into a valid dynamic Neo4j relationship type.
+
+		Matches the sanitizing done by the Spring sync path so both backends write
+		the same relationship types (FRIEND_OF, CALLED, ...) instead of a generic
+		RELATED edge.
+		"""
+		if relation is None:
+			return "RELATED"
+		clean = re.sub(r"[^A-Z0-9_]", "_", str(relation).upper())
+		if not clean or not clean.replace("_", ""):
+			return "RELATED"
+		if clean[0].isdigit():
+			clean = "R_" + clean
+		return clean
+
 	def create_relationship(self, project_id: str, relationship: Mapping[str, Any]) -> Dict[str, Any]:
 		source = relationship.get("source", {})
 		target = relationship.get("target", {})
@@ -239,12 +257,13 @@ class Neo4jStore:
 		target_id = target.get("id") if isinstance(target, Mapping) else target
 		if not source_id or not target_id or not relationship.get("relation_id"):
 			raise ValueError("A relationship requires relation_id, source.id, and target.id")
+		rel_type = self._sanitize_relation_type(relationship.get("relation") or relationship.get("type"))
 		properties = {key: value for key, value in relationship.items() if key not in ("source", "target")}
 		properties["project_id"] = project_id
-		query = """
-		MATCH (source:Entity {project_id: $project_id, id: $source_id})
-		MATCH (target:Entity {project_id: $project_id, id: $target_id})
-		MERGE (source)-[r:RELATED {project_id: $project_id, relation_id: $relation_id}]->(target)
+		query = f"""
+		MATCH (source:Entity {{project_id: $project_id, id: $source_id}})
+		MATCH (target:Entity {{project_id: $project_id, id: $target_id}})
+		MERGE (source)-[r:{rel_type} {{project_id: $project_id, relation_id: $relation_id}}]->(target)
 		SET r = $properties
 		RETURN r, source.id AS source_id, target.id AS target_id
 		"""

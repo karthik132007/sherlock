@@ -236,7 +236,8 @@ public class SherlockBackendClient {
                         .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                        .timeout(Duration.ofSeconds(60))
+                        // A graph answer can require up to five bounded LLM/tool turns.
+                        .timeout(Duration.ofSeconds(360))
                         .build();
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -246,6 +247,25 @@ public class SherlockBackendClient {
                 return objectMapper.readValue(response.body(), ChatMessageDto.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to query Sherlock chat: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<List<ChatMessageDto>> getChatHistoryAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), new TypeReference<List<ChatMessageDto>>() {});
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load persistent chat history: " + e.getMessage(), e);
             }
         }, ioExecutor);
     }

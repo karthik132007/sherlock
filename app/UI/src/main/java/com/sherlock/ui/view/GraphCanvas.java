@@ -67,6 +67,8 @@ public class GraphCanvas extends StackPane {
 
     private String filterType = "ALL";
     private String searchQuery = "";
+    private final Set<String> highlightedNodeIds = new HashSet<>();
+    private final Set<String> highlightedRelationIds = new HashSet<>();
 
     private Consumer<NodeDto> onNodeSelected;
     private Consumer<EdgeDto> onEdgeSelected;
@@ -133,6 +135,8 @@ public class GraphCanvas extends StackPane {
         hoveredEdge = null;
         if (searchField != null) searchField.clear();
         searchQuery = "";
+        highlightedNodeIds.clear();
+        highlightedRelationIds.clear();
 
         if (data != null) {
             if (data.getNodes() != null) nodes.addAll(data.getNodes());
@@ -166,6 +170,31 @@ public class GraphCanvas extends StackPane {
         }
 
         applyLayout(currentLayout);
+    }
+
+    /** Highlight the exact evidence selected by the Python investigation query agent. */
+    public void highlightQueryResults(Collection<String> nodeIds, Collection<String> relationIds) {
+        highlightedNodeIds.clear();
+        highlightedRelationIds.clear();
+        if (nodeIds != null) {
+            for (String id : nodeIds) if (id != null && !id.isBlank()) highlightedNodeIds.add(id.toLowerCase(Locale.ROOT));
+        }
+        if (relationIds != null) {
+            for (String id : relationIds) if (id != null && !id.isBlank()) highlightedRelationIds.add(id.toLowerCase(Locale.ROOT));
+        }
+        render();
+    }
+
+    /** Remove the active investigation-query highlight and return to the normal graph view. */
+    public void clearQueryHighlights() {
+        highlightedNodeIds.clear();
+        highlightedRelationIds.clear();
+        selectedNode = null;
+        selectedEdge = null;
+        hoveredNode = null;
+        hoveredEdge = null;
+        if (onSelectionCleared != null) onSelectionCleared.run();
+        render();
     }
 
     public void applyLayout(LayoutMode mode) {
@@ -414,7 +443,12 @@ public class GraphCanvas extends StackPane {
         resetBtn.getStyleClass().add("tool-button");
         resetBtn.setOnAction(e -> applyLayout(currentLayout));
 
-        toolbar.getChildren().addAll(layoutCombo, selectBtn, panBtn, playPauseBtn, zoomInBtn, zoomOutBtn, fitBtn, resetBtn);
+        Button clearHighlightsBtn = new Button("✕");
+        clearHighlightsBtn.setTooltip(new Tooltip("Clear Query Highlights"));
+        clearHighlightsBtn.getStyleClass().add("tool-button");
+        clearHighlightsBtn.setOnAction(e -> clearQueryHighlights());
+
+        toolbar.getChildren().addAll(layoutCombo, selectBtn, panBtn, playPauseBtn, zoomInBtn, zoomOutBtn, fitBtn, resetBtn, clearHighlightsBtn);
         return toolbar;
     }
 
@@ -745,9 +779,10 @@ public class GraphCanvas extends StackPane {
             if (src != null && tgt != null) {
                 boolean isEdgeSelected = (edge == selectedEdge);
                 boolean isEdgeHovered = (edge == hoveredEdge);
-                boolean isEdgeActive = focusNode == null || activeEdges.contains(edge) || isEdgeSelected || isEdgeHovered;
+                boolean isEdgeHighlighted = isQueryHighlighted(edge);
+                boolean isEdgeActive = focusNode == null || activeEdges.contains(edge) || isEdgeSelected || isEdgeHovered || isEdgeHighlighted;
                 double opacity = isEdgeActive ? 1.0 : 0.12;
-                drawEdge(gc, src, tgt, edge, isEdgeSelected, isEdgeHovered, opacity);
+                drawEdge(gc, src, tgt, edge, isEdgeSelected, isEdgeHovered, isEdgeHighlighted, opacity);
             }
         }
 
@@ -759,9 +794,11 @@ public class GraphCanvas extends StackPane {
             boolean isHov = (node == hoveredNode);
             boolean isMatchSearch = matchesSearch(node);
             boolean isMatchFilter = matchesFilter(node);
-            boolean isDimmed = !isMatchFilter || (!searchQuery.isEmpty() && !isMatchSearch) || (focusNode != null && !activeNeighbors.contains(node));
+            boolean isQueryHighlighted = isQueryHighlighted(node);
+            boolean isDimmed = !isMatchFilter || (!searchQuery.isEmpty() && !isMatchSearch) || (focusNode != null && !activeNeighbors.contains(node))
+                    || ((!highlightedNodeIds.isEmpty() || !highlightedRelationIds.isEmpty()) && !isQueryHighlighted);
             double opacity = isDimmed ? 0.18 : 1.0;
-            drawNode(gc, node, isSel, isHov, isMatchSearch && !searchQuery.isEmpty(), opacity);
+            drawNode(gc, node, isSel, isHov, isMatchSearch && !searchQuery.isEmpty(), isQueryHighlighted, opacity);
         }
 
         gc.restore();
@@ -816,7 +853,7 @@ public class GraphCanvas extends StackPane {
         }
     }
 
-    private void drawEdge(GraphicsContext gc, NodeDto src, NodeDto tgt, EdgeDto edge, boolean isSelected, boolean isHovered, double opacity) {
+    private void drawEdge(GraphicsContext gc, NodeDto src, NodeDto tgt, EdgeDto edge, boolean isSelected, boolean isHovered, boolean isQueryHighlighted, double opacity) {
         double x1 = src.getX();
         double y1 = src.getY();
         double x2 = tgt.getX();
@@ -835,10 +872,10 @@ public class GraphCanvas extends StackPane {
         double endX = x2 - (dx / dist) * (radiusTgt + 6);
         double endY = y2 - (dy / dist) * (radiusTgt + 6);
 
-        Color baseColor = isSelected ? Color.web("#2563EB") : isHovered ? Color.web("#60A5FA") : Color.web("#94A3B8");
+        Color baseColor = isSelected ? Color.web("#2563EB") : isQueryHighlighted ? Color.web("#D946EF") : isHovered ? Color.web("#60A5FA") : Color.web("#94A3B8");
         Color strokeColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), opacity);
 
-        double lineWidth = isSelected ? 3.2 : isHovered ? 2.4 : 1.5;
+        double lineWidth = isSelected || isQueryHighlighted ? 3.2 : isHovered ? 2.4 : 1.5;
 
         gc.setStroke(strokeColor);
         gc.setLineWidth(lineWidth);
@@ -884,7 +921,7 @@ public class GraphCanvas extends StackPane {
         gc.fillPolygon(new double[] { x2, p1x, p2x }, new double[] { y2, p1y, p2y }, 3);
     }
 
-    private void drawNode(GraphicsContext gc, NodeDto node, boolean isSelected, boolean isHovered, boolean isSearchMatch, double opacity) {
+    private void drawNode(GraphicsContext gc, NodeDto node, boolean isSelected, boolean isHovered, boolean isSearchMatch, boolean isQueryHighlighted, double opacity) {
         double x = node.getX();
         double y = node.getY();
         double radius = getNodeRadius(node);
@@ -906,6 +943,10 @@ public class GraphCanvas extends StackPane {
         } else if (isHovered) {
             gc.setFill(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.25 * opacity));
             gc.fillOval(x - radius - 6, y - radius - 6, (radius + 6) * 2, (radius + 6) * 2);
+        } else if (isQueryHighlighted) {
+            gc.setStroke(Color.web("#D946EF"));
+            gc.setLineWidth(3.2);
+            gc.strokeOval(x - radius - 5, y - radius - 5, (radius + 5) * 2, (radius + 5) * 2);
         } else if (isSearchMatch) {
             gc.setStroke(Color.web("#F59E0B"));
             gc.setLineWidth(2.5);
@@ -945,6 +986,18 @@ public class GraphCanvas extends StackPane {
             gc.setFill(degree >= 4 ? Color.web("#0284C7") : Color.web("#475569"));
             gc.fillText(String.valueOf(degree), badgeX, badgeY + 3.0);
         }
+    }
+
+    private boolean isQueryHighlighted(NodeDto node) {
+        if (node == null) return false;
+        return (node.getId() != null && highlightedNodeIds.contains(node.getId().toLowerCase(Locale.ROOT)))
+                || (node.getName() != null && highlightedNodeIds.contains(node.getName().toLowerCase(Locale.ROOT)));
+    }
+
+    private boolean isQueryHighlighted(EdgeDto edge) {
+        if (edge == null) return false;
+        if (edge.getRelationId() != null && highlightedRelationIds.contains(edge.getRelationId().toLowerCase(Locale.ROOT))) return true;
+        return isQueryHighlighted(getNode(edge.getSource())) || isQueryHighlighted(getNode(edge.getTarget()));
     }
 
     private void drawNodeTooltip(GraphicsContext gc, NodeDto node) {

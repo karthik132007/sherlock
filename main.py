@@ -118,6 +118,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="For timeline, force batched mode even when warehouse fits (default: single_call when fits)",
     )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default=None,
+        help="Run the bounded natural-language graph query agent. Uses JSON Lines on stdin/stdout for Cypher tool calls.",
+    )
     return parser.parse_args()
 
 
@@ -162,6 +168,15 @@ def validate_project(project_path: Path) -> Path:
 def main() -> None:
     args = parse_args()
     project_path = Path(args.project).expanduser().resolve()
+
+    # Query mode intentionally runs before warehouse validation: it only needs the
+    # already processed graph and communicates with Spring over JSON Lines.
+    if args.query is not None:
+        from engine.query_agent import run_query_agent
+
+        print(json.dumps({"protocol": "sherlock-query-v1", **run_query_agent(project_path, args.query)}, ensure_ascii=False), flush=True)
+        return
+
     warehouse_path = validate_project(project_path)
 
     # Resolve LLM config early (llm.json in case folder > env vars)

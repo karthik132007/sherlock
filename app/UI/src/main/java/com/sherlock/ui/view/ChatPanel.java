@@ -14,9 +14,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 public class ChatPanel extends VBox {
 
@@ -28,6 +31,7 @@ public class ChatPanel extends VBox {
     private final TextField inputField = new TextField();
     private final Button sendButton = new Button("➤");
     private final ProgressIndicator typingIndicator = new ProgressIndicator();
+    private Consumer<com.sherlock.ui.model.ChatMessageDto> onQueryResult;
 
     public ChatPanel(SherlockBackendClient client) {
         this.client = client;
@@ -102,7 +106,37 @@ public class ChatPanel extends VBox {
     public void setCaseId(String caseId) {
         this.currentCaseId = caseId;
         messageContainer.getChildren().clear();
-        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized.");
+        client.getChatHistoryAsync(caseId)
+                .thenAccept(history -> Platform.runLater(() -> {
+                    if (!caseId.equals(currentCaseId)) return;
+                    messageContainer.getChildren().clear();
+                    if (history == null || history.isEmpty()) {
+                        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized.");
+                        return;
+                    }
+                    for (com.sherlock.ui.model.ChatMessageDto message : history) {
+                        String content = message.getContent() != null ? message.getContent() : message.getAnswer();
+                        if (content == null || content.isBlank()) continue;
+                        if ("user".equalsIgnoreCase(message.getRole())) {
+                            addUserMessage(content);
+                        } else {
+                            addSherlockMessage(content);
+                        }
+                    }
+                }))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        if (caseId.equals(currentCaseId) && messageContainer.getChildren().isEmpty()) {
+                            addSherlockMessage("Case **" + caseId + "** loaded. Previous chat could not be restored.");
+                        }
+                    });
+                    return null;
+                });
+    }
+
+    /** Called with the structured query result so the graph can highlight evidence. */
+    public void setOnQueryResult(Consumer<com.sherlock.ui.model.ChatMessageDto> onQueryResult) {
+        this.onQueryResult = onQueryResult;
     }
 
 
@@ -152,6 +186,7 @@ public class ChatPanel extends VBox {
                     typingIndicator.setVisible(false);
                     if (resp != null && resp.getAnswer() != null) {
                         addSherlockMessage(resp.getAnswer());
+                        if (onQueryResult != null) onQueryResult.accept(resp);
                     } else {
                         addSherlockMessage("No specific evidence found.");
                     }
@@ -202,9 +237,8 @@ public class ChatPanel extends VBox {
         sherlockLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
         header.getChildren().addAll(icon, sherlockLbl);
 
-        Label content = new Label(text);
-        content.setWrapText(true);
-        content.setStyle("-fx-font-size: 14px; -fx-text-fill: #334155; -fx-line-spacing: 4px;");
+        TextFlow content = renderMarkdown(text);
+        content.setMaxWidth(280);
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
         time.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
@@ -215,5 +249,61 @@ public class ChatPanel extends VBox {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(4, 0, 4, 0));
         messageContainer.getChildren().add(row);
+    }
+
+    /** Lightweight, safe Markdown rendering for LLM answers (no HTML execution). */
+    private TextFlow renderMarkdown(String markdown) {
+        TextFlow flow = new TextFlow();
+        flow.setLineSpacing(4);
+        String[] lines = (markdown == null ? "" : markdown).replace("\r", "").split("\n", -1);
+        boolean codeBlock = false;
+        for (String rawLine : lines) {
+            String line = rawLine;
+            if (line.strip().startsWith("```")) {
+                codeBlock = !codeBlock;
+                continue;
+            }
+            if (codeBlock) {
+                appendStyled(flow, line + "\n", "-fx-font-family: 'monospace'; -fx-font-size: 12px; -fx-fill: #1e3a8a;");
+                continue;
+            }
+            if (line.startsWith("### ") || line.startsWith("## ") || line.startsWith("# ")) {
+                String heading = line.replaceFirst("^#+\\s*", "");
+                appendStyled(flow, heading + "\n", "-fx-font-size: 15px; -fx-font-weight: bold; -fx-fill: #0f172a;");
+            } else if (line.strip().startsWith("- ") || line.strip().startsWith("* ") || line.strip().startsWith("• ")) {
+                appendInlineMarkdown(flow, "• " + line.strip().replaceFirst("^[-*•]\\s+", "") + "\n");
+            } else if (line.strip().startsWith(">")) {
+                appendStyled(flow, "  " + line.strip().replaceFirst("^>\\s*", "") + "\n", "-fx-font-size: 13px; -fx-font-style: italic; -fx-fill: #475569;");
+            } else {
+                appendInlineMarkdown(flow, line + "\n");
+            }
+        }
+        return flow;
+    }
+
+    private void appendInlineMarkdown(TextFlow flow, String text) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\*\\*[^*]+\\*\\*|`[^`]+`)").matcher(text);
+        int cursor = 0;
+        while (matcher.find()) {
+            if (matcher.start() > cursor) appendStyled(flow, text.substring(cursor, matcher.start()), baseTextStyle());
+            String token = matcher.group();
+            if (token.startsWith("**")) {
+                appendStyled(flow, token.substring(2, token.length() - 2), "-fx-font-size: 14px; -fx-font-weight: bold; -fx-fill: #0f172a;");
+            } else {
+                appendStyled(flow, token.substring(1, token.length() - 1), "-fx-font-family: 'monospace'; -fx-font-size: 12px; -fx-fill: #1e3a8a;");
+            }
+            cursor = matcher.end();
+        }
+        if (cursor < text.length()) appendStyled(flow, text.substring(cursor), baseTextStyle());
+    }
+
+    private void appendStyled(TextFlow flow, String text, String style) {
+        Text node = new Text(text);
+        node.setStyle(style);
+        flow.getChildren().add(node);
+    }
+
+    private String baseTextStyle() {
+        return "-fx-font-size: 14px; -fx-fill: #334155;";
     }
 }

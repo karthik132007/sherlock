@@ -117,4 +117,9 @@ public class CaseController {
             @RequestBody ChatRequest request) {
         return ResponseEntity.ok(caseService.chatWithSherlock(caseId, request));
     }
+
+    @GetMapping("/cases/{caseId}/chat")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getChatHistory(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getChatHistory(caseId));
+    }
 }

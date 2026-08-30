@@ -12,9 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +41,7 @@ public class CaseService {
     private final OllamaService ollamaService;
     private final ObjectMapper objectMapper;
     private final Map<String, ProcessingStatus> statusTracker = new ConcurrentHashMap<>();
+    private final Map<String, Object> chatHistoryLocks = new ConcurrentHashMap<>();
     /**
      * Shared executor for the Python pipeline background tasks. A single shared,
      * daemon-threaded pool avoids the per-request thread leak that occurred when a
@@ -695,172 +699,185 @@ public class CaseService {
 
     @SuppressWarnings("null")
     public ChatResponse chatWithSherlock(String caseId, ChatRequest request) {
-        String query = request.getQuery() != null ? request.getQuery().trim() : "";
-        String qLower = query.toLowerCase(Locale.ROOT);
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        String question = request != null ? request.getQuery() : "";
+        ChatResponse response = runPythonQueryAgent(caseId, caseDirectory, question);
+        appendChatExchange(caseId, caseDirectory, question, response);
+        return response;
+    }
 
-        GraphDataResponse graph = getGraphData(caseId);
-        TimelineEventResponse timeline = getTimeline(caseId);
+    /** Returns the persistent case chat transcript for the JavaFX chat panel. */
+    public List<Map<String, Object>> getChatHistory(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            return readChatMessages(caseDirectory);
+        }
+    }
 
-        ChatResponse response = new ChatResponse();
-        List<String> matchedEntities = new ArrayList<>();
-        List<String> matchedSources = new ArrayList<>();
-        List<String> matchedSnippets = new ArrayList<>();
+    private void appendChatExchange(String caseId, Path caseDirectory, String question, ChatResponse response) {
+        if (question == null || question.isBlank()) return;
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            List<Map<String, Object>> messages = readChatMessages(caseDirectory);
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        StringBuilder answer = new StringBuilder();
+            Map<String, Object> userMessage = new LinkedHashMap<>();
+            userMessage.put("role", "user");
+            userMessage.put("content", question.trim());
+            userMessage.put("timestamp", timestamp);
+            messages.add(userMessage);
 
-        // 1. Search entities (null-safe: names/aliases may be missing in JSON data)
-        List<GraphDataResponse.Node> relevantNodes = graph.getNodes().stream()
-                .filter(n -> {
-                    String name = n.getName() != null ? n.getName().toLowerCase(Locale.ROOT) : "";
-                    boolean nameMatches = !name.isEmpty()
-                            && (qLower.contains(name) || name.contains(qLower));
-                    boolean aliasMatches = n.getAliases().stream()
-                            .anyMatch(a -> a != null && !a.isBlank() && qLower.contains(a.toLowerCase(Locale.ROOT)));
-                    return nameMatches || aliasMatches;
-                })
-                .collect(Collectors.toList());
+            Map<String, Object> assistantMessage = new LinkedHashMap<>();
+            assistantMessage.put("role", "assistant");
+            assistantMessage.put("content", response.getAnswer() != null ? response.getAnswer() : "No answer returned.");
+            assistantMessage.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            assistantMessage.put("highlightNodeIds", response.getHighlightNodeIds());
+            assistantMessage.put("highlightRelationIds", response.getHighlightRelationIds());
+            assistantMessage.put("cypherQueries", response.getCypherQueries());
+            assistantMessage.put("toolCallsUsed", response.getToolCallsUsed());
+            messages.add(assistantMessage);
 
-        // 2. Search edges connected to relevant nodes or relation words (null-safe)
-        List<GraphDataResponse.Edge> relevantEdges = graph.getEdges().stream()
-                .filter(e -> {
-                    boolean match = false;
-                    String source = e.getSource();
-                    String target = e.getTarget();
-                    for (var n : relevantNodes) {
-                        if ((source != null && source.equalsIgnoreCase(n.getName()))
-                                || (target != null && target.equalsIgnoreCase(n.getName()))) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    String relation = e.getRelation();
-                    if (relation != null && qLower.contains(relation.toLowerCase(Locale.ROOT).replace("_", " "))) {
-                        match = true;
-                    }
-                    return match;
-                })
-                .collect(Collectors.toList());
+            Map<String, Object> fileBody = new LinkedHashMap<>();
+            fileBody.put("caseId", caseId);
+            fileBody.put("updatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            fileBody.put("messages", messages);
+            Path historyFile = caseDirectory.resolve("agent_responses.json");
+            Path tempFile = caseDirectory.resolve("agent_responses.json.tmp");
+            try {
+                objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile.toFile(), fileBody);
+                try {
+                    Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException ignored) {
+                    Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                log.warn("Could not persist agent responses for case {}: {}", caseId, e.getMessage());
+                try { Files.deleteIfExists(tempFile); } catch (IOException ignored) { }
+            }
+        }
+    }
 
-        // 3. Search timeline events
-        List<TimelineEventResponse.TimelineEvent> relevantEvents = timeline.getTimeline().stream()
-                .filter(ev -> {
-                    String title = ev.getTitle() != null ? ev.getTitle() : "";
-                    String description = ev.getDescription() != null ? ev.getDescription() : "";
-                    String timestamp = ev.getTimestamp() != null ? ev.getTimestamp() : "";
-                    String combined = (title + " " + description + " " + timestamp).toLowerCase(Locale.ROOT);
-                    for (var n : relevantNodes) {
-                        if (n.getName() != null && combined.contains(n.getName().toLowerCase(Locale.ROOT)))
-                            return true;
-                    }
-                    return relevantNodes.isEmpty() && !qLower.isEmpty() && combined.contains(qLower);
-                })
-                .collect(Collectors.toList());
-
-        // 0. If Ollama is available or requested, generate and run Cypher query
-        String cypherQuery = null;
-        List<Map<String, Object>> cypherResults = Collections.emptyList();
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> readChatMessages(Path caseDirectory) {
+        Path historyFile = caseDirectory.resolve("agent_responses.json");
+        if (!Files.exists(historyFile)) return new ArrayList<>();
         try {
-            String model = request.getModel();
-            if (model == null || model.isBlank()) {
-                CaseResponse caseResp = getCase(caseId);
-                if (caseResp != null && caseResp.getLlmConfig() != null && caseResp.getLlmConfig().getModel() != null) {
-                    model = caseResp.getLlmConfig().getModel();
-                }
+            JsonNode root = objectMapper.readTree(historyFile.toFile());
+            JsonNode messagesNode = root.path("messages");
+            if (!messagesNode.isArray()) return new ArrayList<>();
+            List<Map<String, Object>> messages = new ArrayList<>();
+            for (JsonNode message : messagesNode) {
+                if (message.isObject()) messages.add(objectMapper.convertValue(message, Map.class));
             }
-            List<String> available = ollamaService != null ? ollamaService.getAvailableModels() : List.of();
-            if (model == null || model.isBlank()) {
-                model = !available.isEmpty() ? available.get(0) : "gemma4:e2b";
+            return messages;
+        } catch (IOException e) {
+            log.warn("Could not read persisted agent responses from {}: {}", historyFile, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private ChatResponse runPythonQueryAgent(String caseId, Path caseDirectory, String question) {
+        ChatResponse response = new ChatResponse();
+        if (question == null || question.isBlank()) {
+            response.setAnswer("Please enter an investigation question.");
+            return response;
+        }
+
+        String pythonScript = resolvePythonScriptPath();
+        List<String> command = List.of(resolvePythonCommand(pythonScript), "-u", pythonScript,
+                appProperties.getProcessArgument(), caseDirectory.toAbsolutePath().toString(), "--query", question.trim());
+        StringBuilder stderr = new StringBuilder();
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.directory(new File(pythonScript).getParentFile());
+            processBuilder.environment().put("PYTHONUNBUFFERED", "1");
+            processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
+            processBuilder.environment().put("PYTHONUTF8", "1");
+            Process process = processBuilder.start();
+
+            Thread stderrReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) stderr.append(line).append('\n');
+                } catch (IOException ignored) { }
+            }, "sherlock-query-stderr");
+            stderrReader.setDaemon(true);
+            stderrReader.start();
+
+            boolean receivedFinal = false;
+            try (BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedWriter stdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = stdout.readLine()) != null) {
+                    JsonNode message;
+                    try {
+                        message = objectMapper.readTree(line);
+                    } catch (Exception ignored) {
+                        log.debug("Ignoring non-protocol Python query output: {}", line);
+                        continue;
+                    }
+                    if (!"sherlock-query-v1".equals(message.path("protocol").asText())) continue;
+
+                    if ("tool_call".equals(message.path("type").asText())) {
+                        String callId = message.path("call_id").asText();
+                        String cypher = message.path("arguments").path("cypher").asText();
+                        Neo4jGraphService.QueryResult result = neo4jGraphService != null
+                                ? neo4jGraphService.executeScopedReadOnlyCypher(caseId, cypher)
+                                : new Neo4jGraphService.QueryResult(List.of(), "Neo4j service is unavailable.");
+                        Map<String, Object> toolResult = new LinkedHashMap<>();
+                        toolResult.put("protocol", "sherlock-query-v1");
+                        toolResult.put("type", "tool_result");
+                        toolResult.put("call_id", callId);
+                        toolResult.put("records", result.records());
+                        if (result.error() != null) toolResult.put("error", result.error());
+                        stdin.write(objectMapper.writeValueAsString(toolResult));
+                        stdin.newLine();
+                        stdin.flush();
+                    } else if ("final".equals(message.path("type").asText())) {
+                        applyPythonQueryResponse(response, message);
+                        receivedFinal = true;
+                        break;
+                    }
+                }
             }
 
-            if (!available.isEmpty()) {
-                cypherQuery = ollamaService.generateCypherQuery(caseId, query, model);
-                if (cypherQuery != null && !cypherQuery.isBlank() && neo4jGraphService != null
-                        && neo4jGraphService.isConnected()) {
-                    cypherResults = neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
-                }
+            if (!process.waitFor(330, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                response.setAnswer("The investigation query timed out before the model could return an answer.");
+            } else if (!receivedFinal) {
+                response.setAnswer("The investigation query agent did not return a final answer. " + conciseProcessError(stderr));
             }
         } catch (Exception e) {
-            log.debug("Cypher generation or execution skipped: {}", e.getMessage());
+            log.error("Python investigation query failed for case {}", caseId, e);
+            response.setAnswer("The investigation query failed: " + e.getMessage());
         }
-
-        if (!relevantNodes.isEmpty() || !cypherResults.isEmpty()) {
-            answer.append("### Sherlock Investigation Findings\n\n");
-
-            if (cypherQuery != null && !cypherQuery.isBlank()) {
-                answer.append("```cypher\n// Generated CQL for Neo4j\n").append(cypherQuery).append("\n```\n\n");
-                if (!cypherResults.isEmpty()) {
-                    answer.append("**Neo4j Query Matches (").append(cypherResults.size())
-                            .append(" records found):**\n");
-                    for (int i = 0; i < Math.min(cypherResults.size(), 5); i++) {
-                        answer.append("• `").append(cypherResults.get(i).toString()).append("`\n");
-                    }
-                    answer.append("\n");
-                }
-            }
-
-            for (var node : relevantNodes) {
-                matchedEntities.add(node.getName());
-                answer.append("• **").append(node.getName()).append("** (`").append(node.getType()).append("`)\n");
-                if (node.getData() != null && !node.getData().isEmpty()) {
-                    answer.append("  - Attributes: ").append(node.getData().toString()).append("\n");
-                }
-                if (node.getSourceFiles() != null && !node.getSourceFiles().isEmpty()) {
-                    matchedSources.addAll(node.getSourceFiles());
-                    answer.append("  - Mentioned in: ").append(String.join(", ", node.getSourceFiles())).append("\n");
-                }
-            }
-
-            if (!relevantEdges.isEmpty()) {
-                answer.append("\n**Key Relationships & Evidence:**\n");
-                for (var edge : relevantEdges.stream().limit(6).collect(Collectors.toList())) {
-                    answer.append("• **").append(edge.getSource()).append("** —[`").append(edge.getRelation())
-                            .append("`]-> **")
-                            .append(edge.getTarget()).append("**");
-                    if (edge.getConfidence() != null) {
-                        answer.append(" (Confidence: ").append(String.format("%.0f%%", edge.getConfidence() * 100))
-                                .append(")");
-                    }
-                    answer.append("\n");
-                    if (edge.getEvidenceText() != null && !edge.getEvidenceText().isBlank()) {
-                        answer.append("  > \"").append(edge.getEvidenceText()).append("\"\n");
-                        matchedSnippets.add(edge.getEvidenceText());
-                    }
-                    if (edge.getSourceFile() != null) {
-                        matchedSources.add(edge.getSourceFile());
-                    }
-                }
-            }
-
-            if (!relevantEvents.isEmpty()) {
-                answer.append("\n**Timeline Occurrences:**\n");
-                for (var ev : relevantEvents.stream().limit(5).collect(Collectors.toList())) {
-                    answer.append("• `").append(ev.getTimestamp()).append("`: **").append(ev.getTitle()).append("**\n");
-                    if (ev.getDescription() != null && !ev.getDescription().isBlank()) {
-                        answer.append("  ").append(ev.getDescription()).append("\n");
-                    }
-                    if (ev.getSourceFile() != null) {
-                        matchedSources.add(ev.getSourceFile());
-                    }
-                }
-            }
-        } else if (!graph.getNodes().isEmpty()) {
-            answer.append("Here is an overview of the current case knowledge graph (").append(graph.getNodes().size())
-                    .append(" entities, ").append(graph.getEdges().size()).append(" relationships):\n\n");
-            answer.append("• **Primary Entities**: ");
-            answer.append(graph.getNodes().stream().limit(8).map(GraphDataResponse.Node::getName)
-                    .collect(Collectors.joining(", ")));
-            answer.append(
-                    "\n\nYou can ask about specific people (e.g. *\"Who is Arjun?\"* or *\"Show calls involving Rose\"*) or examine timeline occurrences.");
-        } else {
-            answer.append(
-                    "No processed graph data found for this case yet. Please upload evidence documents and click **Let's Lock in with SHERLOCK** to trigger entity and relationship extraction.");
-        }
-
-        response.setAnswer(answer.toString());
-        response.setReferencedEntities(matchedEntities.stream().distinct().collect(Collectors.toList()));
-        response.setReferencedSources(matchedSources.stream().distinct().collect(Collectors.toList()));
-        response.setEvidenceSnippets(matchedSnippets.stream().distinct().collect(Collectors.toList()));
         return response;
+    }
+
+    private void applyPythonQueryResponse(ChatResponse response, JsonNode message) {
+        response.setAnswer(message.path("answer").asText("No grounded answer was returned."));
+        response.setHighlightNodeIds(readStringList(message.path("highlight_node_ids")));
+        response.setHighlightRelationIds(readStringList(message.path("highlight_relation_ids")));
+        response.setCypherQueries(readStringList(message.path("cypher_queries")));
+        response.setToolCallsUsed(message.path("tool_calls_used").asInt(0));
+    }
+
+    private List<String> readStringList(JsonNode node) {
+        if (!node.isArray()) return List.of();
+        List<String> values = new ArrayList<>();
+        for (JsonNode item : node) if (!item.asText().isBlank()) values.add(item.asText());
+        return values;
+    }
+
+    private String conciseProcessError(StringBuilder stderr) {
+        String error = stderr.toString().trim();
+        return error.isBlank() ? "" : "Details: " + error.substring(0, Math.min(error.length(), 300));
     }
 
     @SuppressWarnings("unchecked")
@@ -1030,10 +1047,10 @@ public class CaseService {
     }
 
     public List<Map<String, Object>> executeNeo4jCypher(String caseId, String cypherQuery) {
-        if (neo4jGraphService == null || !neo4jGraphService.isConnected()) {
+        if (neo4jGraphService == null) {
             return Collections.emptyList();
         }
-        return neo4jGraphService.executeCypher(cypherQuery, Map.of("caseId", caseId));
+        return neo4jGraphService.executeScopedReadOnlyCypher(caseId, cypherQuery).records();
     }
 
     public List<String> getOllamaModels() {

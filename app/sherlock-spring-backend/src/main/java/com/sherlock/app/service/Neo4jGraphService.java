@@ -328,6 +328,108 @@ public class Neo4jGraphService {
         return results;
     }
 
+    /**
+     * Execute an LLM-proposed query only after applying the investigation query
+     * safety boundary. The LLM never receives database credentials and Spring
+     * always supplies the case parameter itself.
+     */
+    public QueryResult executeScopedReadOnlyCypher(String caseId, String cypherQuery) {
+        String validationError = validateScopedReadOnlyCypher(cypherQuery);
+        if (validationError != null) {
+            return new QueryResult(List.of(), validationError);
+        }
+        if (!isConnected()) {
+            return new QueryResult(List.of(), "Neo4j is offline or unreachable for this case.");
+        }
+
+        String query = cypherQuery.trim();
+        if (!query.toLowerCase(Locale.ROOT).matches("(?s).*\\blimit\\s+\\d+\\b.*")) {
+            query += " LIMIT 100";
+        }
+
+        String db = appProperties.getNeo4j().getDatabase();
+        SessionConfig sessionConfig = (db != null && !db.isBlank())
+                ? SessionConfig.forDatabase(db)
+                : SessionConfig.defaultConfig();
+        List<Map<String, Object>> records = new ArrayList<>();
+
+        try (Session session = driver.session(sessionConfig)) {
+            for (Record record : session.run(query, Values.parameters("caseId", caseId)).list()) {
+                Map<String, Object> safeRecord = new LinkedHashMap<>();
+                for (String key : record.keys()) {
+                    safeRecord.put(key, toJsonSafe(record.get(key).asObject()));
+                }
+                records.add(safeRecord);
+            }
+            return new QueryResult(records, null);
+        } catch (Exception e) {
+            log.warn("Scoped Cypher execution failed for case {}: {}", caseId, e.getMessage());
+            return new QueryResult(List.of(), "Cypher execution failed: " + e.getMessage());
+        }
+    }
+
+    private String validateScopedReadOnlyCypher(String cypherQuery) {
+        if (cypherQuery == null || cypherQuery.isBlank()) {
+            return "Cypher query must not be empty.";
+        }
+        String query = cypherQuery.trim();
+        String lower = query.toLowerCase(Locale.ROOT);
+        if (query.contains(";") || !lower.matches("(?s)^(match|optional\\s+match|with|unwind)\\b.*")) {
+            return "Only a single read-only MATCH, WITH, or UNWIND Cypher query is allowed.";
+        }
+        if (lower.matches("(?s).*\\b(create|merge|delete|detach|set|remove|drop|alter|load\\s+csv|call|apoc|dbms|show|grant|deny|revoke|use|foreach)\\b.*")) {
+            return "Cypher write operations, procedures, and administration commands are not allowed.";
+        }
+        if (!lower.matches("(?s).*\\b[a-z][a-z0-9_]*\\.project_id\\s*=\\s*\\$caseid\\b.*")) {
+            return "Every investigation query must explicitly scope a node or relationship with project_id = $caseId.";
+        }
+        java.util.regex.Matcher limit = java.util.regex.Pattern.compile("(?i)\\blimit\\s+(\\d+)\\b").matcher(query);
+        if (limit.find() && Integer.parseInt(limit.group(1)) > 100) {
+            return "Cypher LIMIT must be 100 records or fewer.";
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object toJsonSafe(Object value) {
+        if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean) {
+            return value;
+        }
+        if (value instanceof org.neo4j.driver.types.Node node) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("id", node.get("id").isNull() ? "" : node.get("id").asString());
+            result.put("name", node.get("name").isNull() ? "" : node.get("name").asString());
+            result.put("type", node.get("type").isNull() ? "ENTITY" : node.get("type").asString());
+            List<String> labels = new ArrayList<>();
+            for (String label : node.labels()) labels.add(label);
+            result.put("labels", labels);
+            result.put("properties", toJsonSafe(node.asMap()));
+            return result;
+        }
+        if (value instanceof org.neo4j.driver.types.Relationship relationship) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("relation_id", relationship.get("relation_id").isNull() ? "" : relationship.get("relation_id").asString());
+            result.put("type", relationship.type());
+            result.put("properties", toJsonSafe(relationship.asMap()));
+            return result;
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                result.put(String.valueOf(entry.getKey()), toJsonSafe(entry.getValue()));
+            }
+            return result;
+        }
+        if (value instanceof Iterable<?> values) {
+            List<Object> result = new ArrayList<>();
+            for (Object item : values) result.add(toJsonSafe(item));
+            return result;
+        }
+        return String.valueOf(value);
+    }
+
+    public record QueryResult(List<Map<String, Object>> records, String error) {}
+
     private String sanitizeLabel(String label) {
         if (label == null || label.isBlank())
             return "Entity";

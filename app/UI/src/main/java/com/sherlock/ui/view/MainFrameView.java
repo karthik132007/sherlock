@@ -80,6 +80,13 @@ public class MainFrameView extends BorderPane {
         setCenter(rootStack);
 
         setupInteractionWiring();
+        chatPanel.setOnQueryResult(result -> {
+            graphCanvas.highlightQueryResults(result.getHighlightNodeIds(), result.getHighlightRelationIds());
+            if (result.getHighlightNodeIds() != null && !result.getHighlightNodeIds().isEmpty()) {
+                var firstMatch = graphCanvas.getNode(result.getHighlightNodeIds().get(0));
+                if (firstMatch != null) graphCanvas.selectAndFocusNode(firstMatch);
+            }
+        });
     }
 
     public void loadCase(CaseDto caseDto) {
