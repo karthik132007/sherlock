@@ -3,6 +3,7 @@ package com.sherlock.ui.view;
 import com.sherlock.ui.SherlockBackendClient;
 import com.sherlock.ui.model.CaseDto;
 import com.sherlock.ui.model.LlmConfigDto;
+import com.sherlock.ui.util.LlmModelHelper;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -398,17 +399,27 @@ public class InitialView extends BorderPane {
         modelLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         modelCombo.setEditable(true);
-        modelCombo.getItems().addAll(
-                "gpt-4o-mini",
-                "gpt-4o",
-                "deepseek-chat",
-                "llama-3.3-70b-versatile",
-                "mistral-large-latest",
-                "ollama/llama3");
-        modelCombo.setValue("gpt-4o-mini");
+        modelCombo.setPromptText("Select or enter model...");
+        if (modelCombo.getEditor() != null) {
+            modelCombo.getEditor().setPromptText("Select or enter model...");
+        }
+        modelCombo.getItems().setAll(LlmModelHelper.getModelsForProvider("OpenAI"));
+        modelCombo.setValue(LlmModelHelper.getDefaultModel("OpenAI"));
         modelCombo.setMaxWidth(Double.MAX_VALUE);
+        LlmModelHelper.setupCustomModelListener(modelCombo);
 
-        modelBox.getChildren().addAll(modelLabel, modelCombo);
+        HBox modelInputRow = new HBox(8);
+        modelInputRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(modelCombo, Priority.ALWAYS);
+
+        Button addCustomModelBtn = new Button("+ Custom");
+        addCustomModelBtn.getStyleClass().add("secondary-button");
+        addCustomModelBtn.setStyle("-fx-font-size: 12px; -fx-padding: 6px 10px; -fx-font-weight: 600;");
+        addCustomModelBtn.setTooltip(new Tooltip("Add or specify a custom model name"));
+        addCustomModelBtn.setOnAction(e -> LlmModelHelper.promptCustomModel(modelCombo));
+
+        modelInputRow.getChildren().addAll(modelCombo, addCustomModelBtn);
+        modelBox.getChildren().addAll(modelLabel, modelInputRow);
 
         // 3. Provider Selection
         VBox providerBox = new VBox(8);
@@ -431,16 +442,26 @@ public class InitialView extends BorderPane {
 
                 client.getOllamaModelsAsync().thenAccept(models -> Platform.runLater(() -> {
                     if (models != null && !models.isEmpty()) {
-                        modelCombo.getItems().setAll(models);
+                        List<String> list = new ArrayList<>(models);
+                        if (!list.contains(LlmModelHelper.CUSTOM_MODEL_OPTION)) {
+                            list.add(LlmModelHelper.CUSTOM_MODEL_OPTION);
+                        }
+                        modelCombo.getItems().setAll(list);
                         modelCombo.setValue(models.get(0));
                         modelCombo.setDisable(false);
                     } else {
-                        modelCombo.getItems().clear();
-                        modelCombo.setPromptText("No Ollama models found");
-                        modelCombo.setValue(null);
-                        modelCombo.setDisable(true);
+                        modelCombo.getItems().setAll(LlmModelHelper.getModelsForProvider("Ollama"));
+                        modelCombo.setValue(LlmModelHelper.getDefaultModel("Ollama"));
+                        modelCombo.setDisable(false);
                     }
-                }));
+                })).exceptionally(ex -> {
+                    Platform.runLater(() -> {
+                        modelCombo.getItems().setAll(LlmModelHelper.getModelsForProvider("Ollama"));
+                        modelCombo.setValue(LlmModelHelper.getDefaultModel("Ollama"));
+                        modelCombo.setDisable(false);
+                    });
+                    return null;
+                });
             } else {
                 apiKeyField.setDisable(false);
                 apiKeyField.setPromptText("sk-... (required for cloud)");
@@ -448,22 +469,8 @@ public class InitialView extends BorderPane {
                 modelLabel.setText("Model Name");
                 modelCombo.setDisable(false);
 
-                if ("DeepSeek".equalsIgnoreCase(p)) {
-                    modelCombo.getItems().setAll("deepseek-chat", "deepseek-coder");
-                    modelCombo.setValue("deepseek-chat");
-                } else if ("Groq".equalsIgnoreCase(p)) {
-                    modelCombo.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
-                    modelCombo.setValue("llama-3.3-70b-versatile");
-                } else if ("OpenRouter".equalsIgnoreCase(p)) {
-                    modelCombo.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet");
-                    modelCombo.setValue("openai/gpt-4o-mini");
-                } else if ("Mistral".equalsIgnoreCase(p)) {
-                    modelCombo.getItems().setAll("mistral-large-latest");
-                    modelCombo.setValue("mistral-large-latest");
-                } else {
-                    modelCombo.getItems().setAll("gpt-4o-mini", "gpt-4o");
-                    modelCombo.setValue("gpt-4o-mini");
-                }
+                modelCombo.getItems().setAll(LlmModelHelper.getModelsForProvider(p));
+                modelCombo.setValue(LlmModelHelper.getDefaultModel(p));
             }
         });
 
@@ -638,7 +645,7 @@ public class InitialView extends BorderPane {
 
         LlmConfigDto llmConfig = new LlmConfigDto();
         llmConfig.setProvider(providerCombo.getValue() != null ? providerCombo.getValue().toLowerCase() : "openai");
-        llmConfig.setModel(modelCombo.getValue() != null ? modelCombo.getValue() : "gpt-4o-mini");
+        llmConfig.setModel(LlmModelHelper.getSelectedModel(modelCombo));
         llmConfig.setApiKey(apiKeyField.getText() != null ? apiKeyField.getText().trim() : "");
 
         client.createCaseAsync(caseName, caseName, llmConfig)
