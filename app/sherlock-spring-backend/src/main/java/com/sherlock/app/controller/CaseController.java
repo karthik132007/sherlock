@@ -86,6 +86,21 @@ public class CaseController {
         return ResponseEntity.ok(caseService.getTimeline(caseId));
     }
 
+    @PostMapping("/cases/{caseId}/contradictions/process")
+    public ResponseEntity<ProcessingStatus> processContradictions(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.startContradictionsProcessing(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/contradictions/status")
+    public ResponseEntity<ProcessingStatus> getContradictionsProcessingStatus(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getContradictionsProcessingStatus(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/contradictions")
+    public ResponseEntity<ContradictionResponse> getContradictions(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getContradictions(caseId));
+    }
+
     @GetMapping("/neo4j/status")
     public ResponseEntity<java.util.Map<String, Object>> getNeo4jStatus() {
         return ResponseEntity.ok(caseService.getNeo4jStatus());

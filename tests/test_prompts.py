@@ -7,6 +7,10 @@ from engine.prompts import (
     build_timeline_prompt,
     build_single_call_entity_prompt,
     build_graph_mapping_prompt,
+    CONTRADICTION_SYSTEM_PROMPT,
+    CONTRADICTION_TYPES,
+    build_contradiction_prompt,
+    build_single_call_contradiction_prompt,
 )
 
 
@@ -61,3 +65,12 @@ class TestPrompts(unittest.TestCase):
         self.assertIn("Sara", prompt)
         self.assertIn("KNOWS", prompt)
         self.assertIn("relation_id", prompt)
+
+    def test_build_contradiction_prompt(self):
+        chunks = [{"chunk_id": "c1", "source_file": "arjun.txt", "text": "Arjun told he went to Delhi"}]
+        entities = [{"id": "person_arjun", "name": "Arjun Dev", "type": "PERSON", "data": {}}]
+        prompt = build_contradiction_prompt(chunks, known_entities=entities)
+        self.assertIn("Arjun Dev", prompt)
+        self.assertIn("arjun.txt", prompt)
+        self.assertIn("CONTRADICTIONS", prompt)
+        self.assertIn("ALIBI_VS_EVIDENCE", CONTRADICTION_TYPES)

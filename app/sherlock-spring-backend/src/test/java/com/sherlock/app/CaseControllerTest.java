@@ -63,4 +63,24 @@ class CaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
+
+    @Test
+    void testGetContradictionsEndpoint() throws Exception {
+        CaseRequest request = new CaseRequest("Operation Test 2");
+        request.setCaseId("operation_test_200");
+        mockMvc.perform(post("/api/cases")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/cases/operation_test_200/contradictions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project").value("operation_test_200"))
+                .andExpect(jsonPath("$.totalContradictions").value(0));
+
+        mockMvc.perform(get("/api/cases/operation_test_200/contradictions/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.caseId").value("operation_test_200"));
+    }
 }
+

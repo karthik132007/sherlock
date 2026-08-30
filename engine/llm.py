@@ -1694,3 +1694,360 @@ def extract_timeline_auto(
         events = extract_timeline_batched(chunks, batch_size=batch_size, llm_config=cfg, verbose=verbose, sort_after=sort_after)
 
     return events, decision
+
+
+# ---------------------------------------------------------------------------
+# Contradiction Extraction Routines
+# ---------------------------------------------------------------------------
+
+def normalize_contradiction(
+    raw: Dict[str, Any],
+    default_source: str = "",
+    default_chunk: str = "",
+    index: int = 1,
+) -> Optional[Dict[str, Any]]:
+    """
+    Validate and normalize a raw contradiction record from LLM.
+    Returns normalized dict or None if invalid.
+    """
+    if not isinstance(raw, dict):
+        return None
+
+    # Summary / description extraction
+    summary = raw.get("summary") or raw.get("title") or raw.get("name") or ""
+    description = raw.get("description") or raw.get("explanation") or raw.get("details") or summary or ""
+    if not summary and not description:
+        return None
+    if not summary:
+        summary = description[:100] + ("..." if len(description) > 100 else "")
+
+    # Contradiction ID
+    contra_id = str(raw.get("contradiction_id") or raw.get("id") or f"contra_{index:03d}")
+    if not contra_id.startswith("contra_"):
+        contra_id = f"contra_{index:03d}"
+
+    # Type normalization
+    valid_types = {
+        "ALIBI_VS_EVIDENCE",
+        "STATEMENT_VS_STATEMENT",
+        "TIMELINE_CONFLICT",
+        "RELATIONSHIP_DENIAL",
+        "FINANCIAL_OR_RECORD_MISMATCH",
+        "PHYSICAL_VS_TESTIMONIAL",
+        "FACTUAL_INCONSISTENCY",
+    }
+    raw_type = str(raw.get("type", "FACTUAL_INCONSISTENCY")).strip().upper().replace(" ", "_").replace("-", "_")
+    if raw_type not in valid_types:
+        if "ALIBI" in raw_type or "CCTV" in raw_type or "LOCATION" in raw_type:
+            raw_type = "ALIBI_VS_EVIDENCE"
+        elif "STATEMENT" in raw_type or "TESTIMONY" in raw_type or "WITNESS" in raw_type:
+            raw_type = "STATEMENT_VS_STATEMENT"
+        elif "TIME" in raw_type or "DATE" in raw_type or "CHRONO" in raw_type:
+            raw_type = "TIMELINE_CONFLICT"
+        elif "RELATION" in raw_type or "DENIAL" in raw_type:
+            raw_type = "RELATIONSHIP_DENIAL"
+        elif "FINANC" in raw_type or "MONEY" in raw_type or "ACCOUNT" in raw_type or "RECORD" in raw_type:
+            raw_type = "FINANCIAL_OR_RECORD_MISMATCH"
+        elif "PHYSICAL" in raw_type or "FORENSIC" in raw_type or "MEDICAL" in raw_type:
+            raw_type = "PHYSICAL_VS_TESTIMONIAL"
+        else:
+            raw_type = "FACTUAL_INCONSISTENCY"
+
+    # Severity normalization
+    valid_severities = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+    raw_sev = str(raw.get("severity", "HIGH")).strip().upper()
+    if raw_sev not in valid_severities:
+        if raw_sev in {"SEVERE", "FATAL", "URGENT", "BLOCKER"}:
+            raw_sev = "CRITICAL"
+        elif raw_sev in {"MAJOR", "IMPORTANT"}:
+            raw_sev = "HIGH"
+        elif raw_sev in {"MODERATE", "NORMAL"}:
+            raw_sev = "MEDIUM"
+        elif raw_sev in {"MINOR", "INFO"}:
+            raw_sev = "LOW"
+        else:
+            raw_sev = "HIGH"
+
+    # Confidence normalization
+    try:
+        conf = float(raw.get("confidence", 0.9))
+        conf = max(0.0, min(1.0, conf))
+    except (ValueError, TypeError):
+        conf = 0.85
+
+    # Entities involved
+    raw_ents = raw.get("entities_involved") or raw.get("entities") or []
+    entities_involved: List[str] = []
+    if isinstance(raw_ents, list):
+        for e in raw_ents:
+            if isinstance(e, str) and e.strip():
+                entities_involved.append(e.strip())
+            elif isinstance(e, dict) and "name" in e:
+                entities_involved.append(str(e["name"]).strip())
+    elif isinstance(raw_ents, str) and raw_ents.strip():
+        entities_involved = [raw_ents.strip()]
+
+    # Conflicting points
+    raw_points = raw.get("conflicting_points") or raw.get("points") or raw.get("claims") or raw.get("evidence") or []
+    conflicting_points: List[Dict[str, Any]] = []
+    if isinstance(raw_points, list):
+        for pt in raw_points:
+            if isinstance(pt, dict):
+                p_claim = pt.get("claim") or pt.get("statement") or pt.get("text") or ""
+                p_source_file = pt.get("source_file") or default_source or ""
+                p_chunk_id = pt.get("chunk_id") or default_chunk or ""
+                p_speaker = pt.get("speaker_or_source") or pt.get("speaker") or pt.get("source") or p_source_file or ""
+                p_quote = pt.get("quote") or pt.get("evidence_text") or pt.get("excerpt") or p_claim
+                if p_claim or p_quote:
+                    conflicting_points.append({
+                        "claim": p_claim or p_quote,
+                        "speaker_or_source": p_speaker,
+                        "source_file": p_source_file,
+                        "chunk_id": p_chunk_id,
+                        "quote": p_quote,
+                    })
+            elif isinstance(pt, str) and pt.strip():
+                conflicting_points.append({
+                    "claim": pt.strip(),
+                    "speaker_or_source": default_source or "Evidence",
+                    "source_file": default_source,
+                    "chunk_id": default_chunk,
+                    "quote": pt.strip(),
+                })
+
+    # If conflicting_points is empty, provide a fallback from summary
+    if not conflicting_points:
+        conflicting_points = [
+            {
+                "claim": summary,
+                "speaker_or_source": raw.get("source_file") or default_source or "Source",
+                "source_file": raw.get("source_file") or default_source,
+                "chunk_id": raw.get("chunk_id") or default_chunk,
+                "quote": raw.get("quote") or raw.get("evidence_text") or summary,
+            }
+        ]
+
+    # Resolution status
+    valid_statuses = {"POTENTIAL_LIE", "SUSPICIOUS", "UNRESOLVED", "REQUIRES_VERIFICATION"}
+    raw_status = str(raw.get("resolution_status", "UNRESOLVED")).strip().upper().replace(" ", "_")
+    if raw_status not in valid_statuses:
+        if "LIE" in raw_status or "FALSE" in raw_status:
+            raw_status = "POTENTIAL_LIE"
+        elif "SUSPECT" in raw_status or "SUSPICIOUS" in raw_status:
+            raw_status = "SUSPICIOUS"
+        elif "VERIF" in raw_status or "CHECK" in raw_status:
+            raw_status = "REQUIRES_VERIFICATION"
+        else:
+            raw_status = "UNRESOLVED"
+
+    # Investigation lead
+    investigation_lead = (
+        raw.get("investigation_lead")
+        or raw.get("lead")
+        or raw.get("recommended_action")
+        or raw.get("interrogation_lead")
+        or ""
+    )
+
+    return {
+        "contradiction_id": contra_id,
+        "type": raw_type,
+        "summary": summary,
+        "description": description,
+        "severity": raw_sev,
+        "confidence": conf,
+        "entities_involved": entities_involved,
+        "conflicting_points": conflicting_points,
+        "resolution_status": raw_status,
+        "investigation_lead": investigation_lead,
+    }
+
+
+def _contradiction_dedup_key(contra: Dict[str, Any]) -> str:
+    """Generate normalized dedup key for contradiction based on type + entities + key words."""
+    ctype = contra.get("type", "")
+    ents = sorted([e.lower().strip() for e in contra.get("entities_involved", [])])
+    summary_words = sorted(list(set(re.findall(r"\w+", (contra.get("summary", "")).lower()))))
+    key_words = "_".join(summary_words[:6])
+    return f"{ctype}:{','.join(ents)}:{key_words}"
+
+
+def deduplicate_contradictions(contradictions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Deduplicate contradictions and re-assign sequential IDs."""
+    seen = set()
+    unique: List[Dict[str, Any]] = []
+    for c in contradictions:
+        k = _contradiction_dedup_key(c)
+        if k in seen:
+            continue
+        seen.add(k)
+        unique.append(c)
+
+    for i, c in enumerate(unique, 1):
+        c["contradiction_id"] = f"contra_{i:03d}"
+
+    return unique
+
+
+def extract_contradictions_batched(
+    chunks: List[Dict[str, Any]],
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    known_entities: Optional[List[Dict[str, Any]]] = None,
+    known_relations: Optional[List[Dict[str, Any]]] = None,
+    known_timeline: Optional[List[Dict[str, Any]]] = None,
+    verbose: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Extract contradictions across chunks in batches, using known case context.
+    """
+    from engine.prompts import CONTRADICTION_SYSTEM_PROMPT, build_contradiction_prompt
+
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(overrides=llm_config if isinstance(llm_config, dict) else None)
+    batches = create_batches(chunks, batch_size=batch_size)
+    if verbose:
+        print(f"[Sherlock LLM] Extracting contradictions from {len(chunks)} chunks in {len(batches)} batches (batch_size={batch_size})")
+
+    all_contradictions: List[Dict[str, Any]] = []
+
+    for i, batch in enumerate(batches, 1):
+        if verbose:
+            print(f"[Sherlock LLM] Contradictions Batch {i}/{len(batches)} ({len(batch)} chunks)...")
+
+        prompt = build_contradiction_prompt(
+            batch_chunks=batch,
+            known_entities=known_entities,
+            known_relations=known_relations,
+            known_timeline=known_timeline,
+            previous_contradictions=all_contradictions,
+        )
+
+        try:
+            response_text = call_llm(
+                user_prompt=prompt,
+                system_prompt=CONTRADICTION_SYSTEM_PROMPT,
+                llm_config=cfg,
+            )
+            raw_list = parse_json_array(response_text)
+        except Exception as e:
+            logger.warning(f"Contradictions batch {i} failed: {e}")
+            if verbose:
+                print(f"[Sherlock LLM] WARNING: Contradictions batch {i} failed: {e}")
+            raw_list = []
+
+        batch_source = batch[0].get("source_file", "") if batch else ""
+        batch_chunk = batch[0].get("chunk_id", "") if batch else ""
+
+        for item in raw_list:
+            norm = normalize_contradiction(item, default_source=batch_source, default_chunk=batch_chunk, index=len(all_contradictions) + 1)
+            if norm:
+                all_contradictions.append(norm)
+
+    unique_contradictions = deduplicate_contradictions(all_contradictions)
+    if verbose:
+        print(f"[Sherlock LLM] Contradiction extraction completed: {len(all_contradictions)} raw -> {len(unique_contradictions)} unique contradictions")
+
+    return unique_contradictions
+
+
+def extract_contradictions_single_call(
+    warehouse_text: str,
+    chunks: Optional[List[Dict[str, Any]]] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    known_entities: Optional[List[Dict[str, Any]]] = None,
+    known_relations: Optional[List[Dict[str, Any]]] = None,
+    known_timeline: Optional[List[Dict[str, Any]]] = None,
+    verbose: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Extract contradictions from whole warehouse text in a single LLM call.
+    """
+    from engine.prompts import CONTRADICTION_SYSTEM_PROMPT, build_single_call_contradiction_prompt
+
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(overrides=llm_config if isinstance(llm_config, dict) else None)
+    if verbose:
+        print(f"[Sherlock LLM] Single-call contradiction extraction ({len(warehouse_text)} chars)...")
+
+    prompt = build_single_call_contradiction_prompt(
+        warehouse_text=warehouse_text,
+        known_entities=known_entities,
+        known_relations=known_relations,
+        known_timeline=known_timeline,
+    )
+
+    try:
+        response_text = call_llm(
+            user_prompt=prompt,
+            system_prompt=CONTRADICTION_SYSTEM_PROMPT,
+            llm_config=cfg,
+        )
+        raw_list = parse_json_array(response_text)
+    except Exception as e:
+        logger.warning(f"Single-call contradiction extraction failed: {e}")
+        if verbose:
+            print(f"[Sherlock LLM] WARNING: Single-call contradictions failed: {e}")
+        raw_list = []
+
+    contradictions = []
+    for i, item in enumerate(raw_list, 1):
+        norm = normalize_contradiction(item, default_source="warehouse.txt", default_chunk="", index=i)
+        if norm:
+            contradictions.append(norm)
+
+    unique_contradictions = deduplicate_contradictions(contradictions)
+    if verbose:
+        print(f"[Sherlock LLM] Single-call contradictions done: {len(raw_list)} raw -> {len(unique_contradictions)} unique contradictions")
+    return unique_contradictions
+
+
+def extract_contradictions_auto(
+    warehouse_text: str,
+    chunks: List[Dict[str, Any]],
+    context_window: Optional[int] = None,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    prefer_batched_when_fits: bool = False,
+    known_entities: Optional[List[Dict[str, Any]]] = None,
+    known_relations: Optional[List[Dict[str, Any]]] = None,
+    known_timeline: Optional[List[Dict[str, Any]]] = None,
+    verbose: bool = True,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Auto-decide strategy based on token window, then extract contradictions.
+    Contradictions benefit from global cross-referencing, so single-call when fits is preferred (prefer_batched_when_fits=False).
+    """
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(project_path, overrides=llm_config if isinstance(llm_config, dict) else None)
+    if model:
+        cfg.model = model
+    effective_window = context_window if context_window is not None else cfg.context_window
+    decision = decide_strategy(
+        warehouse_text, chunks, context_window=effective_window, prefer_batched_when_fits=prefer_batched_when_fits
+    )
+    if verbose:
+        print(f"[Sherlock LLM] Contradictions token check: {decision['estimated_tokens']} tokens (window {effective_window}) | fits={decision['fits_in_context']} | strategy={decision['strategy']} | provider={cfg.provider} model={cfg.model}")
+
+    if decision["strategy"] == "single_call":
+        contradictions = extract_contradictions_single_call(
+            warehouse_text,
+            chunks=chunks,
+            llm_config=cfg,
+            known_entities=known_entities,
+            known_relations=known_relations,
+            known_timeline=known_timeline,
+            verbose=verbose,
+        )
+    else:
+        contradictions = extract_contradictions_batched(
+            chunks,
+            batch_size=batch_size,
+            llm_config=cfg,
+            known_entities=known_entities,
+            known_relations=known_relations,
+            known_timeline=known_timeline,
+            verbose=verbose,
+        )
+
+    return contradictions, decision
+

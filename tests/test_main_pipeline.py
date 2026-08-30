@@ -215,3 +215,58 @@ END_SOURCE: a.txt
             # despite two raw entities with alias, merged should be 1
             self.assertEqual(len(result["entities"]), 1)
             self.assertEqual(result["entities"][0]["name"], "Rose Mathew")
+
+    @patch("engine.llm.call_llm")
+    def test_contradictions_pipeline_mocked(self, mock_call):
+        mock_call.return_value = json.dumps([
+            {
+                "contradiction_id": "contra_001",
+                "type": "ALIBI_VS_EVIDENCE",
+                "summary": "Arjun Delhi travel claim vs Mumbai CCTV footage",
+                "description": "Arjun claims he was in Delhi, but CCTV captured him in Mumbai.",
+                "severity": "CRITICAL",
+                "confidence": 0.96,
+                "entities_involved": ["Arjun Dev", "Gateway Hotel"],
+                "conflicting_points": [
+                    {
+                        "claim": "Arjun claimed he flew to Delhi",
+                        "speaker_or_source": "Arjun Dev",
+                        "source_file": "witness.txt",
+                        "chunk_id": "c1",
+                        "quote": "I took the flight to Delhi",
+                    },
+                    {
+                        "claim": "CCTV recorded Arjun in Mumbai",
+                        "speaker_or_source": "CCTV Log",
+                        "source_file": "cctv.txt",
+                        "chunk_id": "c2",
+                        "quote": "CCTV captured Arjun in Mumbai",
+                    },
+                ],
+                "resolution_status": "POTENTIAL_LIE",
+                "investigation_lead": "Interrogate Arjun with CCTV footage",
+            }
+        ])
+
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td) / "case_contra"
+            proj.mkdir()
+            (proj / "warehouse.txt").write_text("""========================================
+SOURCE_FILE: witness.txt
+SOURCE_TYPE: TEXT
+========================================
+
+Arjun claimed he flew to Delhi.
+
+========================================
+END_SOURCE: witness.txt
+========================================
+""", encoding="utf-8")
+            (proj / "llm.json").write_text(json.dumps({"provider": "openai", "model": "gpt-4o-mini", "api_key": "sk-test", "context_window": 128000}), encoding="utf-8")
+
+            from engine.contradictions import run_contradictions_pipeline
+            result = run_contradictions_pipeline(proj, batch_size=20, verbose=False)
+            self.assertEqual(len(result["contradictions"]), 1)
+            self.assertEqual(result["contradictions"][0]["type"], "ALIBI_VS_EVIDENCE")
+            self.assertTrue((proj / "processed" / "contradictions.json").exists())
+

@@ -15,6 +15,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +36,13 @@ public class MainFrameView extends BorderPane {
 
     private final GraphCanvas graphCanvas = new GraphCanvas();
     private final TimelinePanel timelinePanel = new TimelinePanel(this::startTimelineExtraction);
+    private final ContradictionsPanel contradictionsPanel = new ContradictionsPanel(this::startContradictionsExtraction);
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
     private Button investigateBtn;
+    private ToggleButton graphBtn;
+    private ToggleButton timelineBtn;
+    private ToggleButton contradictionsBtn;
 
     public MainFrameView(SherlockBackendClient client, Runnable onNewCaseRequested) {
         this.client = client;
@@ -141,6 +146,15 @@ public class MainFrameView extends BorderPane {
                     System.err.println("Failed to load timeline data: " + ex.getMessage());
                     return null;
                 });
+
+        client.getContradictionsAsync(caseId)
+                .thenAccept(contraData -> Platform.runLater(() -> {
+                    contradictionsPanel.setContradictionsData(contraData);
+                }))
+                .exceptionally(ex -> {
+                    System.err.println("Failed to load contradictions data: " + ex.getMessage());
+                    return null;
+                });
     }
 
     private VBox buildSidebar() {
@@ -171,6 +185,20 @@ public class MainFrameView extends BorderPane {
         });
 
         Button navGraph = createNavButton("🕸", "Knowledge Graph");
+        navGraph.setOnAction(e -> {
+            if (graphBtn != null) graphBtn.setSelected(true);
+        });
+
+        Button navTimeline = createNavButton("⏳", "Timeline");
+        navTimeline.setOnAction(e -> {
+            if (timelineBtn != null) timelineBtn.setSelected(true);
+        });
+
+        Button navContradictions = createNavButton("⚡", "Contradictions");
+        navContradictions.setOnAction(e -> {
+            if (contradictionsBtn != null) contradictionsBtn.setSelected(true);
+        });
+
         Button navSearch = createNavButton("🔍", "Search");
         Button navDocs = createNavButton("📄", "Documents");
         Button navSaved = createNavButton("🔖", "Saved Views");
@@ -178,7 +206,7 @@ public class MainFrameView extends BorderPane {
         Button navSettings = createNavButton("⚙️", "Settings");
         navSettings.setOnAction(e -> showSettingsDialog());
 
-        navMenu.getChildren().addAll(navHome, navGraph, navSearch, navDocs, navSaved, navData, navSettings);
+        navMenu.getChildren().addAll(navHome, navGraph, navTimeline, navContradictions, navSearch, navDocs, navSaved, navData, navSettings);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -249,10 +277,12 @@ public class MainFrameView extends BorderPane {
         searchBar.setPrefWidth(300);
 
         ToggleGroup group = new ToggleGroup();
-        ToggleButton graphBtn = new ToggleButton("🕸 Graph View");
-        ToggleButton timelineBtn = new ToggleButton("⏳ Timeline View");
+        graphBtn = new ToggleButton("🕸 Graph View");
+        timelineBtn = new ToggleButton("⏳ Timeline View");
+        contradictionsBtn = new ToggleButton("⚡ Contradictions");
         graphBtn.setToggleGroup(group);
         timelineBtn.setToggleGroup(group);
+        contradictionsBtn.setToggleGroup(group);
         graphBtn.setSelected(true);
 
         Runnable updateStyles = () -> {
@@ -264,6 +294,8 @@ public class MainFrameView extends BorderPane {
                     + "-fx-background-radius: 6px;");
             timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors)
                     + "-fx-background-radius: 6px;");
+            contradictionsBtn.setStyle(baseStyle + (contradictionsBtn.isSelected() ? selColors : unselColors)
+                    + "-fx-background-radius: 6px;");
         };
 
         graphBtn.selectedProperty().addListener((obs, old, isSel) -> {
@@ -273,6 +305,10 @@ public class MainFrameView extends BorderPane {
                 graphCanvas.setManaged(true);
                 timelinePanel.setVisible(false);
                 timelinePanel.setManaged(false);
+                contradictionsPanel.setVisible(false);
+                contradictionsPanel.setManaged(false);
+                detailsPanel.setVisible(true);
+                detailsPanel.setManaged(true);
             }
         });
 
@@ -283,6 +319,24 @@ public class MainFrameView extends BorderPane {
                 timelinePanel.setManaged(true);
                 graphCanvas.setVisible(false);
                 graphCanvas.setManaged(false);
+                contradictionsPanel.setVisible(false);
+                contradictionsPanel.setManaged(false);
+                detailsPanel.setVisible(true);
+                detailsPanel.setManaged(true);
+            }
+        });
+
+        contradictionsBtn.selectedProperty().addListener((obs, old, isSel) -> {
+            updateStyles.run();
+            if (isSel) {
+                contradictionsPanel.setVisible(true);
+                contradictionsPanel.setManaged(true);
+                graphCanvas.setVisible(false);
+                graphCanvas.setManaged(false);
+                timelinePanel.setVisible(false);
+                timelinePanel.setManaged(false);
+                detailsPanel.setVisible(false);
+                detailsPanel.setManaged(false);
             }
         });
 
@@ -295,7 +349,7 @@ public class MainFrameView extends BorderPane {
 
         HBox toggleWrapper = new HBox(4);
         toggleWrapper.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 8px; -fx-padding: 4px;");
-        toggleWrapper.getChildren().addAll(graphBtn, timelineBtn);
+        toggleWrapper.getChildren().addAll(graphBtn, timelineBtn, contradictionsBtn);
 
         Region hSpacer = new Region();
         HBox.setHgrow(hSpacer, Priority.ALWAYS);
@@ -312,13 +366,15 @@ public class MainFrameView extends BorderPane {
         header.getChildren().addAll(searchBar, toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
                 nodeCountBadge, edgeCountBadge, refreshBtn);
 
-        // Stack for Graph/Timeline
+        // Stack for Graph/Timeline/Contradictions
         StackPane viewStack = new StackPane();
         VBox.setVgrow(viewStack, Priority.ALWAYS);
 
         timelinePanel.setVisible(false);
         timelinePanel.setManaged(false);
-        viewStack.getChildren().addAll(graphCanvas, timelinePanel);
+        contradictionsPanel.setVisible(false);
+        contradictionsPanel.setManaged(false);
+        viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel);
 
         // Inspector
         detailsPanel.setMinHeight(180);
@@ -362,6 +418,17 @@ public class MainFrameView extends BorderPane {
 
         detailsPanel.setOnNavigateToEntity(entityName -> {
             if (entityName != null && !entityName.isBlank()) {
+                if (graphBtn != null) graphBtn.setSelected(true);
+                var node = graphCanvas.getNode(entityName);
+                if (node != null) {
+                    graphCanvas.selectAndFocusNode(node);
+                }
+            }
+        });
+
+        contradictionsPanel.setOnNavigateToEntity(entityName -> {
+            if (entityName != null && !entityName.isBlank()) {
+                if (graphBtn != null) graphBtn.setSelected(true);
                 var node = graphCanvas.getNode(entityName);
                 if (node != null) {
                     graphCanvas.selectAndFocusNode(node);
@@ -379,10 +446,37 @@ public class MainFrameView extends BorderPane {
             return;
         String caseId = currentCase.getCaseId();
 
-        // Use default alert dialog stylings for brevity, rely on global CSS
         client.startTimelineProcessingAsync(caseId).thenAccept(status -> {
             Platform.runLater(() -> {
-                refreshGraphData();
+                Stage owner = getScene() != null ? (Stage) getScene().getWindow() : null;
+                ProcessingLogsDialog dialog = new ProcessingLogsDialog(
+                        owner,
+                        "⏳ Timeline Reconstruction",
+                        "Extracting chronological timeline events from evidence...",
+                        () -> client.getTimelineProcessingStatusAsync(caseId),
+                        this::refreshGraphData
+                );
+                dialog.showAndStart();
+            });
+        });
+    }
+
+    private void startContradictionsExtraction() {
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
+        String caseId = currentCase.getCaseId();
+
+        client.startContradictionsProcessingAsync(caseId).thenAccept(status -> {
+            Platform.runLater(() -> {
+                Stage owner = getScene() != null ? (Stage) getScene().getWindow() : null;
+                ProcessingLogsDialog dialog = new ProcessingLogsDialog(
+                        owner,
+                        "⚡ Contradiction Detection",
+                        "Comparing statements, alibis, and evidence to detect contradictory facts...",
+                        () -> client.getContradictionsProcessingStatusAsync(caseId),
+                        this::refreshGraphData
+                );
+                dialog.showAndStart();
             });
         });
     }
@@ -394,7 +488,15 @@ public class MainFrameView extends BorderPane {
 
         client.startProcessingAsync(caseId).thenAccept(status -> {
             Platform.runLater(() -> {
-                refreshGraphData();
+                Stage owner = getScene() != null ? (Stage) getScene().getWindow() : null;
+                ProcessingLogsDialog dialog = new ProcessingLogsDialog(
+                        owner,
+                        "🚀 Sherlock Knowledge Graph Pipeline",
+                        "Extracting entities, relationships, timeline, and contradictions...",
+                        () -> client.getProcessingStatusAsync(caseId),
+                        this::refreshGraphData
+                );
+                dialog.showAndStart();
             });
         });
     }

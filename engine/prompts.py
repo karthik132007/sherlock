@@ -762,3 +762,284 @@ Return ONLY the JSON array of graph mappings.
 """
     return prompt
 
+
+# ---------------------------------------------------------------------------
+# Contradiction detection prompts — cross-source truth comparison & conflict extraction
+# ---------------------------------------------------------------------------
+
+CONTRADICTION_TYPES = [
+    "ALIBI_VS_EVIDENCE",              # Suspect claims to be in location A, but CCTV / call tower / witness puts them in location B
+    "STATEMENT_VS_STATEMENT",        # Witness A states fact X, Witness B states contradictory fact Y
+    "TIMELINE_CONFLICT",             # Forensic TOD or timestamps conflict with claimed actions / meetings
+    "RELATIONSHIP_DENIAL",           # Entity denies relationship or contact, but records / messages prove it
+    "FINANCIAL_OR_RECORD_MISMATCH",  # Claimed transactions / employment / logs disagree with official records
+    "PHYSICAL_VS_TESTIMONIAL",       # Physical evidence (fingerprints, weapon, damage) disproves verbal testimony
+    "FACTUAL_INCONSISTENCY",         # General mutual exclusion between facts stated in evidence
+]
+
+CONTRADICTION_SYSTEM_PROMPT = """You are Sherlock, an elite criminal investigation intelligence AI specializing in cross-source evidence comparison and contradiction detection.
+
+YOUR MISSION:
+Analyze the provided investigation evidence (witness statements, FIRs, forensic reports, CCTV logs, call records, financial statements) and identify all CONTRADICTIONS, FALSE ALIBIS, MUTUALLY EXCLUSIVE CLAIMS, and FACTUAL INCONSISTENCIES across different sources or within the same source.
+
+ALLOWED CONTRADICTION TYPES:
+- ALIBI_VS_EVIDENCE: A person claims an alibi (e.g. was in Delhi), but physical evidence, logs, or CCTV place them elsewhere (e.g. Mumbai).
+- STATEMENT_VS_STATEMENT: Two witnesses or participants give directly conflicting accounts of the same event, time, identity, or fact.
+- TIMELINE_CONFLICT: A stated sequence or time of events directly conflicts with established forensic timestamps, call records, or time of death.
+- RELATIONSHIP_DENIAL: A person denies knowing, meeting, or contacting someone, while phone records, messages, or witnesses prove contact.
+- FINANCIAL_OR_RECORD_MISMATCH: A verbal claim regarding money, documents, or official status contradicts paper/electronic records.
+- PHYSICAL_VS_TESTIMONIAL: Physical / forensic / medical evidence contradicts what a witness or suspect claims happened.
+- FACTUAL_INCONSISTENCY: Any other direct factual clash where both statements cannot simultaneously be true.
+
+═══════════════════════════════════════════
+RULES FOR ACCURATE CONTRADICTION DETECTION:
+═══════════════════════════════════════════
+1. MUTUAL EXCLUSIVITY: A contradiction exists ONLY when two statements or facts CANNOT BOTH BE TRUE at the same time in reality.
+   - Genuine contradiction: "Arjun stated he was in Delhi at 4 PM" VS "CCTV records Arjun entering hotel in Mumbai at 4 PM".
+   - NOT a contradiction: "Arjun was wearing a jacket" and "Arjun was wearing jeans" (they are complementary details, not clashing).
+2. EVIDENCE GROUNDING: Every contradiction must be grounded in explicit quotes and source provenance (source_file, chunk_id). Do NOT invent or hallucinate claims.
+3. CONFLICTING POINTS: Each contradiction must detail at least 2 conflicting sides/points with:
+   - claim: concise summary of the point
+   - speaker_or_source: who stated it or which record documented it (e.g. "Arjun Dev (Witness Statement)", "CCTV Log")
+   - source_file: source filename
+   - chunk_id: chunk ID where it appears
+   - quote: verbatim text snippet from the chunk
+4. SEVERITY RATING:
+   - CRITICAL: Direct alibi breakdown, murder weapon dispute, or false statement about the core crime event.
+   - HIGH: Major conflict in timeline, presence at crime scene, or denied relationship with victim/suspect.
+   - MEDIUM: Discrepancy in secondary timings, vehicle color, sequence of minor events, or financial amounts.
+   - LOW: Minor ambiguity or slight variation in non-critical descriptive details.
+5. INVESTIGATION LEADS: Provide an actionable follow-up interrogation question or investigative next-step for detectives.
+6. DEDUPLICATION: If previous contradictions are provided, DO NOT re-emit duplicates that describe the same core factual clash.
+7. OUTPUT: Return ONLY a valid JSON array of contradiction objects. If no contradictions exist, return [].
+"""
+
+
+def build_contradiction_prompt(
+    batch_chunks: List[Dict[str, Any]],
+    known_entities: List[Dict[str, Any]] | None = None,
+    known_relations: List[Dict[str, Any]] | None = None,
+    known_timeline: List[Dict[str, Any]] | None = None,
+    previous_contradictions: List[Dict[str, Any]] | None = None,
+) -> str:
+    """
+    Build user prompt for contradiction detection on a batch of chunks,
+    enriched with known background context from processed/ (entities, relations, timeline).
+    """
+    known_entities = known_entities or []
+    known_relations = known_relations or []
+    known_timeline = known_timeline or []
+    previous_contradictions = previous_contradictions or []
+
+    # Format contextual background concisely
+    ent_summary = []
+    for e in known_entities[:60]:
+        e_name = e.get("name", "")
+        e_type = e.get("type", "")
+        e_data = e.get("data", {})
+        e_aliases = e.get("aliases", [])
+        alias_str = f" (aliases: {', '.join(e_aliases)})" if e_aliases else ""
+        data_str = f" | data: {json.dumps(e_data, ensure_ascii=False)}" if e_data else ""
+        ent_summary.append(f"- {e_name} [{e_type}]{alias_str}{data_str}")
+    entities_context = "\n".join(ent_summary) if ent_summary else "None"
+
+    rel_summary = []
+    for r in known_relations[:60]:
+        src = r.get("source", "")
+        if isinstance(src, dict):
+            src = src.get("name", "")
+        rel = r.get("relation", "")
+        tgt = r.get("target", "")
+        if isinstance(tgt, dict):
+            tgt = tgt.get("name", "")
+        rel_summary.append(f"- {src} --[{rel}]--> {tgt}")
+    relations_context = "\n".join(rel_summary) if rel_summary else "None"
+
+    tl_summary = []
+    for ev in known_timeline[:40]:
+        ts = ev.get("timestamp", "")
+        desc = ev.get("event", ev.get("title", ""))
+        src = ev.get("source_file", "")
+        tl_summary.append(f"- [{ts}] {desc} (source: {src})")
+    timeline_context = "\n".join(tl_summary) if tl_summary else "None"
+
+    prev_json = (
+        json.dumps(previous_contradictions, indent=2, ensure_ascii=False)
+        if previous_contradictions
+        else "[] (no previous contradictions detected yet)"
+    )
+
+    batch_text_parts: List[str] = []
+    for ch in batch_chunks:
+        batch_text_parts.append(
+            f"--- CHUNK {ch.get('chunk_id', 'unknown')} | SOURCE: {ch.get('source_file', 'unknown')} ---\n{ch.get('text', '')}\n"
+        )
+    batch_text = "\n".join(batch_text_parts)
+
+    if len(batch_text) > 120_000:
+        batch_text = batch_text[:120_000] + "\n...[TRUNCATED]"
+
+    prompt = f"""Compare the statements, facts, and evidence in the following chunks against each other and against established case knowledge to detect any CONTRADICTIONS, FALSE ALIBIS, or MUTUALLY EXCLUSIVE CLAIMS.
+
+═══════════════════════════════════════════
+ESTABLISHED CASE KNOWLEDGE (FOR CROSS-REFERENCE):
+═══════════════════════════════════════════
+
+KNOWN ENTITIES & ATTRIBUTES:
+{entities_context}
+
+KNOWN RELATIONSHIPS:
+{relations_context}
+
+CHRONOLOGICAL TIMELINE EVENTS:
+{timeline_context}
+
+PREVIOUSLY DETECTED CONTRADICTIONS (SKIP DUPLICATES):
+{prev_json}
+
+═══════════════════════════════════════════
+EVIDENCE CHUNKS TO ANALYZE (batch of {len(batch_chunks)}):
+═══════════════════════════════════════════
+{batch_text}
+
+═══════════════════════════════════════════
+TASK:
+═══════════════════════════════════════════
+1. Find all contradictory facts between chunks, between witness statements, or between witness statements and records/CCTV/forensics/timeline.
+2. For each contradiction, return a structured JSON object:
+   - contradiction_id: "contra_001", "contra_002", etc.
+   - type: one of ALIBI_VS_EVIDENCE, STATEMENT_VS_STATEMENT, TIMELINE_CONFLICT, RELATIONSHIP_DENIAL, FINANCIAL_OR_RECORD_MISMATCH, PHYSICAL_VS_TESTIMONIAL, FACTUAL_INCONSISTENCY
+   - summary: short 1-sentence title
+   - description: detailed explanation of why the claims are contradictory and cannot simultaneously be true
+   - severity: CRITICAL | HIGH | MEDIUM | LOW
+   - confidence: 0.0-1.0
+   - entities_involved: array of canonical entity names involved
+   - conflicting_points: array of 2 or more opposing points:
+     * claim: summary of the specific claim/fact
+     * speaker_or_source: who stated it or which source reported it
+     * source_file: source filename from chunk
+     * chunk_id: chunk ID from chunk
+     * quote: exact verbatim quote supporting this point
+   - resolution_status: POTENTIAL_LIE | SUSPICIOUS | UNRESOLVED | REQUIRES_VERIFICATION
+   - investigation_lead: recommended interrogation question or investigative lead for detectives
+
+OUTPUT FORMAT (return ONLY valid JSON array, or [] if no contradictions found):
+[
+  {{
+    "contradiction_id": "contra_001",
+    "type": "ALIBI_VS_EVIDENCE",
+    "summary": "Arjun Dev's Delhi travel claim vs Mumbai CCTV footage",
+    "description": "Arjun Dev claimed in his statement that he flew to Delhi on April 14 and remained in his hotel room all evening, but Gateway Hotel CCTV records him entering their Mumbai lobby at 16:15.",
+    "severity": "CRITICAL",
+    "confidence": 0.96,
+    "entities_involved": ["Arjun Dev", "Gateway Hotel", "CCTV Camera 4"],
+    "conflicting_points": [
+      {{
+        "claim": "Arjun claimed he flew to Delhi and stayed in his hotel room all evening.",
+        "speaker_or_source": "Arjun Dev (Witness Statement)",
+        "source_file": "witness_arjun.txt",
+        "chunk_id": "witness_arjun_chunk_001",
+        "quote": "I took the morning flight to Delhi and stayed in my hotel room all evening."
+      }},
+      {{
+        "claim": "CCTV records Arjun Dev entering Gateway Hotel in Mumbai at 16:15.",
+        "speaker_or_source": "CCTV Security Log",
+        "source_file": "cctv_log.txt",
+        "chunk_id": "cctv_log_chunk_003",
+        "quote": "16:15:22 - Camera 4 captured Arjun Dev entering via South Lobby entrance."
+      }}
+    ],
+    "resolution_status": "POTENTIAL_LIE",
+    "investigation_lead": "Confront Arjun Dev with the Gateway Hotel Mumbai CCTV timestamp and subpoena airline manifests."
+  }}
+]
+"""
+    return prompt
+
+
+def build_single_call_contradiction_prompt(
+    warehouse_text: str,
+    known_entities: List[Dict[str, Any]] | None = None,
+    known_relations: List[Dict[str, Any]] | None = None,
+    known_timeline: List[Dict[str, Any]] | None = None,
+) -> str:
+    """
+    Prompt when the whole warehouse fits in context — send entire text and context for contradiction analysis.
+    """
+    known_entities = known_entities or []
+    known_relations = known_relations or []
+    known_timeline = known_timeline or []
+
+    ent_summary = []
+    for e in known_entities[:80]:
+        e_name = e.get("name", "")
+        e_type = e.get("type", "")
+        e_data = e.get("data", {})
+        data_str = f" | data: {json.dumps(e_data, ensure_ascii=False)}" if e_data else ""
+        ent_summary.append(f"- {e_name} [{e_type}]{data_str}")
+    entities_context = "\n".join(ent_summary) if ent_summary else "None"
+
+    rel_summary = []
+    for r in known_relations[:80]:
+        src = r.get("source", "")
+        if isinstance(src, dict):
+            src = src.get("name", "")
+        rel = r.get("relation", "")
+        tgt = r.get("target", "")
+        if isinstance(tgt, dict):
+            tgt = tgt.get("name", "")
+        rel_summary.append(f"- {src} --[{rel}]--> {tgt}")
+    relations_context = "\n".join(rel_summary) if rel_summary else "None"
+
+    tl_summary = []
+    for ev in known_timeline[:50]:
+        ts = ev.get("timestamp", "")
+        desc = ev.get("event", ev.get("title", ""))
+        src = ev.get("source_file", "")
+        tl_summary.append(f"- [{ts}] {desc} (source: {src})")
+    timeline_context = "\n".join(tl_summary) if tl_summary else "None"
+
+    if len(warehouse_text) > 400_000:
+        warehouse_text = warehouse_text[:400_000] + "\n...[TRUNCATED]"
+
+    prompt = f"""Analyze the entire case warehouse below and identify all CONTRADICTIONS, FALSE ALIBIS, TIMELINE CONFLICTS, and MUTUALLY EXCLUSIVE CLAIMS across all sources.
+
+═══════════════════════════════════════════
+ESTABLISHED CASE KNOWLEDGE (FOR CROSS-REFERENCE):
+═══════════════════════════════════════════
+
+KNOWN ENTITIES:
+{entities_context}
+
+KNOWN RELATIONSHIPS:
+{relations_context}
+
+CHRONOLOGICAL TIMELINE:
+{timeline_context}
+
+═══════════════════════════════════════════
+FULL CASE WAREHOUSE TEXT:
+═══════════════════════════════════════════
+{warehouse_text}
+
+═══════════════════════════════════════════
+TASK:
+═══════════════════════════════════════════
+1. Compare statements, timestamps, alibis, and observations across all files in the warehouse.
+2. Identify all direct contradictions and mutually exclusive facts.
+3. For each contradiction, return:
+   - contradiction_id: "contra_001", "contra_002", etc.
+   - type: ALIBI_VS_EVIDENCE | STATEMENT_VS_STATEMENT | TIMELINE_CONFLICT | RELATIONSHIP_DENIAL | FINANCIAL_OR_RECORD_MISMATCH | PHYSICAL_VS_TESTIMONIAL | FACTUAL_INCONSISTENCY
+   - summary: concise title
+   - description: thorough explanation of the contradiction
+   - severity: CRITICAL | HIGH | MEDIUM | LOW
+   - confidence: 0.0-1.0
+   - entities_involved: array of entity names
+   - conflicting_points: array of 2+ points (claim, speaker_or_source, source_file, chunk_id, quote)
+   - resolution_status: POTENTIAL_LIE | SUSPICIOUS | UNRESOLVED | REQUIRES_VERIFICATION
+   - investigation_lead: investigative advice / interrogation lead
+
+Return ONLY the JSON array of contradictions (or [] if none found). No markdown formatting or extra text.
+"""
+    return prompt
+

@@ -119,6 +119,21 @@ def parse_args() -> argparse.Namespace:
         help="For timeline, force batched mode even when warehouse fits (default: single_call when fits)",
     )
     parser.add_argument(
+        "--contradictions",
+        action="store_true",
+        help="Also run contradiction detection (cross-source truth comparison & false alibis -> contradictions.json)",
+    )
+    parser.add_argument(
+        "--contradictions-only",
+        action="store_true",
+        help="Run ONLY contradiction detection (skip entity/relationship extraction, uses processed/ context + chunks)",
+    )
+    parser.add_argument(
+        "--contradictions-prefer-batched",
+        action="store_true",
+        help="For contradictions, force batched mode even when warehouse fits (default: single_call when fits)",
+    )
+    parser.add_argument(
         "--query",
         type=str,
         default=None,
@@ -324,10 +339,28 @@ def main() -> None:
     except Exception:
         pass
 
-    # Optional: LLM entity/relationship extraction
-    if args.extract or args.timeline_only:
-        # If --timeline-only, skip entities/relationships but run timeline
-        if args.timeline_only:
+    # Optional: LLM extraction / timeline / contradictions
+    if args.extract or args.timeline_only or args.contradictions_only:
+        if args.contradictions_only:
+            print(f"[Sherlock] --contradictions-only enabled — starting ONLY contradiction detection (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+            try:
+                from engine.contradictions import run_contradictions_pipeline
+
+                c_result = run_contradictions_pipeline(
+                    project_path=project_path,
+                    batch_size=args.batch_size,
+                    context_window=effective_window,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    prefer_batched_when_fits=args.contradictions_prefer_batched,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Contradictions done: {len(c_result['contradictions'])} detected → {c_result['paths']['contradictions_json']}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Contradiction detection failed: {e}", file=sys.stderr)
+                logger.exception("Contradiction detection failed")
+                print(f"[Sherlock] Chunking succeeded; contradiction error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
+        elif args.timeline_only:
             print(f"[Sherlock] --timeline-only enabled — starting ONLY timeline extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
             try:
                 from engine.timeline import run_timeline_pipeline
@@ -361,6 +394,8 @@ def main() -> None:
                     extract_relationships=not args.no_relationships,
                     extract_timeline=args.timeline,
                     timeline_prefer_batched=args.timeline_prefer_batched,
+                    extract_contradictions=args.contradictions,
+                    contradictions_prefer_batched=args.contradictions_prefer_batched,
                     verbose=True,
                 )
                 print(f"[Sherlock] Extraction done: {len(result['entities'])} entities, {len(result['relationships'])} relationships")
@@ -369,31 +404,58 @@ def main() -> None:
                     print(f"[Sherlock] Timeline done: {tlen} events sorted chronologically")
                     if tlen and result.get("timeline_paths"):
                         print(f"[Sherlock] Timeline → {result['timeline_paths'].get('timeline_json')}")
+                if args.contradictions:
+                    clen = len(result.get("contradictions", []))
+                    print(f"[Sherlock] Contradictions done: {clen} detected")
+                    if clen and result.get("contradiction_paths"):
+                        print(f"[Sherlock] Contradictions → {result['contradiction_paths'].get('contradictions_json')}")
             except Exception as e:
                 print(f"[Sherlock] ERROR: LLM extraction failed: {e}", file=sys.stderr)
                 logger.exception("Extraction failed")
                 # Don't exit 1 for chunking success — extraction is stage 2
                 print(f"[Sherlock] Chunking succeeded; extraction error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
-    elif args.timeline:
-        # --timeline without --extract: run just timeline after chunking
-        print(f"[Sherlock] --timeline enabled — starting timeline extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
-        try:
-            from engine.timeline import run_timeline_pipeline
+    else:
+        if args.timeline:
+            # --timeline without --extract: run just timeline after chunking
+            print(f"[Sherlock] --timeline enabled — starting timeline extraction (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+            try:
+                from engine.timeline import run_timeline_pipeline
 
-            t_result = run_timeline_pipeline(
-                project_path=project_path,
-                batch_size=args.batch_size,
-                context_window=effective_window,
-                model=effective_model,
-                llm_config=llm_cfg,
-                prefer_batched_when_fits=args.timeline_prefer_batched,
-                verbose=True,
-            )
-            print(f"[Sherlock] Timeline done: {len(t_result['timeline'])} events sorted chronologically → {t_result['paths']['timeline_json']}")
-        except Exception as e:
-            print(f"[Sherlock] ERROR: Timeline extraction failed: {e}", file=sys.stderr)
-            logger.exception("Timeline extraction failed")
-            print(f"[Sherlock] Chunking succeeded; timeline error is non-fatal.", file=sys.stderr)
+                t_result = run_timeline_pipeline(
+                    project_path=project_path,
+                    batch_size=args.batch_size,
+                    context_window=effective_window,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    prefer_batched_when_fits=args.timeline_prefer_batched,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Timeline done: {len(t_result['timeline'])} events sorted chronologically → {t_result['paths']['timeline_json']}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Timeline extraction failed: {e}", file=sys.stderr)
+                logger.exception("Timeline extraction failed")
+                print(f"[Sherlock] Chunking succeeded; timeline error is non-fatal.", file=sys.stderr)
+
+        if args.contradictions:
+            # --contradictions without --extract: run contradictions after chunking
+            print(f"[Sherlock] --contradictions enabled — starting contradiction detection (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
+            try:
+                from engine.contradictions import run_contradictions_pipeline
+
+                c_result = run_contradictions_pipeline(
+                    project_path=project_path,
+                    batch_size=args.batch_size,
+                    context_window=effective_window,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    prefer_batched_when_fits=args.contradictions_prefer_batched,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Contradictions done: {len(c_result['contradictions'])} detected → {c_result['paths']['contradictions_json']}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Contradiction detection failed: {e}", file=sys.stderr)
+                logger.exception("Contradiction detection failed")
+                print(f"[Sherlock] Chunking succeeded; contradiction error is non-fatal.", file=sys.stderr)
 
     print(f"[Sherlock] Processing completed successfully")
 

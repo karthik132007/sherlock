@@ -387,6 +387,114 @@ public class CaseService {
         return status;
     }
 
+    public ProcessingStatus startContradictionsProcessing(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+
+        // Ensure warehouse.txt exists
+        Path warehousePath = caseDirectory.resolve("warehouse.txt");
+        if (!Files.exists(warehousePath)) {
+            try {
+                buildWarehouseFile(caseDirectory);
+            } catch (IOException e) {
+                log.error("Failed to build warehouse.txt before contradiction processing: {}", e.getMessage());
+            }
+        }
+
+        String pythonScript = resolvePythonScriptPath();
+        String pythonCommand = resolvePythonCommand(pythonScript);
+        List<String> commandTokens = new ArrayList<>();
+        commandTokens.add(pythonCommand);
+        commandTokens.add("-u");
+        commandTokens.add(pythonScript);
+        commandTokens.add(appProperties.getProcessArgument());
+        commandTokens.add(caseDirectory.toAbsolutePath().toString());
+        commandTokens.add("--contradictions-only");
+
+        ProcessingStatus status = new ProcessingStatus();
+        status.setCaseId(caseId);
+        status.setStatus("PROCESSING_CONTRADICTIONS");
+        status.setScriptPath(pythonScript);
+        status.setCommand(String.join(" ", commandTokens));
+        status.setMessage("Contradiction detection started...");
+        status.setCompleted(false);
+        status.setSuccess(false);
+
+        statusTracker.put(caseId + "_contradictions", status);
+
+        pipelineExecutor.submit(() -> {
+            try {
+                log.info("Executing Python contradictions command: {}", String.join(" ", commandTokens));
+                ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
+                processBuilder.directory(new File(pythonScript).getParentFile());
+                processBuilder.environment().put("PYTHONUNBUFFERED", "1");
+                processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
+                processBuilder.environment().put("PYTHONUTF8", "1");
+                processBuilder.redirectErrorStream(true);
+
+                Process process = processBuilder.start();
+
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        final String logLine = line;
+                        status.getLogs().add(logLine);
+                        status.setMessage(logLine);
+                        log.info("[Python Contradictions - {}] {}", caseId, logLine);
+                    }
+                }
+
+                int exitCode = process.waitFor();
+                status.setExitCode(exitCode);
+                status.setCompleted(true);
+
+                if (exitCode == 0) {
+                    status.setStatus("COMPLETED");
+                    status.setSuccess(true);
+                    status.setMessage("Contradictions detected successfully.");
+                } else {
+                    status.setStatus("FAILED");
+                    status.setSuccess(false);
+                    status.setMessage("Python contradiction pipeline finished with error exit code: " + exitCode);
+                }
+
+            } catch (Exception e) {
+                log.error("Error executing Python contradiction pipeline for case: {}", caseId, e);
+                status.setStatus("FAILED");
+                status.setCompleted(true);
+                status.setSuccess(false);
+                status.setMessage("Processing failed: " + e.getMessage());
+                status.getLogs().add("ERROR: " + e.getMessage());
+            }
+        });
+
+        return status;
+    }
+
+    public ProcessingStatus getContradictionsProcessingStatus(String caseId) {
+        ProcessingStatus status = statusTracker.get(caseId + "_contradictions");
+        if (status == null) {
+            Path caseDirectory = getCaseDirectory(caseId);
+            Path contraFile = caseDirectory.resolve("processed").resolve("contradictions.json");
+            status = new ProcessingStatus();
+            status.setCaseId(caseId);
+            if (Files.exists(contraFile)) {
+                status.setStatus("COMPLETED");
+                status.setCompleted(true);
+                status.setSuccess(true);
+                status.setMessage("Contradictions ready.");
+            } else {
+                status.setStatus("READY");
+                status.setCompleted(false);
+                status.setMessage("Ready for processing.");
+            }
+        }
+        return status;
+    }
+
     public ProcessingStatus startProcessing(String caseId) {
         Path caseDirectory = getCaseDirectory(caseId);
         if (!Files.exists(caseDirectory)) {
@@ -413,6 +521,7 @@ public class CaseService {
         commandTokens.add(caseDirectory.toAbsolutePath().toString());
         commandTokens.add("--extract");
         commandTokens.add("--timeline");
+        commandTokens.add("--contradictions");
 
         ProcessingStatus status = new ProcessingStatus();
         status.setCaseId(caseId);
@@ -694,6 +803,25 @@ public class CaseService {
         resp.setProject(caseId);
         resp.setSorted(true);
         resp.setTotalEvents(0);
+        return resp;
+    }
+
+    public ContradictionResponse getContradictions(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        Path contraFile = caseDirectory.resolve("processed").resolve("contradictions.json");
+
+        if (Files.exists(contraFile)) {
+            try {
+                return objectMapper.readValue(contraFile.toFile(), ContradictionResponse.class);
+            } catch (IOException e) {
+                log.warn("Failed to read contradictions.json for {}: {}", caseId, e.getMessage());
+            }
+        }
+
+        ContradictionResponse resp = new ContradictionResponse();
+        resp.setProject(caseId);
+        resp.setTotalContradictions(0);
+        resp.setSummary("No contradictions detected.");
         return resp;
     }
 

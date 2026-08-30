@@ -1,0 +1,32 @@
+{
+  "project": "sample_case",
+  "project_path": "/home/electron/Documents/GitHub/sherlock/data/sample_case",
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "total_contradictions": 0,
+  "summary": "No contradictions detected across evidence.",
+  "severity_breakdown": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0
+  },
+  "types_breakdown": {},
+  "status_breakdown": {},
+  "contradictions": [],
+  "items": [],
+  "token_decision": {
+    "chars": 166959,
+    "words": 23411,
+    "lines": 1914,
+    "estimated_tokens": 41739,
+    "context_window": 128000,
+    "fits_in_context": true,
+    "strategy": "single_call",
+    "batches_needed": 1,
+    "reason": "Fits in window (41739 <= 128000), sending whole warehouse in one LLM call (no chunking needed)."
+  }
+}

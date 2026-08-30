@@ -62,6 +62,8 @@ def run_extraction_pipeline(
     extract_relationships: bool = True,
     extract_timeline: bool = False,
     timeline_prefer_batched: bool = False,
+    extract_contradictions: bool = False,
+    contradictions_prefer_batched: bool = False,
     verbose: bool = True,
 ) -> Dict[str, Any]:
     """
@@ -78,13 +80,15 @@ def run_extraction_pipeline(
         extract_relationships: also run relationship extraction after entities
         extract_timeline: also run timeline extraction (batched LLM, sorted chronologically → timeline.json)
         timeline_prefer_batched: for timeline, if True force batched even when fits; default False (single_call more coherent)
+        extract_contradictions: also run contradiction detection (cross-chunk conflict extraction → contradictions.json)
+        contradictions_prefer_batched: for contradictions, force batched mode even when fits
         verbose: print progress
 
     Returns:
-        dict with keys: entities, relationships, timeline, token_decision, stats, llm_config
+        dict with keys: entities, relationships, timeline, contradictions, token_decision, stats, llm_config
 
     Side-effects:
-        Writes processed/entities.json, processed/relationships.json, processed/timeline.json (if enabled)
+        Writes processed/entities.json, processed/relationships.json, processed/timeline.json, processed/contradictions.json
     """
     project_path = Path(project_path).expanduser().resolve()
     warehouse_path = project_path / "warehouse.txt"
@@ -287,8 +291,41 @@ def run_extraction_pipeline(
             print(f"[Sherlock] WARNING: timeline extraction failed: {e}", file=sys.stderr)
             logger.warning("Timeline extraction failed", exc_info=True)
             # Non-fatal — keep empty timeline
+    # ------------------------------------------------------------------
+    # Contradiction detection: cross-source truth comparison & false alibis
+    # ------------------------------------------------------------------
+    contradictions: List[Dict[str, Any]] = []
+    contradiction_paths: Dict[str, Any] = {}
+    contradiction_decision: Optional[Dict[str, Any]] = None
+    if extract_contradictions:
+        if verbose:
+            print(f"[Sherlock] Starting contradiction detection (batch_size={batch_size}, prefer_batched={contradictions_prefer_batched})")
+        try:
+            from engine.contradictions import save_contradiction_outputs
+            from engine.llm import extract_contradictions_auto as _extract_contradictions_auto
+
+            contradictions, contradiction_decision = _extract_contradictions_auto(
+                warehouse_text=warehouse_text,
+                chunks=chunks,
+                context_window=effective_window,
+                batch_size=batch_size,
+                llm_config=cfg,
+                prefer_batched_when_fits=contradictions_prefer_batched,
+                known_entities=entities,
+                known_relations=relationships,
+                known_timeline=timeline_events,
+                verbose=verbose,
+            )
+            contradiction_paths = save_contradiction_outputs(
+                project_path, contradictions, token_decision=contradiction_decision, verbose=verbose
+            )
+            if verbose:
+                print(f"[Sherlock] Contradictions done: {len(contradictions)} detected → {contradiction_paths.get('contradictions_json')}")
+        except Exception as e:
+            print(f"[Sherlock] WARNING: contradiction extraction failed: {e}", file=sys.stderr)
+            logger.warning("Contradiction extraction failed", exc_info=True)
     elif verbose:
-        print(f"[Sherlock] Skipping timeline extraction — use --timeline to enable")
+        print(f"[Sherlock] Skipping contradiction detection — use --contradictions to enable")
 
     return {
         "entities": entities,
@@ -300,6 +337,9 @@ def run_extraction_pipeline(
         "timeline_events": timeline_events,  # alias
         "timeline_paths": timeline_paths,
         "timeline_decision": timeline_decision,
+        "contradictions": contradictions,
+        "contradiction_paths": contradiction_paths,
+        "contradiction_decision": contradiction_decision,
         "token_decision": decision,
         "stats": get_token_stats(warehouse_text),
         "llm_config": cfg,
@@ -314,15 +354,17 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(description="Sherlock — Entity & Relationship & Timeline Extraction (batched LLM, via llm.json)")
+    parser = argparse.ArgumentParser(description="Sherlock — Entity & Relationship & Timeline & Contradictions Extraction (batched LLM, via llm.json)")
     parser.add_argument("--project", required=True, help="Path to Sherlock project directory (must contain llm.json)")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="Chunks per LLM batch (default 20)")
     parser.add_argument("--context-window", type=int, default=None, help="LLM context window tokens (default: from llm.json/provider)")
     parser.add_argument("--model", type=str, default=None, help="LLM model (default: from llm.json)")
     parser.add_argument("--single-call", action="store_true", help="Prefer single-call when warehouse fits (instead of batched)")
     parser.add_argument("--no-relationships", action="store_true", help="Skip relationship extraction")
-    parser.add_argument("--timeline", action="store_true", help="Also run timeline extraction (chunks->LLM unsorted -> sort -> timeline.json)")
-    parser.add_argument("--timeline-prefer-batched", action="store_true", help="For timeline, force batched even when warehouse fits (default: single_call when fits)")
+    parser.add_argument("--timeline", action="store_true", help="Also run timeline extraction")
+    parser.add_argument("--timeline-prefer-batched", action="store_true", help="For timeline, force batched even when warehouse fits")
+    parser.add_argument("--contradictions", action="store_true", help="Also run contradiction detection")
+    parser.add_argument("--contradictions-prefer-batched", action="store_true", help="For contradictions, force batched mode")
     args = parser.parse_args()
 
     try:
@@ -335,11 +377,15 @@ if __name__ == "__main__":
             extract_relationships=not args.no_relationships,
             extract_timeline=args.timeline,
             timeline_prefer_batched=args.timeline_prefer_batched,
+            extract_contradictions=args.contradictions,
+            contradictions_prefer_batched=args.contradictions_prefer_batched,
             verbose=True,
         )
-        print(f"[Sherlock] Done — {len(result['entities'])} entities, {len(result['relationships'])} relationships, {len(result.get('timeline', []))} timeline events")
+        print(f"[Sherlock] Done — {len(result['entities'])} entities, {len(result['relationships'])} relationships, {len(result.get('timeline', []))} timeline events, {len(result.get('contradictions', []))} contradictions")
         if args.timeline and result.get("timeline_paths"):
             print(f"[Sherlock] Timeline → {result['timeline_paths'].get('timeline_json')}")
+        if args.contradictions and result.get("contradiction_paths"):
+            print(f"[Sherlock] Contradictions → {result['contradiction_paths'].get('contradictions_json')}")
     except Exception as e:
         print(f"[Sherlock] ERROR: {e}", file=sys.stderr)
         logger.exception("Extraction pipeline failed")
