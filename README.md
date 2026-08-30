@@ -472,27 +472,7 @@ See [`TEST_RESULTS.md`](TEST_RESULTS.md) for the latest full run (72/72 passing)
 
 ---
 
-## 🗺️ Roadmap
 
-- [x] Warehouse construction with source boundaries
-- [x] Token-window strategy + semantic chunking with provenance
-- [x] Entity extraction with alias merging
-- [x] Relationship extraction grounded on entity set
-- [x] Deterministic graph construction + processed JSON outputs
-- [x] Timeline extraction & normalization
-- [x] Contradiction detection
-- [x] Sherlock's Opinion (deep theory deduction)
-- [x] Bounded natural-language query agent with Cypher tool calls
-- [x] Spring Boot backend + JavaFX desktop UI
-- [x] Neo4j sync + scoped Cypher query execution
-- [x] Per-case LLM configuration + chat history
-- [ ] Import/export of cases (JSON/CSV evidence)
-- [ ] Multi-user / role-based access
-- [ ] Entity resolution against external knowledge bases
-- [ ] Advanced contradiction scoring & visualization
-- [ ] Evidence timeline animation / replay
-
----
 
 <div align="center">
 
