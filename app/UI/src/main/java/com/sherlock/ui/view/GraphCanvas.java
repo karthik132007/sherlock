@@ -306,12 +306,12 @@ public class GraphCanvas extends StackPane {
         searchRow.setAlignment(Pos.CENTER_LEFT);
 
         Label searchIcon = new Label("🔍");
-        searchIcon.setStyle("-fx-font-size: 11px;");
+        searchIcon.setStyle("-fx-font-size: 13.2px;");
 
         searchField = new TextField();
         searchField.setPromptText("Search entity / connection...");
         searchField.setStyle(
-                "-fx-font-size: 11px; -fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
+                "-fx-font-size: 13.2px; -fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-padding: 4px 8px; -fx-background-radius: 6px; -fx-pref-width: 170px;");
         searchField.textProperty().addListener((obs, oldV, newV) -> {
             searchQuery = newV != null ? newV.trim().toLowerCase(Locale.ROOT) : "";
             render();
@@ -326,7 +326,7 @@ public class GraphCanvas extends StackPane {
         });
 
         Button clearSearchBtn = new Button("✕");
-        clearSearchBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 4px; -fx-cursor: hand;");
+        clearSearchBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-padding: 0 4px; -fx-cursor: hand;");
         clearSearchBtn.setOnAction(e -> searchField.clear());
 
         searchRow.getChildren().addAll(searchIcon, searchField, clearSearchBtn);
@@ -357,9 +357,9 @@ public class GraphCanvas extends StackPane {
 
     private void updateFilterPillStyle(Button pill, boolean isSelected) {
         if (isSelected) {
-            pill.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: #ffffff; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+            pill.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: #ffffff; -fx-font-size: 10.8px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
         } else {
-            pill.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #64748b; -fx-font-size: 9px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
+            pill.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #64748b; -fx-font-size: 10.8px; -fx-padding: 2px 6px; -fx-background-radius: 4px; -fx-cursor: hand;");
         }
     }
 
@@ -458,7 +458,7 @@ public class GraphCanvas extends StackPane {
         box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 6px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
 
         Label title = new Label("Minimap (Interactive)");
-        title.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 11.4px; -fx-text-fill: #475569; -fx-font-weight: bold;");
 
         minimapCanvas.setWidth(130);
         minimapCanvas.setHeight(85);
@@ -474,7 +474,7 @@ public class GraphCanvas extends StackPane {
         box.setStyle("-fx-background-color: rgba(255, 255, 255, 0.75); -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 6px; -fx-border-width: 1px;");
 
         Label title = new Label("ENTITIES:");
-        title.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #475569; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 10.2px; -fx-text-fill: #475569; -fx-font-weight: bold;");
         box.getChildren().add(title);
 
         box.getChildren().add(legendItem(Color.web("#3B82F6"), "Person"));
@@ -492,7 +492,7 @@ public class GraphCanvas extends StackPane {
         row.setAlignment(Pos.CENTER_LEFT);
         Circle dot = new Circle(3, color);
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 8.5px; -fx-text-fill: #64748b;");
+        label.setStyle("-fx-font-size: 10.2px; -fx-text-fill: #64748b;");
         row.getChildren().addAll(dot, label);
         return row;
     }

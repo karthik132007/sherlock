@@ -116,7 +116,13 @@ def _read_tool_result(call_id: str) -> Dict[str, Any]:
 
 def _parse_action(raw: str) -> Dict[str, Any]:
     try:
-        parsed = json.loads(raw)
+        # Strip markdown fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = __import__("re").sub(r"^```(json)?", "", cleaned)
+            cleaned = __import__("re").sub(r"```$", "", cleaned).strip()
+        
+        parsed = json.loads(cleaned)
         return parsed if isinstance(parsed, dict) else {}
     except json.JSONDecodeError:
         logger.warning("Query LLM returned invalid JSON: %s", raw[:300])

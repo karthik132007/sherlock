@@ -106,7 +106,7 @@ public class InitialView extends BorderPane {
             historyContainer.getChildren().clear();
             if (cases.isEmpty()) {
                 Label empty = new Label("No cases found in project data directory.");
-                empty.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-style: italic;");
+                empty.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #64748b; -fx-font-style: italic;");
                 historyContainer.getChildren().add(empty);
             } else {
                 for (CaseDto c : cases) {
@@ -117,10 +117,10 @@ public class InitialView extends BorderPane {
 
                     VBox info = new VBox(4);
                     Label nameLbl = new Label(c.getCaseName() + " (" + c.getCaseId() + ")");
-                    nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0ea5e9; -fx-font-size: 15px;");
+                    nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0ea5e9; -fx-font-size: 18px;");
 
                     Label detailLbl = new Label(c.getFileCount() + " files • " + c.getStatus());
-                    detailLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
+                    detailLbl.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #64748b;");
                     info.getChildren().addAll(nameLbl, detailLbl);
 
                     Region sp = new Region();
@@ -128,7 +128,7 @@ public class InitialView extends BorderPane {
 
                     Button openBtn = new Button("Open ➔");
                     openBtn.getStyleClass().add("secondary-button");
-                    openBtn.setStyle("-fx-font-size: 10.5px; -fx-padding: 4px 10px;");
+                    openBtn.setStyle("-fx-font-size: 12.6px; -fx-padding: 4px 10px;");
                     openBtn.setOnAction(e -> {
                         if (onCaseLockedIn != null) {
                             onCaseLockedIn.accept(c);
@@ -178,14 +178,14 @@ public class InitialView extends BorderPane {
         HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         Label logo = new Label("✨");
-        logo.setStyle("-fx-font-size: 36px;");
+        logo.setStyle("-fx-font-size: 43.2px;");
 
         VBox titleBox = new VBox(0);
         Label title = new Label("Sherlock");
-        title.setStyle("-fx-font-size: 32px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 38.4px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         Label subTitle = new Label("AI INVESTIGATION INTELLIGENCE");
         subTitle.setStyle(
-                "-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
+                "-fx-font-size: 15.6px; -fx-font-weight: 700; -fx-text-fill: #64748b; -fx-letter-spacing: 1.5px;");
         titleBox.getChildren().addAll(title, subTitle);
 
         header.getChildren().addAll(logo, titleBox);
@@ -232,13 +232,13 @@ public class InitialView extends BorderPane {
         HBox titleRow = new HBox(8);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("👋");
-        icon.setStyle("-fx-font-size: 24px;");
+        icon.setStyle("-fx-font-size: 28.8px;");
         Label title = new Label("Welcome to SHERLOCK");
-        title.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 26.4px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
         Label subTitle = new Label("AI-Powered Investigation Intelligence Platform");
-        subTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
+        subTitle.setStyle("-fx-font-size: 16.8px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
 
         VBox bulletPoints = new VBox(16);
         bulletPoints.setPadding(new Insets(16, 0, 0, 0));
@@ -246,10 +246,10 @@ public class InitialView extends BorderPane {
         Label description = new Label(
                 "Sherlock transforms unstructured case evidence into an interactive, explainable knowledge graph. It enables investigators to instantly uncover hidden connections, reconstruct timelines, and map out complex relationships.");
         description.setWrapText(true);
-        description.setStyle("-fx-font-size: 15px; -fx-text-fill: #334155; -fx-line-spacing: 6px;");
+        description.setStyle("-fx-font-size: 18px; -fx-text-fill: #334155; -fx-line-spacing: 6px;");
 
         Label howItWorksTitle = new Label("How it works:");
-        howItWorksTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        howItWorksTitle.setStyle("-fx-font-size: 16.8px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         VBox.setMargin(howItWorksTitle, new Insets(10, 0, 0, 0));
 
         bulletPoints.getChildren().addAll(
@@ -272,10 +272,10 @@ public class InitialView extends BorderPane {
         HBox row = new HBox(12);
         row.setAlignment(Pos.TOP_LEFT);
         Label icon = new Label(emoji);
-        icon.setStyle("-fx-font-size: 14px;");
+        icon.setStyle("-fx-font-size: 16.8px;");
         Label lbl = new Label(text);
         lbl.setWrapText(true);
-        lbl.setStyle("-fx-font-size: 14px; -fx-text-fill: #475569; -fx-line-spacing: 4px;");
+        lbl.setStyle("-fx-font-size: 16.8px; -fx-text-fill: #475569; -fx-line-spacing: 4px;");
         row.getChildren().addAll(icon, lbl);
         return row;
     }
@@ -290,10 +290,10 @@ public class InitialView extends BorderPane {
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("📁");
-        icon.setStyle("-fx-font-size: 20px;");
+        icon.setStyle("-fx-font-size: 24px;");
 
         Label title = new Label("New / Open Case");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         headerRow.getChildren().addAll(icon, title);
 
         caseNameField.setPromptText("Enter Case Name or ID");
@@ -307,17 +307,17 @@ public class InitialView extends BorderPane {
         VBox.setVgrow(dropzone, Priority.ALWAYS);
 
         Label dropIcon = new Label("☁️");
-        dropIcon.setStyle("-fx-font-size: 28px;");
+        dropIcon.setStyle("-fx-font-size: 33.6px;");
 
         Label dropTitle = new Label("Upload files here (or drag & drop)");
-        dropTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        dropTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
 
         Label formats = new Label("• .txt   • .pdf   • .png allowed");
-        formats.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
+        formats.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #64748b;");
 
         Button browseBtn = new Button("Browse Files");
         browseBtn.getStyleClass().add("primary-button");
-        browseBtn.setStyle("-fx-font-size: 11px; -fx-padding: 6px 14px;");
+        browseBtn.setStyle("-fx-font-size: 13.2px; -fx-padding: 6px 14px;");
         browseBtn.setOnAction(e -> handleBrowseFiles());
 
         dropzone.getChildren().addAll(dropIcon, dropTitle, formats, browseBtn);
@@ -340,9 +340,9 @@ public class InitialView extends BorderPane {
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🔌");
-        icon.setStyle("-fx-font-size: 20px;");
+        icon.setStyle("-fx-font-size: 24px;");
         Label title = new Label("Connect AI & Models");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
         titleRow.getChildren().addAll(icon, title);
 
         GridPane grid = new GridPane();
@@ -358,7 +358,7 @@ public class InitialView extends BorderPane {
         // 1. API Key Input with Eye Toggle
         VBox keyBox = new VBox(8);
         Label keyLabel = new Label("Provide API key (Optional for local/demo)");
-        keyLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        keyLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         apiKeyField.setPromptText("sk-... (optional)");
         apiKeyVisibleField.setPromptText("sk-... (optional)");
@@ -395,7 +395,7 @@ public class InitialView extends BorderPane {
         // 2. Model Selection
         VBox modelBox = new VBox(8);
         Label modelLabel = new Label("Model Name");
-        modelLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        modelLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         modelCombo.setEditable(true);
         modelCombo.getItems().addAll(
@@ -413,7 +413,7 @@ public class InitialView extends BorderPane {
         // 3. Provider Selection
         VBox providerBox = new VBox(8);
         Label providerLabel = new Label("Provider Name");
-        providerLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+        providerLabel.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #475569;");
 
         providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama",
                 "Custom");
@@ -473,7 +473,7 @@ public class InitialView extends BorderPane {
         VBox hintBox = new VBox(4);
         hintBox.setAlignment(Pos.CENTER_LEFT);
         Label hintLbl = new Label("Please use the exact Provider and Model Name from the Docs");
-        hintLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
+        hintLbl.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
         hintBox.getChildren().add(hintLbl);
 
         grid.add(keyBox, 0, 0);
@@ -492,17 +492,17 @@ public class InitialView extends BorderPane {
         proceedBtn.getStyleClass().add("primary-button");
         proceedBtn.setMaxWidth(Double.MAX_VALUE);
         proceedBtn.setPrefHeight(60);
-        proceedBtn.setStyle("-fx-font-size: 18px;");
+        proceedBtn.setStyle("-fx-font-size: 21.6px;");
         proceedBtn.setOnAction(e -> handleProceed());
 
         HBox termsRow = new HBox(8);
         termsRow.setAlignment(Pos.CENTER);
 
-        termsCheckBox.setStyle("-fx-text-fill: #475569; -fx-font-size: 14px; -fx-font-weight: 600;");
+        termsCheckBox.setStyle("-fx-text-fill: #475569; -fx-font-size: 16.8px; -fx-font-weight: 600;");
         termsCheckBox.setSelected(true);
 
         Hyperlink termsLink = new Hyperlink("Read here");
-        termsLink.setStyle("-fx-text-fill: #2563eb; -fx-font-size: 14px; -fx-font-weight: 600;");
+        termsLink.setStyle("-fx-text-fill: #2563eb; -fx-font-size: 16.8px; -fx-font-weight: 600;");
         termsLink.setOnAction(e -> showTermsDialog());
 
         termsRow.getChildren().addAll(termsCheckBox, termsLink);
@@ -510,7 +510,7 @@ public class InitialView extends BorderPane {
         loadingIndicator.setMaxSize(20, 20);
         loadingIndicator.setVisible(false);
 
-        statusLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #e11d48; -fx-font-weight: 600;");
+        statusLabel.setStyle("-fx-font-size: 13.8px; -fx-text-fill: #e11d48; -fx-font-weight: 600;");
         statusLabel.setWrapText(true);
 
         HBox statusRow = new HBox(8, loadingIndicator, statusLabel);
@@ -528,16 +528,16 @@ public class InitialView extends BorderPane {
         HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("🕒");
-        icon.setStyle("-fx-font-size: 18px;");
+        icon.setStyle("-fx-font-size: 21.6px;");
         Label title = new Label("Recent Sherlock Cases (in project data/ folder)");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 19.2px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
 
         Button refreshBtn = new Button("↻ Refresh List");
         refreshBtn.getStyleClass().add("secondary-button");
-        refreshBtn.setStyle("-fx-font-size: 11px;");
+        refreshBtn.setStyle("-fx-font-size: 13.2px;");
         refreshBtn.setOnAction(e -> loadRecentCases());
 
         header.getChildren().addAll(icon, title, sp, refreshBtn);
@@ -604,11 +604,11 @@ public class InitialView extends BorderPane {
                     "-fx-background-color: #ffffff; -fx-padding: 4px 10px; -fx-background-radius: 8px; -fx-border-color: #e2e8f0; -fx-border-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);");
 
             Label name = new Label(file.getName());
-            name.setStyle("-fx-font-size: 11px; -fx-text-fill: #475569; -fx-font-weight: 600;");
+            name.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #475569; -fx-font-weight: 600;");
 
             Button removeBtn = new Button("✕");
             removeBtn.setStyle(
-                    "-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 10px; -fx-padding: 0 4px; -fx-cursor: hand;");
+                    "-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-padding: 0 4px; -fx-cursor: hand;");
             removeBtn.setOnAction(e -> {
                 selectedFiles.remove(file);
                 updateFileBadges();
@@ -631,7 +631,7 @@ public class InitialView extends BorderPane {
             return;
         }
 
-        statusLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #0ea5e9; -fx-font-weight: 600;");
+        statusLabel.setStyle("-fx-font-size: 13.8px; -fx-text-fill: #0ea5e9; -fx-font-weight: 600;");
         statusLabel.setText("Locking in with SHERLOCK...");
         proceedBtn.setDisable(true);
         loadingIndicator.setVisible(true);
@@ -668,7 +668,7 @@ public class InitialView extends BorderPane {
                     Platform.runLater(() -> {
                         proceedBtn.setDisable(false);
                         loadingIndicator.setVisible(false);
-                        statusLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #e11d48; -fx-font-weight: 600;");
+                        statusLabel.setStyle("-fx-font-size: 13.8px; -fx-text-fill: #e11d48; -fx-font-weight: 600;");
                         statusLabel.setText("Error: " + ex.getMessage());
                     });
                     return null;

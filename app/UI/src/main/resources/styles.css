@@ -52,13 +52,13 @@
 }
 
 .header-title {
-    -fx-font-size: 22px;
+    -fx-font-size: 26.4px;
     -fx-font-weight: 800;
     -fx-text-fill: #0f172a;
 }
 
 .sub-header {
-    -fx-font-size: 14px;
+    -fx-font-size: 16.8px;
     -fx-font-weight: 600;
     -fx-text-fill: #475569;
 }
@@ -68,7 +68,7 @@
     -fx-background-color: #0f172a;
     -fx-text-fill: #ffffff;
     -fx-font-weight: 700;
-    -fx-font-size: 16px;
+    -fx-font-size: 19.2px;
     -fx-background-radius: 8px;
     -fx-padding: 14px 28px;
     -fx-cursor: hand;
@@ -87,7 +87,7 @@
     -fx-background-color: rgba(255, 255, 255, 0.8);
     -fx-text-fill: #334155;
     -fx-font-weight: 600;
-    -fx-font-size: 14px;
+    -fx-font-size: 16.8px;
     -fx-background-radius: 8px;
     -fx-padding: 10px 20px;
     -fx-cursor: hand;
@@ -130,7 +130,7 @@
     -fx-background-color: transparent;
     -fx-text-fill: #475569;
     -fx-font-weight: 600;
-    -fx-font-size: 13px;
+    -fx-font-size: 15.6px;
     -fx-background-radius: 8px;
     -fx-padding: 10px 14px;
     -fx-cursor: hand;
@@ -157,7 +157,7 @@
     -fx-border-color: #e2e8f0;
     -fx-border-radius: 8px;
     -fx-padding: 12px 16px;
-    -fx-font-size: 15px;
+    -fx-font-size: 18px;
     -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);
 }
 
@@ -184,7 +184,7 @@
     -fx-padding: 8px 12px;
     -fx-background-radius: 8px;
     -fx-text-fill: #475569;
-    -fx-font-size: 13px;
+    -fx-font-size: 15.6px;
     -fx-font-weight: 600;
 }
 
@@ -216,7 +216,7 @@
 
 .layout-combo .list-cell {
     -fx-text-fill: #0f172a;
-    -fx-font-size: 12px;
+    -fx-font-size: 14.4px;
     -fx-font-weight: bold;
     -fx-background-color: transparent;
 }
@@ -235,7 +235,7 @@
     -fx-background-color: #f1f5f9;
     -fx-background-radius: 12px;
     -fx-padding: 4px 12px;
-    -fx-font-size: 11px;
+    -fx-font-size: 13.2px;
     -fx-font-weight: 600;
     -fx-text-fill: #475569;
     -fx-border-color: #e2e8f0;
@@ -309,7 +309,7 @@
 
 .tab-pane .tab .tab-label {
     -fx-text-fill: #64748b;
-    -fx-font-size: 12px;
+    -fx-font-size: 14.4px;
     -fx-font-weight: 600;
 }
 
@@ -380,7 +380,7 @@
 }
 
 .chat-timestamp {
-    -fx-font-size: 11px;
+    -fx-font-size: 13.2px;
     -fx-text-fill: #94a3b8;
 }
 
@@ -396,7 +396,7 @@
 .evidence-quote-text {
     -fx-font-style: italic;
     -fx-text-fill: #475569;
-    -fx-font-size: 12px;
+    -fx-font-size: 14.4px;
 }
 
 /* Glass Header / Toolbar */

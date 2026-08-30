@@ -40,6 +40,7 @@ public class MainFrameView extends BorderPane {
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
     private Button investigateBtn;
+    private StackPane centerContainer;
     private ToggleButton graphBtn;
     private ToggleButton timelineBtn;
     private ToggleButton contradictionsBtn;
@@ -169,9 +170,9 @@ public class MainFrameView extends BorderPane {
         brand.setAlignment(Pos.CENTER_LEFT);
         brand.setPadding(new Insets(0, 0, 16, 0));
         Label icon = new Label("✨");
-        icon.setStyle("-fx-font-size: 28px;");
+        icon.setStyle("-fx-font-size: 33.6px;");
         Label title = new Label("Sherlock");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 28.8px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         brand.getChildren().addAll(icon, title);
 
         // Navigation
@@ -199,14 +200,12 @@ public class MainFrameView extends BorderPane {
             if (contradictionsBtn != null) contradictionsBtn.setSelected(true);
         });
 
-        Button navSearch = createNavButton("🔍", "Search");
         Button navDocs = createNavButton("📄", "Documents");
         Button navSaved = createNavButton("🔖", "Saved Views");
-        Button navData = createNavButton("🗄", "Data Sources");
         Button navSettings = createNavButton("⚙️", "Settings");
         navSettings.setOnAction(e -> showSettingsDialog());
 
-        navMenu.getChildren().addAll(navHome, navGraph, navTimeline, navContradictions, navSearch, navDocs, navSaved, navData, navSettings);
+        navMenu.getChildren().addAll(navHome, navGraph, navTimeline, navContradictions, navDocs, navSettings);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -220,11 +219,11 @@ public class MainFrameView extends BorderPane {
         onlineStatus.setAlignment(Pos.CENTER_LEFT);
         Circle dot = new Circle(4, Color.web("#10b981"));
         Label onlineLbl = new Label("System Online");
-        onlineLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
+        onlineLbl.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
         onlineStatus.getChildren().addAll(dot, onlineLbl);
 
         Label version = new Label("v1.0.0");
-        version.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
+        version.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #94a3b8;");
         statusBox.getChildren().addAll(onlineStatus, version);
 
         // User Profile Mockup
@@ -240,9 +239,9 @@ public class MainFrameView extends BorderPane {
 
         VBox userInfo = new VBox(2);
         Label userName = new Label("Sherlock Admin");
-        userName.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        userName.setStyle("-fx-font-size: 16.8px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
         Label userRole = new Label("Investigator");
-        userRole.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
+        userRole.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #64748b;");
         userInfo.getChildren().addAll(userName, userRole);
 
         userBox.getChildren().addAll(avatar, userInfo);
@@ -271,10 +270,7 @@ public class MainFrameView extends BorderPane {
         header.getStyleClass().add("glass-toolbar");
         header.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6);");
 
-        TextField searchBar = new TextField();
-        searchBar.setPromptText("Ask anything or search the graph...");
-        searchBar.getStyleClass().add("text-field");
-        searchBar.setPrefWidth(300);
+        
 
         ToggleGroup group = new ToggleGroup();
         graphBtn = new ToggleButton("🕸 Graph View");
@@ -286,7 +282,7 @@ public class MainFrameView extends BorderPane {
         graphBtn.setSelected(true);
 
         Runnable updateStyles = () -> {
-            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 14px; -fx-padding: 8px 16px; ";
+            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 13.5px; -fx-padding: 6px 12px; ";
             String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
             String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
 
@@ -360,10 +356,10 @@ public class MainFrameView extends BorderPane {
 
         investigateBtn = new Button("🚀 Start Extraction");
         investigateBtn.getStyleClass().add("primary-button");
-        investigateBtn.setStyle("-fx-padding: 8px 16px; -fx-font-size: 14px;");
+        investigateBtn.setStyle("-fx-padding: 6px 12px; -fx-font-size: 14px;");
         investigateBtn.setOnAction(e -> startInvestigation());
 
-        header.getChildren().addAll(searchBar, toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
+        header.getChildren().addAll(toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
                 nodeCountBadge, edgeCountBadge, refreshBtn);
 
         // Stack for Graph/Timeline/Contradictions
@@ -375,16 +371,58 @@ public class MainFrameView extends BorderPane {
         contradictionsPanel.setVisible(false);
         contradictionsPanel.setManaged(false);
         viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel);
+        
+        viewStack.setOnMouseClicked(e -> {
+            detailsPanel.setPrefHeight(345.0);
+        });
 
-        // Inspector
-        detailsPanel.setMinHeight(180);
-        detailsPanel.setPrefHeight(240);
-        detailsPanel.setMaxHeight(320);
+        detailsPanel.setMinHeight(270.0);
+        detailsPanel.setPrefHeight(345.0);
 
-        center.getChildren().addAll(header, viewStack, detailsPanel);
+        SplitPane mainAreaSplit = new SplitPane();
+        mainAreaSplit.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        VBox.setVgrow(mainAreaSplit, Priority.ALWAYS);
+        
+        mainAreaSplit.getItems().addAll(viewStack, detailsPanel);
+        // Set initial divider position (e.g. 70% graph, 30% details)
+        mainAreaSplit.setDividerPositions(0.7);
+        
+        detailsPanel.setMinHeight(150.0);
+        detailsPanel.setPrefHeight(300.0);
+        detailsPanel.setMaxHeight(600.0);
+
+        center.getChildren().addAll(header, mainAreaSplit);
         return center;
     }
-
+    
+    private VBox buildHomeView() {
+        VBox home = new VBox(20);
+        home.setAlignment(Pos.CENTER);
+        Label lbl = new Label("Sherlock Home");
+        lbl.setStyle("-fx-font-size: 34.5px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        
+        
+        
+        home.getChildren().addAll(lbl);
+        return home;
+    }
+    
+    private VBox buildSavedViews() {
+        VBox saved = new VBox(20);
+        saved.setPadding(new Insets(40));
+        saved.setAlignment(Pos.TOP_LEFT);
+        
+        Label title = new Label("Saved Checkpoints");
+        title.setStyle("-fx-font-size: 30.7px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        
+        ListView<String> savedList = new ListView<>();
+        savedList.getItems().addAll("Checkpoint 1 - Initial Graph", "Checkpoint 2 - Suspect Connections");
+        VBox.setVgrow(savedList, Priority.ALWAYS);
+        
+        saved.getChildren().addAll(title, savedList);
+        return saved;
+    }
+    
     private VBox buildRightPanel() {
         VBox right = new VBox();
         right.setPrefWidth(380);
@@ -507,41 +545,196 @@ public class MainFrameView extends BorderPane {
 
         Dialog<LlmConfigDto> dialog = new Dialog<>();
         dialog.setTitle("Settings");
-        dialog.setHeaderText("Update Case Settings");
+        dialog.setHeaderText("Update Case Settings (Connect AI & Models)");
 
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        dialogPane.setStyle("-fx-background-color: #ffffff;");
+        dialogPane.setStyle("-fx-background-color: #ffffff; -fx-padding: 10px;");
 
-        // Quick dummy layout for settings to apply light theme
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
+        grid.setHgap(16);
+        grid.setVgap(12);
         grid.setPadding(new Insets(20));
 
-        TextField baseUrl = new TextField();
-        PasswordField apiKey = new PasswordField();
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(50);
+        grid.getColumnConstraints().addAll(col1, col2);
 
+        // 1. API Key Input with Eye Toggle
+        VBox keyBox = new VBox(8);
+        Label keyLabel = new Label("Provide API key (Optional for local/demo)");
+        keyLabel.setStyle("-fx-font-size: 18.7px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+
+        PasswordField apiKeyField = new PasswordField();
+        apiKeyField.setPromptText("sk-... (optional)");
+        TextField apiKeyVisibleField = new TextField();
+        apiKeyVisibleField.setPromptText("sk-... (optional)");
+        apiKeyVisibleField.setManaged(false);
+        apiKeyVisibleField.setVisible(false);
+
+        apiKeyField.textProperty().bindBidirectional(apiKeyVisibleField.textProperty());
+
+        Button toggleKeyVisibilityBtn = new Button("👁");
+        toggleKeyVisibilityBtn.getStyleClass().add("tool-button");
+        toggleKeyVisibilityBtn.setOnAction(e -> {
+            if (apiKeyField.isVisible()) {
+                apiKeyField.setVisible(false);
+                apiKeyField.setManaged(false);
+                apiKeyVisibleField.setVisible(true);
+                apiKeyVisibleField.setManaged(true);
+                toggleKeyVisibilityBtn.setText("🔒");
+            } else {
+                apiKeyVisibleField.setVisible(false);
+                apiKeyVisibleField.setManaged(false);
+                apiKeyField.setVisible(true);
+                apiKeyField.setManaged(true);
+                toggleKeyVisibilityBtn.setText("👁");
+            }
+        });
+
+        HBox keyInputRow = new HBox(8);
+        keyInputRow.setAlignment(Pos.CENTER_LEFT);
+        StackPane keyStack = new StackPane(apiKeyField, apiKeyVisibleField);
+        HBox.setHgrow(keyStack, Priority.ALWAYS);
+        keyInputRow.getChildren().addAll(keyStack, toggleKeyVisibilityBtn);
+
+        keyBox.getChildren().addAll(keyLabel, keyInputRow);
+
+        // 2. Model Selection
+        VBox modelBox = new VBox(8);
+        Label modelLabel = new Label("Model Name");
+        modelLabel.setStyle("-fx-font-size: 18.7px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+
+        ComboBox<String> modelCombo = new ComboBox<>();
+        modelCombo.setEditable(false);
+        modelCombo.getItems().addAll(
+                "gpt-4o-mini",
+                "gpt-4o",
+                "deepseek-chat",
+                "llama-3.3-70b-versatile",
+                "mistral-large-latest",
+                "ollama/llama3");
+        modelCombo.setValue("gpt-4o-mini");
+        modelCombo.setMaxWidth(Double.MAX_VALUE);
+
+        modelBox.getChildren().addAll(modelLabel, modelCombo);
+
+        // 3. Provider Selection
+        VBox providerBox = new VBox(8);
+        Label providerLabel = new Label("Provider Name");
+        providerLabel.setStyle("-fx-font-size: 18.7px; -fx-font-weight: 600; -fx-text-fill: #475569;");
+
+        ComboBox<String> providerCombo = new ComboBox<>();
+        providerCombo.getItems().addAll("OpenAI", "OpenRouter", "DeepSeek", "Groq", "Together", "Mistral", "Ollama",
+                "Custom");
+        providerCombo.setValue("OpenAI");
+        providerCombo.setMaxWidth(Double.MAX_VALUE);
+
+        providerCombo.setOnAction(e -> {
+            String p = providerCombo.getValue();
+            if ("Ollama".equalsIgnoreCase(p)) {
+                apiKeyField.setDisable(true);
+                apiKeyField.setText("");
+                apiKeyField.setPromptText("Local Ollama (No API Key Required)");
+                keyLabel.setText("API Key (Zero-key Local Ollama Mode)");
+                modelLabel.setText("Ollama Local Model");
+
+                client.getOllamaModelsAsync().thenAccept(models -> javafx.application.Platform.runLater(() -> {
+                    if (models != null && !models.isEmpty()) {
+                        modelCombo.getItems().setAll(models);
+                        modelCombo.setValue(models.get(0));
+                        modelCombo.setDisable(false);
+                    } else {
+                        modelCombo.getItems().clear();
+                        modelCombo.setPromptText("No Ollama models found");
+                        modelCombo.setValue(null);
+                        modelCombo.setDisable(true);
+                    }
+                }));
+            } else {
+                apiKeyField.setDisable(false);
+                apiKeyField.setPromptText("sk-... (required for cloud)");
+                keyLabel.setText("Provide API key");
+                modelLabel.setText("Model Name");
+                modelCombo.setDisable(false);
+
+                if ("DeepSeek".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("deepseek-chat", "deepseek-coder");
+                    modelCombo.setValue("deepseek-chat");
+                } else if ("Groq".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("llama-3.3-70b-versatile", "mixtral-8x7b-32768");
+                    modelCombo.setValue("llama-3.3-70b-versatile");
+                } else if ("OpenRouter".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet");
+                    modelCombo.setValue("openai/gpt-4o-mini");
+                } else if ("Mistral".equalsIgnoreCase(p)) {
+                    modelCombo.getItems().setAll("mistral-large-latest");
+                    modelCombo.setValue("mistral-large-latest");
+                } else {
+                    modelCombo.getItems().setAll("gpt-4o-mini", "gpt-4o");
+                    modelCombo.setValue("gpt-4o-mini");
+                }
+            }
+        });
+
+        providerBox.getChildren().addAll(providerLabel, providerCombo);
+
+        // 4. Docs Hint / Base URL
+        VBox hintBox = new VBox(8);
+        hintBox.setAlignment(Pos.CENTER_LEFT);
+        
+        TextField baseUrl = new TextField();
+        baseUrl.setPromptText("Optional Custom Base URL");
+        
+        Label hintLbl = new Label("Please use the exact Provider and Model Name from the Docs");
+        hintLbl.setStyle("-fx-font-size: 17.3px; -fx-text-fill: #94a3b8; -fx-font-style: italic;");
+        
+        hintBox.getChildren().addAll(baseUrl, hintLbl);
+
+        grid.add(keyBox, 0, 0);
+        grid.add(modelBox, 1, 0);
+        grid.add(providerBox, 0, 1);
+        grid.add(hintBox, 1, 1);
+
+        // Pre-fill existing config
         if (currentCase.getLlmConfig() != null) {
+            if (currentCase.getLlmConfig().getProvider() != null) {
+                String prov = currentCase.getLlmConfig().getProvider().toLowerCase();
+                if (prov.contains("openai")) providerCombo.setValue("OpenAI");
+                else if (prov.contains("anthropic") || prov.contains("openrouter")) providerCombo.setValue("OpenRouter");
+                else if (prov.contains("deepseek")) providerCombo.setValue("DeepSeek");
+                else if (prov.contains("groq")) providerCombo.setValue("Groq");
+                else if (prov.contains("mistral")) providerCombo.setValue("Mistral");
+                else if (prov.contains("ollama")) providerCombo.setValue("Ollama");
+                else providerCombo.setValue("Custom");
+            }
+            if (currentCase.getLlmConfig().getModel() != null && !currentCase.getLlmConfig().getModel().isBlank()) {
+                // Ensure model is in the list, if not add it
+                if (!modelCombo.getItems().contains(currentCase.getLlmConfig().getModel())) {
+                    modelCombo.getItems().add(currentCase.getLlmConfig().getModel());
+                }
+                modelCombo.setValue(currentCase.getLlmConfig().getModel());
+            }
             if (currentCase.getLlmConfig().getBaseUrl() != null)
                 baseUrl.setText(currentCase.getLlmConfig().getBaseUrl());
             if (currentCase.getLlmConfig().getApiKey() != null)
-                apiKey.setText(currentCase.getLlmConfig().getApiKey());
+                apiKeyField.setText(currentCase.getLlmConfig().getApiKey());
         }
 
-        grid.add(new Label("Base URL:"), 0, 0);
-        grid.add(baseUrl, 1, 0);
-        grid.add(new Label("API Key:"), 0, 1);
-        grid.add(apiKey, 1, 1);
-
         dialogPane.setContent(grid);
+        dialogPane.setPrefWidth(750);
 
         dialog.setResultConverter(button -> {
             if (button == ButtonType.OK) {
                 LlmConfigDto config = currentCase.getLlmConfig() != null ? currentCase.getLlmConfig()
                         : new LlmConfigDto();
+                
+                config.setProvider(providerCombo.getValue() != null ? providerCombo.getValue().toLowerCase() : "openai");
+                config.setModel(modelCombo.getValue());
                 config.setBaseUrl(baseUrl.getText());
-                config.setApiKey(apiKey.getText());
+                config.setApiKey(apiKeyField.getText());
                 return config;
             }
             return null;
@@ -549,6 +742,7 @@ public class MainFrameView extends BorderPane {
 
         dialog.showAndWait().ifPresent(config -> {
             client.updateLlmConfigAsync(currentCase.getCaseId(), config);
+            currentCase.setLlmConfig(config);
         });
     }
 }

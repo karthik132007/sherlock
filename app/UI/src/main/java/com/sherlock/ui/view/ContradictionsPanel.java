@@ -44,20 +44,20 @@ public class ContradictionsPanel extends ScrollPane {
         placeholderBox.setPadding(new Insets(40, 20, 40, 20));
 
         Label icon = new Label("⚠️");
-        icon.setStyle("-fx-font-size: 36px;");
+        icon.setStyle("-fx-font-size: 43.2px;");
 
         Label placeholder = new Label("No contradictions detected yet.");
-        placeholder.setStyle("-fx-text-fill: #0f172a; -fx-font-size: 16px; -fx-font-weight: bold;");
+        placeholder.setStyle("-fx-text-fill: #0f172a; -fx-font-size: 19.2px; -fx-font-weight: bold;");
 
         Label hint = new Label("Sherlock can compare witness statements, alibis, CCTV logs, and evidence across sources to uncover contradictory facts.");
-        hint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13px;");
+        hint.setStyle("-fx-text-fill: #64748b; -fx-font-size: 15.6px;");
         hint.setWrapText(true);
         hint.setMaxWidth(480);
         hint.setAlignment(Pos.CENTER);
 
         Button generateBtn = new Button("⚡ Detect Contradictions");
         generateBtn.getStyleClass().add("primary-button");
-        generateBtn.setStyle("-fx-font-weight: bold; -fx-padding: 10px 20px; -fx-font-size: 14px; -fx-background-radius: 6px; -fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand;");
+        generateBtn.setStyle("-fx-font-weight: bold; -fx-padding: 10px 20px; -fx-font-size: 16.8px; -fx-background-radius: 6px; -fx-background-color: #ef4444; -fx-text-fill: white; -fx-cursor: hand;");
         generateBtn.setOnAction(e -> {
             if (onGenerateContradictionsRequested != null) {
                 onGenerateContradictionsRequested.run();
@@ -95,13 +95,13 @@ public class ContradictionsPanel extends ScrollPane {
         topRow.setAlignment(Pos.CENTER_LEFT);
 
         Label title = new Label("⚡ Cross-Source Contradiction Analysis");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 19.2px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button recheckBtn = new Button("↻ Re-evaluate");
-        recheckBtn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-font-size: 12px; -fx-padding: 6px 12px; -fx-background-radius: 6px; -fx-cursor: hand;");
+        recheckBtn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-font-size: 14.4px; -fx-padding: 6px 12px; -fx-background-radius: 6px; -fx-cursor: hand;");
         recheckBtn.setOnAction(e -> {
             if (onGenerateContradictionsRequested != null) {
                 onGenerateContradictionsRequested.run();
@@ -115,7 +115,7 @@ public class ContradictionsPanel extends ScrollPane {
                 : "Detected " + dto.getTotalContradictions() + " contradiction(s) across case evidence.";
 
         Label summaryLbl = new Label(summaryText);
-        summaryLbl.setStyle("-fx-text-fill: #475569; -fx-font-size: 13px;");
+        summaryLbl.setStyle("-fx-text-fill: #475569; -fx-font-size: 15.6px;");
         summaryLbl.setWrapText(true);
 
         // Breakdown stats badges
@@ -167,7 +167,7 @@ public class ContradictionsPanel extends ScrollPane {
         Label typeBadge = createBadge(typeStr, "#475569", "#f1f5f9");
 
         Label idLabel = new Label(item.getContradictionId() != null ? item.getContradictionId() : "");
-        idLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px; -fx-font-family: monospace;");
+        idLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 13.2px; -fx-font-family: monospace;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -179,19 +179,19 @@ public class ContradictionsPanel extends ScrollPane {
 
         // Title / Summary
         Label titleLabel = new Label(item.getSummary() != null ? item.getSummary() : "Contradiction");
-        titleLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
         titleLabel.setWrapText(true);
 
         // Detailed Explanation
         Label descLabel = new Label(item.getDescription() != null ? item.getDescription() : "");
-        descLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #334155;");
+        descLabel.setStyle("-fx-font-size: 15.6px; -fx-text-fill: #334155;");
         descLabel.setWrapText(true);
 
         // Conflicting Points (comparative boxes)
         VBox pointsContainer = new VBox(8);
         if (item.getConflictingPoints() != null && !item.getConflictingPoints().isEmpty()) {
             Label pointsHeader = new Label("Conflicting Evidence Points:");
-            pointsHeader.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #64748b;");
+            pointsHeader.setStyle("-fx-font-size: 14.4px; -fx-font-weight: 700; -fx-text-fill: #64748b;");
             pointsContainer.getChildren().add(pointsHeader);
 
             for (int i = 0; i < item.getConflictingPoints().size(); i++) {
@@ -204,20 +204,20 @@ public class ContradictionsPanel extends ScrollPane {
 
                 Label speaker = new Label(pt.getSpeakerOrSource() != null && !pt.getSpeakerOrSource().isBlank()
                         ? pt.getSpeakerOrSource() : "Source " + (i + 1));
-                speaker.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #0f172a;");
+                speaker.setStyle("-fx-font-weight: bold; -fx-font-size: 14.4px; -fx-text-fill: #0f172a;");
 
                 String fileStr = pt.getSourceFile() != null ? "📄 " + pt.getSourceFile() : "";
                 Label fileLbl = new Label(fileStr);
-                fileLbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b;");
+                fileLbl.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #64748b;");
 
                 ptHeader.getChildren().addAll(speaker, fileLbl);
 
                 Label claimLbl = new Label("• Claim: " + (pt.getClaim() != null ? pt.getClaim() : ""));
-                claimLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #1e293b;");
+                claimLbl.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #1e293b;");
                 claimLbl.setWrapText(true);
 
                 Label quoteLbl = new Label("❝ " + (pt.getQuote() != null ? pt.getQuote() : "") + " ❞");
-                quoteLbl.setStyle("-fx-font-size: 12px; -fx-font-style: italic; -fx-text-fill: #475569;");
+                quoteLbl.setStyle("-fx-font-size: 14.4px; -fx-font-style: italic; -fx-text-fill: #475569;");
                 quoteLbl.setWrapText(true);
 
                 ptBox.getChildren().addAll(ptHeader, claimLbl, quoteLbl);
@@ -230,7 +230,7 @@ public class ContradictionsPanel extends ScrollPane {
         entityRow.setAlignment(Pos.CENTER_LEFT);
         if (item.getEntitiesInvolved() != null && !item.getEntitiesInvolved().isEmpty()) {
             Label entHeader = new Label("Entities:");
-            entHeader.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
+            entHeader.setStyle("-fx-font-size: 13.2px; -fx-font-weight: 600; -fx-text-fill: #64748b;");
             entityRow.getChildren().add(entHeader);
 
             FlowPane tags = new FlowPane();
@@ -238,7 +238,7 @@ public class ContradictionsPanel extends ScrollPane {
             tags.setVgap(6);
             for (String entity : item.getEntitiesInvolved()) {
                 Button tagBtn = new Button(entity);
-                tagBtn.setStyle("-fx-background-color: rgba(59, 130, 246, 0.1); -fx-text-fill: #1d4ed8; -fx-font-size: 11px; -fx-padding: 2px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
+                tagBtn.setStyle("-fx-background-color: rgba(59, 130, 246, 0.1); -fx-text-fill: #1d4ed8; -fx-font-size: 13.2px; -fx-padding: 2px 8px; -fx-background-radius: 4px; -fx-cursor: hand;");
                 tagBtn.setOnAction(e -> {
                     if (onNavigateToEntity != null) {
                         onNavigateToEntity.accept(entity);
@@ -254,9 +254,9 @@ public class ContradictionsPanel extends ScrollPane {
         if (item.getInvestigationLead() != null && !item.getInvestigationLead().isBlank()) {
             leadBox.setStyle("-fx-background-color: #fef2f2; -fx-border-color: #fca5a5; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 8px 12px;");
             Label leadTitle = new Label("🔍 Investigation Lead / Interrogation Recommendation:");
-            leadTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #991b1b;");
+            leadTitle.setStyle("-fx-font-size: 13.2px; -fx-font-weight: bold; -fx-text-fill: #991b1b;");
             Label leadText = new Label(item.getInvestigationLead());
-            leadText.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f1d1d;");
+            leadText.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #7f1d1d;");
             leadText.setWrapText(true);
             leadBox.getChildren().addAll(leadTitle, leadText);
         }
@@ -277,7 +277,7 @@ public class ContradictionsPanel extends ScrollPane {
 
     private Label createBadge(String text, String fgHex, String bgHex) {
         Label badge = new Label(text);
-        badge.setStyle("-fx-background-color: " + bgHex + "; -fx-text-fill: " + fgHex + "; -fx-font-size: 11px; -fx-font-weight: 700; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+        badge.setStyle("-fx-background-color: " + bgHex + "; -fx-text-fill: " + fgHex + "; -fx-font-size: 13.2px; -fx-font-weight: 700; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
         return badge;
     }
 }

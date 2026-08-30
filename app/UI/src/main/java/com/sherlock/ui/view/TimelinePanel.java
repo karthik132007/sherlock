@@ -35,7 +35,7 @@ public class TimelinePanel extends ScrollPane {
         placeholderBox.setAlignment(Pos.CENTER);
         
         Label placeholder = new Label("No timeline events available.");
-        placeholder.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14px;");
+        placeholder.setStyle("-fx-text-fill: #64748b; -fx-font-size: 16.8px;");
         
         Button generateBtn = new Button("⏳ Extract Timeline");
         generateBtn.getStyleClass().add("primary-button");
@@ -78,7 +78,7 @@ public class TimelinePanel extends ScrollPane {
         timeBox.setPadding(new Insets(5, 15, 0, 0));
         
         Label timeLabel = new Label(item.getTimestamp() != null && !item.getTimestamp().isBlank() ? item.getTimestamp() : "Unknown");
-        timeLabel.setStyle("-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;");
+        timeLabel.setStyle("-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 14.4px;");
         timeLabel.setWrapText(true);
         timeBox.getChildren().add(timeLabel);
 
@@ -113,13 +113,13 @@ public class TimelinePanel extends ScrollPane {
         
         String mainText = item.getTitle() != null && !item.getTitle().isBlank() ? item.getTitle() : (item.getEvent() != null ? item.getEvent() : "Event");
         Label titleLabel = new Label(mainText);
-        titleLabel.setStyle("-fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-font-size: 14px;");
+        titleLabel.setStyle("-fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-font-size: 16.8px;");
         titleLabel.setWrapText(true);
         card.getChildren().add(titleLabel);
         
         if (item.getDescription() != null && !item.getDescription().isBlank() && !item.getDescription().equals(mainText)) {
             Label descText = new Label(item.getDescription());
-            descText.setStyle("-fx-text-fill: #334155; -fx-font-size: 13px;");
+            descText.setStyle("-fx-text-fill: #334155; -fx-font-size: 15.6px;");
             descText.setWrapText(true);
             card.getChildren().add(descText);
         }
@@ -130,7 +130,7 @@ public class TimelinePanel extends ScrollPane {
             tags.setVgap(6);
             for (String entity : item.getEntitiesInvolved()) {
                 Label tag = new Label(entity);
-                tag.setStyle("-fx-background-color: rgba(59, 130, 246, 0.1); -fx-text-fill: #1d4ed8; -fx-font-size: 11px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+                tag.setStyle("-fx-background-color: rgba(59, 130, 246, 0.1); -fx-text-fill: #1d4ed8; -fx-font-size: 13.2px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
                 tags.getChildren().add(tag);
             }
             card.getChildren().add(tags);
@@ -139,12 +139,12 @@ public class TimelinePanel extends ScrollPane {
         HBox metaBox = new HBox(10);
         if (item.getSourceFile() != null && !item.getSourceFile().isBlank()) {
             Label srcLabel = new Label("📄 " + item.getSourceFile());
-            srcLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px;");
+            srcLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13.2px;");
             metaBox.getChildren().add(srcLabel);
         }
         if (item.getConfidence() != null) {
             Label confLabel = new Label(String.format("Conf: %.0f%%", item.getConfidence() * 100));
-            confLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px;");
+            confLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13.2px;");
             metaBox.getChildren().add(confLabel);
         }
         if (!metaBox.getChildren().isEmpty()) {

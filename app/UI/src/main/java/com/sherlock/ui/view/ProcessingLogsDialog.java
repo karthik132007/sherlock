@@ -76,13 +76,13 @@ public class ProcessingLogsDialog {
         statusDot = new Circle(5, Color.web("#3b82f6"));
 
         titleLabel = new Label(taskTitle);
-        titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        titleLabel.setStyle("-fx-font-size: 19.2px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         statusBadge = new Label("PROCESSING");
-        statusBadge.setStyle("-fx-background-color: #eff6ff; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+        statusBadge.setStyle("-fx-background-color: #eff6ff; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-font-size: 13.2px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
 
         header.getChildren().addAll(statusDot, titleLabel, spacer, statusBadge);
 
@@ -92,7 +92,7 @@ public class ProcessingLogsDialog {
         progressBox.setStyle("-fx-background-color: #ffffff;");
 
         messageLabel = new Label(initialMessage != null ? initialMessage : "Starting task...");
-        messageLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #475569; -fx-font-weight: 600;");
+        messageLabel.setStyle("-fx-font-size: 15.0px; -fx-text-fill: #475569; -fx-font-weight: 600;");
         messageLabel.setWrapText(true);
 
         progressBar = new ProgressBar(ProgressBar.INDETERMINATE_PROGRESS);
@@ -109,12 +109,12 @@ public class ProcessingLogsDialog {
         VBox.setVgrow(consoleContainer, Priority.ALWAYS);
 
         Label consoleHeader = new Label("EXECUTION LOGS & OUTPUT");
-        consoleHeader.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-letter-spacing: 1px;");
+        consoleHeader.setStyle("-fx-font-size: 13.2px; -fx-font-weight: bold; -fx-text-fill: #64748b; -fx-letter-spacing: 1px;");
 
         logsArea = new TextArea();
         logsArea.setEditable(false);
         logsArea.setWrapText(true);
-        logsArea.setStyle("-fx-control-inner-background: #0f172a; -fx-font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace; -fx-font-size: 12px; -fx-text-fill: #38bdf8; -fx-highlight-fill: #334155; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-border-color: #334155;");
+        logsArea.setStyle("-fx-control-inner-background: #0f172a; -fx-font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace; -fx-font-size: 14.4px; -fx-text-fill: #38bdf8; -fx-highlight-fill: #334155; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-border-color: #334155;");
         VBox.setVgrow(logsArea, Priority.ALWAYS);
 
         consoleContainer.getChildren().addAll(consoleHeader, logsArea);
@@ -126,12 +126,12 @@ public class ProcessingLogsDialog {
         footer.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-border-width: 1px 0 0 0;");
 
         Label hintLabel = new Label("You can keep this open to watch real-time logs or close it at any time.");
-        hintLabel.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #94a3b8;");
+        hintLabel.setStyle("-fx-font-size: 13.8px; -fx-text-fill: #94a3b8;");
         Region footerSpacer = new Region();
         HBox.setHgrow(footerSpacer, Priority.ALWAYS);
 
         actionBtn = new Button("Close");
-        actionBtn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-font-size: 13px; -fx-padding: 8px 18px; -fx-background-radius: 6px; -fx-cursor: hand;");
+        actionBtn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-font-size: 15.6px; -fx-padding: 8px 18px; -fx-background-radius: 6px; -fx-cursor: hand;");
         actionBtn.setOnAction(e -> {
             stopPolling();
             stage.close();
@@ -208,14 +208,14 @@ public class ProcessingLogsDialog {
             if (status.isSuccess()) {
                 statusDot.setFill(Color.web("#10b981"));
                 statusBadge.setText("COMPLETED");
-                statusBadge.setStyle("-fx-background-color: #ecfdf5; -fx-text-fill: #059669; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+                statusBadge.setStyle("-fx-background-color: #ecfdf5; -fx-text-fill: #059669; -fx-font-weight: bold; -fx-font-size: 13.2px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
                 messageLabel.setText(status.getMessage() != null ? status.getMessage() : "Task completed successfully.");
                 actionBtn.setText("Done / View Results");
-                actionBtn.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 8px 18px; -fx-background-radius: 6px; -fx-cursor: hand;");
+                actionBtn.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 15.6px; -fx-padding: 8px 18px; -fx-background-radius: 6px; -fx-cursor: hand;");
             } else {
                 statusDot.setFill(Color.web("#ef4444"));
                 statusBadge.setText("FAILED");
-                statusBadge.setStyle("-fx-background-color: #fef2f2; -fx-text-fill: #dc2626; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
+                statusBadge.setStyle("-fx-background-color: #fef2f2; -fx-text-fill: #dc2626; -fx-font-weight: bold; -fx-font-size: 13.2px; -fx-padding: 3px 8px; -fx-background-radius: 4px;");
                 messageLabel.setText("Task failed: " + (status.getMessage() != null ? status.getMessage() : "Unknown error"));
                 actionBtn.setText("Close");
             }

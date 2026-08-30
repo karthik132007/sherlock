@@ -28,7 +28,7 @@ public class DetailsPanel extends VBox {
         setMinHeight(200);
 
         Label headerTitle = new Label("INVESTIGATION INSPECTOR & METADATA");
-        headerTitle.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-weight: bold; -fx-letter-spacing: 1px;");
+        headerTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: bold; -fx-letter-spacing: 1px;");
 
         contentContainer.setAlignment(Pos.CENTER_LEFT);
         VBox.setVgrow(contentContainer, Priority.ALWAYS);
@@ -47,13 +47,13 @@ public class DetailsPanel extends VBox {
         placeholder.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6); -fx-padding: 18px 24px; -fx-background-radius: 8px; -fx-border-color: rgba(226, 232, 240, 0.5); -fx-border-radius: 8px;");
 
         Label icon = new Label("🕵️");
-        icon.setStyle("-fx-font-size: 28px;");
+        icon.setStyle("-fx-font-size: 33.6px;");
 
         VBox textCol = new VBox(4);
         Label title = new Label("Investigation Knowledge Graph Inspector");
-        title.setStyle("-fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 16.2px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
         Label desc = new Label("Click any node or relationship to inspect its complete metadata, evidence provenance, and connected investigation entities.");
-        desc.setStyle("-fx-font-size: 11px; -fx-text-fill: #475569;");
+        desc.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #475569;");
         textCol.getChildren().addAll(title, desc);
 
         placeholder.getChildren().addAll(icon, textCol);
@@ -89,7 +89,7 @@ public class DetailsPanel extends VBox {
         bg.setStroke(getNodeColor(node.getType()));
         bg.setStrokeWidth(2.2);
         Label avatarIcon = new Label(getNodeIcon(node.getType()));
-        avatarIcon.setStyle("-fx-font-size: 20px;");
+        avatarIcon.setStyle("-fx-font-size: 24px;");
         avatarPane.getChildren().addAll(bg, avatarIcon);
 
         VBox mainCol = new VBox(5);
@@ -99,7 +99,7 @@ public class DetailsPanel extends VBox {
         HBox nameRow = new HBox(6);
         nameRow.setAlignment(Pos.CENTER_LEFT);
         Label nameLabel = new Label(node.getName());
-        nameLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+        nameLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
         nameLabel.setWrapText(true);
         nameRow.getChildren().add(nameLabel);
 
@@ -111,17 +111,17 @@ public class DetailsPanel extends VBox {
 
         int degree = relatedEdges != null ? relatedEdges.size() : 0;
         Label degreeBadge = new Label(degree + " Conn");
-        degreeBadge.setStyle("-fx-background-color: rgba(56, 189, 248, 0.1); -fx-text-fill: #0284c7; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+        degreeBadge.setStyle("-fx-background-color: rgba(56, 189, 248, 0.1); -fx-text-fill: #0284c7; -fx-font-size: 12px; -fx-font-weight: bold; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
 
         Label mentionsBadge = new Label((node.getMentions() != null ? node.getMentions() : 1) + " Mentions");
-        mentionsBadge.setStyle("-fx-background-color: rgba(148, 163, 184, 0.1); -fx-text-fill: #475569; -fx-font-size: 10px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+        mentionsBadge.setStyle("-fx-background-color: rgba(148, 163, 184, 0.1); -fx-text-fill: #475569; -fx-font-size: 12px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
 
         badgesRow.getChildren().addAll(typeBadge, degreeBadge, mentionsBadge);
         mainCol.getChildren().addAll(nameRow, badgesRow);
 
         if (node.getAliases() != null && !node.getAliases().isEmpty()) {
             Label aliasLbl = new Label("Aliases: " + String.join(", ", node.getAliases()));
-            aliasLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-style: italic;");
+            aliasLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-style: italic;");
             aliasLbl.setWrapText(true);
             mainCol.getChildren().add(aliasLbl);
         }
@@ -162,7 +162,7 @@ public class DetailsPanel extends VBox {
 
         if (relatedEdges == null || relatedEdges.isEmpty()) {
             Label empty = new Label("No connected relationships found for this entity.");
-            empty.setStyle("-fx-text-fill: #64748b; -fx-font-size: 11px; -fx-font-style: italic;");
+            empty.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13.2px; -fx-font-style: italic;");
             list.getChildren().add(empty);
         } else {
             for (EdgeDto edge : relatedEdges) {
@@ -175,13 +175,13 @@ public class DetailsPanel extends VBox {
                 String directionSymbol = isOutgoing ? "➔" : "⬅";
 
                 Label dirLbl = new Label(directionSymbol);
-                dirLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #3b82f6; -fx-font-weight: bold;");
+                dirLbl.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #3b82f6; -fx-font-weight: bold;");
 
                 Label relBadge = new Label(edge.getRelation() != null ? edge.getRelation().replace("_", " ") : "RELATED");
-                relBadge.setStyle("-fx-background-color: rgba(37, 99, 235, 0.1); -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
+                relBadge.setStyle("-fx-background-color: rgba(37, 99, 235, 0.1); -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 2px 6px; -fx-background-radius: 4px;");
 
                 Button targetBtn = new Button(otherNodeName);
-                targetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0f172a; -fx-font-size: 11.5px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+                targetBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0f172a; -fx-font-size: 13.8px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
                 targetBtn.setOnAction(e -> {
                     if (onNavigateToEntity != null) onNavigateToEntity.accept(otherNodeName);
                 });
@@ -191,7 +191,7 @@ public class DetailsPanel extends VBox {
 
                 String conf = edge.getConfidence() != null ? String.format("%.0f%%", edge.getConfidence() * 100) : "100%";
                 Label confLbl = new Label(conf);
-                confLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 10px; -fx-font-weight: bold;");
+                confLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px; -fx-font-weight: bold;");
 
                 card.getChildren().addAll(dirLbl, relBadge, targetBtn, sp, confLbl);
                 list.getChildren().add(card);
@@ -209,32 +209,32 @@ public class DetailsPanel extends VBox {
         box.setPadding(new Insets(8));
 
         Label provTitle = new Label("Source Evidence Files:");
-        provTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #475569;");
+        provTitle.setStyle("-fx-font-size: 13.2px; -fx-font-weight: bold; -fx-text-fill: #475569;");
         box.getChildren().add(provTitle);
 
         FlowPane sourceBadges = new FlowPane(6, 6);
         if (node.getSourceFiles() != null && !node.getSourceFiles().isEmpty()) {
             for (String file : node.getSourceFiles()) {
                 Label fileBadge = new Label("📄 " + file);
-                fileBadge.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 4px; -fx-border-color: #cbd5e1; -fx-border-radius: 4px;");
+                fileBadge.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #0f172a; -fx-font-size: 13.2px; -fx-padding: 4px 10px; -fx-background-radius: 4px; -fx-border-color: #cbd5e1; -fx-border-radius: 4px;");
                 sourceBadges.getChildren().add(fileBadge);
             }
         } else {
             Label noFiles = new Label("Extracted from case warehouse.txt evidence.");
-            noFiles.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b;");
+            noFiles.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #64748b;");
             sourceBadges.getChildren().add(noFiles);
         }
         box.getChildren().add(sourceBadges);
 
         if (node.getChunkIds() != null && !node.getChunkIds().isEmpty()) {
             Label chunkTitle = new Label("Source Chunk IDs:");
-            chunkTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #475569;");
+            chunkTitle.setStyle("-fx-font-size: 13.2px; -fx-font-weight: bold; -fx-text-fill: #475569;");
             box.getChildren().add(chunkTitle);
 
             FlowPane chunkBadges = new FlowPane(6, 6);
             for (String chunkId : node.getChunkIds()) {
                 Label chunkBadge = new Label("🧩 " + chunkId);
-                chunkBadge.setStyle("-fx-background-color: #f8fafc; -fx-text-fill: #0284c7; -fx-font-size: 10px; -fx-padding: 3px 8px; -fx-background-radius: 4px; border-color: #e0e7ff;");
+                chunkBadge.setStyle("-fx-background-color: #f8fafc; -fx-text-fill: #0284c7; -fx-font-size: 12px; -fx-padding: 3px 8px; -fx-background-radius: 4px; border-color: #e0e7ff;");
                 chunkBadges.getChildren().add(chunkBadge);
             }
             box.getChildren().add(chunkBadges);
@@ -249,7 +249,7 @@ public class DetailsPanel extends VBox {
     private ScrollPane buildRawJsonTab(Object dataObj) {
         TextArea jsonArea = new TextArea();
         jsonArea.setEditable(false);
-        jsonArea.setStyle("-fx-control-inner-background: #f8fafc; -fx-text-fill: #0369a1; -fx-font-family: monospace; -fx-font-size: 11px;");
+        jsonArea.setStyle("-fx-control-inner-background: #f8fafc; -fx-text-fill: #0369a1; -fx-font-family: monospace; -fx-font-size: 13.2px;");
 
         try {
             jsonArea.setText(objectMapper.writeValueAsString(dataObj));
@@ -279,7 +279,7 @@ public class DetailsPanel extends VBox {
         bg.setStroke(Color.web("#3B82F6"));
         bg.setStrokeWidth(2.0);
         Label icon = new Label("➔");
-        icon.setStyle("-fx-font-size: 18px; -fx-text-fill: #3b82f6;");
+        icon.setStyle("-fx-font-size: 21.6px; -fx-text-fill: #3b82f6;");
         iconPane.getChildren().addAll(bg, icon);
 
         VBox mainCol = new VBox(6);
@@ -290,16 +290,16 @@ public class DetailsPanel extends VBox {
         entitiesRow.setAlignment(Pos.CENTER_LEFT);
 
         Button srcBtn = new Button(edge.getSource());
-        srcBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0284c7; -fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+        srcBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0284c7; -fx-font-size: 15.6px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
         srcBtn.setOnAction(e -> {
             if (onNavigateToEntity != null) onNavigateToEntity.accept(edge.getSource());
         });
 
         Label arrow = new Label("➔");
-        arrow.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
+        arrow.setStyle("-fx-text-fill: #64748b; -fx-font-size: 14.4px;");
 
         Button tgtBtn = new Button(edge.getTarget());
-        tgtBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0284c7; -fx-font-size: 13px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
+        tgtBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #0284c7; -fx-font-size: 15.6px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 0;");
         tgtBtn.setOnAction(e -> {
             if (onNavigateToEntity != null) onNavigateToEntity.accept(edge.getTarget());
         });
@@ -310,17 +310,17 @@ public class DetailsPanel extends VBox {
         badges.setAlignment(Pos.CENTER_LEFT);
 
         Label relBadge = new Label(edge.getRelation() != null ? edge.getRelation().replace("_", " ") : "RELATED");
-        relBadge.setStyle("-fx-background-color: rgba(37, 99, 235, 0.1); -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3px 10px; -fx-background-radius: 6px;");
+        relBadge.setStyle("-fx-background-color: rgba(37, 99, 235, 0.1); -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-font-size: 13.2px; -fx-padding: 3px 10px; -fx-background-radius: 6px;");
 
         String confPct = edge.getConfidence() != null ? String.format("%.0f%%", edge.getConfidence() * 100) : "100%";
         Label confBadge = new Label("Confidence: " + confPct);
-        confBadge.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-text-fill: #059669; -fx-font-size: 10px; -fx-padding: 3px 8px; -fx-background-radius: 6px;");
+        confBadge.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-text-fill: #059669; -fx-font-size: 12px; -fx-padding: 3px 8px; -fx-background-radius: 6px;");
 
         badges.getChildren().addAll(relBadge, confBadge);
 
         if (edge.getSourceFile() != null && !edge.getSourceFile().isBlank()) {
             Label srcFile = new Label("📄 " + edge.getSourceFile() + (edge.getChunkId() != null ? " (" + edge.getChunkId() + ")" : ""));
-            srcFile.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
+            srcFile.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
             mainCol.getChildren().addAll(entitiesRow, badges, srcFile);
         } else {
             mainCol.getChildren().addAll(entitiesRow, badges);
@@ -331,13 +331,13 @@ public class DetailsPanel extends VBox {
         HBox.setHgrow(evidenceBox, Priority.ALWAYS);
 
         Label evTitle = new Label("Ground Truth Evidence Citation");
-        evTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #475569;");
+        evTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #475569;");
 
         String snippet = edge.getEvidenceText() != null && !edge.getEvidenceText().isBlank()
                 ? edge.getEvidenceText()
                 : "Relationship verified from case evidence documentation.";
         Label snippetLbl = new Label("\"" + snippet + "\"");
-        snippetLbl.setStyle("-fx-font-style: italic; -fx-text-fill: #334155; -fx-font-size: 11px;");
+        snippetLbl.setStyle("-fx-font-style: italic; -fx-text-fill: #334155; -fx-font-size: 13.2px;");
         snippetLbl.setWrapText(true);
 
         ScrollPane evScroll = new ScrollPane(snippetLbl);
@@ -352,10 +352,10 @@ public class DetailsPanel extends VBox {
 
     private void addGridRow(GridPane grid, int row, String label, String value) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-min-width: 90px;");
+        lbl.setStyle("-fx-font-size: 12.6px; -fx-text-fill: #475569; -fx-font-weight: 600; -fx-min-width: 90px;");
 
         Label val = new Label(value != null ? value : "—");
-        val.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #0f172a;");
+        val.setStyle("-fx-font-size: 12.6px; -fx-text-fill: #0f172a;");
         val.setWrapText(true);
 
         grid.add(lbl, 0, row);

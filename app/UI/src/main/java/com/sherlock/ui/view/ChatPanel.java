@@ -46,7 +46,7 @@ public class ChatPanel extends VBox {
         
         Label icon = new Label("🤖");
         Label title = new Label("Sherlock Assistant");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -55,7 +55,7 @@ public class ChatPanel extends VBox {
         status.setAlignment(Pos.CENTER);
         Circle dot = new Circle(3, Color.web("#10b981"));
         Label statusLbl = new Label("Ready");
-        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px; -fx-font-weight: bold;");
+        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 14.4px; -fx-font-weight: bold;");
         status.getChildren().addAll(dot, statusLbl);
         status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-padding: 4px 10px; -fx-background-radius: 12px;");
 
@@ -151,9 +151,9 @@ public class ChatPanel extends VBox {
 
     private Button createSuggestionPill(String query) {
         Button btn = new Button(query);
-        btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #0f172a; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #cbd5e1; -fx-border-radius: 12px;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;"));
+        btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13.5px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;");
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #e2e8f0; -fx-text-fill: #0f172a; -fx-font-size: 13.5px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #cbd5e1; -fx-border-radius: 12px;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 13.5px; -fx-background-radius: 12px; -fx-padding: 6px 12px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 12px;"));
         btn.setOnAction(e -> {
             inputField.setText(query);
             sendMessage();
@@ -207,14 +207,14 @@ public class ChatPanel extends VBox {
         bubble.setMaxWidth(260);
 
         Label userLbl = new Label("You");
-        userLbl.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.8);");
+        userLbl.setStyle("-fx-font-size: 14.4px; -fx-font-weight: bold; -fx-text-fill: rgba(255,255,255,0.8);");
 
         Label content = new Label(text);
         content.setWrapText(true);
         content.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffffff; -fx-line-spacing: 4px;");
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
+        time.setStyle("-fx-font-size: 13.2px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
         time.setMaxWidth(Double.MAX_VALUE);
 
         bubble.getChildren().addAll(userLbl, content, time);
@@ -234,14 +234,14 @@ public class ChatPanel extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         Label icon = new Label("✨");
         Label sherlockLbl = new Label("Sherlock");
-        sherlockLbl.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
+        sherlockLbl.setStyle("-fx-font-size: 13.5px; -fx-font-weight: bold; -fx-text-fill: #3b82f6;");
         header.getChildren().addAll(icon, sherlockLbl);
 
         TextFlow content = renderMarkdown(text);
         content.setMaxWidth(280);
 
         Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8;");
+        time.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #94a3b8;");
 
         bubble.getChildren().addAll(header, content, time);
 
@@ -264,7 +264,7 @@ public class ChatPanel extends VBox {
                 continue;
             }
             if (codeBlock) {
-                appendStyled(flow, line + "\n", "-fx-font-family: 'monospace'; -fx-font-size: 12px; -fx-fill: #1e3a8a;");
+                appendStyled(flow, line + "\n", "-fx-font-family: 'monospace'; -fx-font-size: 14.4px; -fx-fill: #1e3a8a;");
                 continue;
             }
             if (line.startsWith("### ") || line.startsWith("## ") || line.startsWith("# ")) {
@@ -273,7 +273,7 @@ public class ChatPanel extends VBox {
             } else if (line.strip().startsWith("- ") || line.strip().startsWith("* ") || line.strip().startsWith("• ")) {
                 appendInlineMarkdown(flow, "• " + line.strip().replaceFirst("^[-*•]\\s+", "") + "\n");
             } else if (line.strip().startsWith(">")) {
-                appendStyled(flow, "  " + line.strip().replaceFirst("^>\\s*", "") + "\n", "-fx-font-size: 13px; -fx-font-style: italic; -fx-fill: #475569;");
+                appendStyled(flow, "  " + line.strip().replaceFirst("^>\\s*", "") + "\n", "-fx-font-size: 13.5px; -fx-font-style: italic; -fx-fill: #475569;");
             } else {
                 appendInlineMarkdown(flow, line + "\n");
             }
@@ -282,15 +282,17 @@ public class ChatPanel extends VBox {
     }
 
     private void appendInlineMarkdown(TextFlow flow, String text) {
-        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\*\\*[^*]+\\*\\*|`[^`]+`)").matcher(text);
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|`[^`]+`)").matcher(text);
         int cursor = 0;
         while (matcher.find()) {
             if (matcher.start() > cursor) appendStyled(flow, text.substring(cursor, matcher.start()), baseTextStyle());
             String token = matcher.group();
             if (token.startsWith("**")) {
                 appendStyled(flow, token.substring(2, token.length() - 2), "-fx-font-size: 14px; -fx-font-weight: bold; -fx-fill: #0f172a;");
+            } else if (token.startsWith("*")) {
+                appendStyled(flow, token.substring(1, token.length() - 1), "-fx-font-size: 14px; -fx-font-style: italic; -fx-fill: #0f172a;");
             } else {
-                appendStyled(flow, token.substring(1, token.length() - 1), "-fx-font-family: 'monospace'; -fx-font-size: 12px; -fx-fill: #1e3a8a;");
+                appendStyled(flow, token.substring(1, token.length() - 1), "-fx-font-family: 'monospace'; -fx-font-size: 14.4px; -fx-fill: #1e3a8a;");
             }
             cursor = matcher.end();
         }
