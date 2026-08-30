@@ -221,6 +221,36 @@ public class SherlockBackendClient {
         });
     }
 
+    public CompletableFuture<ProcessingStatusDto> startOpinionProcessingAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/opinion/process"))
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to start opinion processing: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    public CompletableFuture<ProcessingStatusDto> getOpinionProcessingStatusAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/opinion/status"))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                return objectMapper.readValue(response.body(), ProcessingStatusDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get opinion processing status: " + e.getMessage(), e);
+            }
+        });
+    }
+
     public CompletableFuture<ProcessingStatusDto> startProcessingAsync(String caseId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -317,6 +347,26 @@ public class SherlockBackendClient {
                 return objectMapper.readValue(response.body(), ContradictionDto.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to fetch contradictions: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<OpinionDto> getOpinionAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/opinion"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), OpinionDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to fetch opinion: " + e.getMessage(), e);
             }
         }, ioExecutor);
     }

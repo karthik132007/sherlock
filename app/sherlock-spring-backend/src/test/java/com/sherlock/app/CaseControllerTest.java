@@ -103,5 +103,24 @@ class CaseControllerTest {
                 .andExpect(jsonPath("$.title").value("Alpha Session"))
                 .andExpect(jsonPath("$.sessionId").exists());
     }
+
+    @Test
+    void testGetOpinionEndpoint() throws Exception {
+        CaseRequest request = new CaseRequest("Operation Test 4");
+        request.setCaseId("operation_test_400");
+        mockMvc.perform(post("/api/cases")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/cases/operation_test_400/opinion"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.case_id").value("operation_test_400"))
+                .andExpect(jsonPath("$.executive_summary").exists());
+
+        mockMvc.perform(get("/api/cases/operation_test_400/opinion/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.caseId").value("operation_test_400"));
+    }
 }
 

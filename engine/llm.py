@@ -910,7 +910,165 @@ def call_llm(
     raise RuntimeError(f"LLM call failed: {last_err}")
 
 
+def call_llm_with_thinking(
+    user_prompt: str,
+    system_prompt: str = "You are a master detective. Return valid JSON.",
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    temperature: Optional[float] = None,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    timeout: int = 600,
+    enable_thinking: bool = True,
+) -> Tuple[str, str]:
+    """
+    Call LLM with thinking/reasoning mode enabled and return (content, reasoning_trace).
+    Handles provider-specific reasoning flags and extracts reasoning content across:
+      - DeepSeek reasoner (message.reasoning_content)
+      - OpenRouter (include_reasoning / reasoning effort)
+      - OpenAI o-series (reasoning_effort)
+      - Local/Ollama models with <think>...</think> tags in content
+    """
+    # Resolve config
+    cfg: LLMConfig
+    if isinstance(llm_config, LLMConfig):
+        cfg = llm_config
+    elif isinstance(llm_config, dict):
+        cfg = load_llm_config(project_path, overrides=llm_config)
+    elif project_path is not None:
+        cfg = load_llm_config(project_path)
+    elif llm_config is None:
+        cfg = load_llm_config()
+    else:
+        cfg = load_llm_config()
+
+    # If provider is deepseek and model is default or chat, switch to deepseek-reasoner when thinking is requested
+    if enable_thinking and (cfg.provider == "deepseek" or "deepseek.com" in str(cfg.base_url or "")) and (not model or model in ("deepseek-chat", "default")):
+        effective_model = "deepseek-reasoner"
+    else:
+        effective_model = model or cfg.model
+
+    effective_temp = temperature if temperature is not None else cfg.temperature
+
+    is_deepseek_reasoner = (
+        "deepseek-reasoner" in effective_model.lower()
+        or "deepseek-r1" in effective_model.lower()
+        or "reasoner" in effective_model.lower()
+    )
+    is_openai_reasoning = any(x in effective_model.lower() for x in ["o1", "o3", "o4", "gpt-5"])
+
+    client = get_client(cfg)
+
+    last_err: Optional[Exception] = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            # For OpenAI o-series, use developer message or standard system message
+            system_role = "developer" if (is_openai_reasoning and cfg.provider == "openai") else "system"
+            messages = [
+                {"role": system_role, "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            create_kwargs: Dict[str, Any] = {
+                "model": effective_model,
+                "messages": messages,
+                "timeout": timeout,
+            }
+
+            # Only set temperature if not a strict reasoning model that rejects it
+            if not is_deepseek_reasoner and not is_openai_reasoning:
+                create_kwargs["temperature"] = effective_temp
+
+            extra_body: Dict[str, Any] = dict(cfg.extra_body) if cfg.extra_body else {}
+
+            if enable_thinking:
+                if cfg.provider == "openrouter":
+                    extra_body["reasoning"] = {"effort": "high"}
+                    extra_body["include_reasoning"] = True
+                elif is_openai_reasoning:
+                    create_kwargs["reasoning_effort"] = "high"
+                elif cfg.provider == "ollama":
+                    extra_body["think"] = True
+
+            # response_format json_object if supported and not reasoner
+            if cfg.provider not in ("ollama",) and not is_deepseek_reasoner and not is_openai_reasoning:
+                create_kwargs["response_format"] = {"type": "json_object"}
+
+            if extra_body:
+                create_kwargs["extra_body"] = extra_body
+
+            resp = client.chat.completions.create(**create_kwargs)
+            choice = resp.choices[0]
+            msg = choice.message
+
+            content = getattr(msg, "content", "") or ""
+            reasoning_trace = ""
+
+            # Check for native reasoning content
+            rc = getattr(msg, "reasoning_content", None)
+            r_alt = getattr(msg, "reasoning", None)
+            if rc and isinstance(rc, str) and rc.strip():
+                reasoning_trace = rc.strip()
+            elif r_alt and isinstance(r_alt, str) and r_alt.strip():
+                reasoning_trace = r_alt.strip()
+            elif isinstance(msg, dict):
+                reasoning_trace = str(msg.get("reasoning_content") or msg.get("reasoning") or "").strip()
+
+            # Check for <think>...</think> in content (common in Ollama / R1 distill)
+            think_match = re.search(r"<think>(.*?)</think>", content, re.DOTALL)
+            if think_match:
+                extracted_think = think_match.group(1).strip()
+                if not reasoning_trace:
+                    reasoning_trace = extracted_think
+                content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+
+            content = content.strip()
+            return content, reasoning_trace
+
+        except Exception as e:
+            last_err = e
+            # Fallback if provider fails on specific parameters (e.g. response_format or temperature)
+            logger.warning("LLM thinking attempt %d/%d failed (provider=%s model=%s): %s", attempt, max_retries, cfg.provider, effective_model, e)
+            try:
+                # Retry with minimalist parameters
+                resp = client.chat.completions.create(
+                    model=effective_model,
+                    messages=[
+                        {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"},
+                    ],
+                    timeout=timeout,
+                )
+                choice = resp.choices[0]
+                msg = choice.message
+                content = getattr(msg, "content", "") or ""
+                reasoning_trace = ""
+                rc = getattr(msg, "reasoning_content", None)
+                r_alt = getattr(msg, "reasoning", None)
+                if rc and isinstance(rc, str) and rc.strip():
+                    reasoning_trace = rc.strip()
+                elif r_alt and isinstance(r_alt, str) and r_alt.strip():
+                    reasoning_trace = r_alt.strip()
+
+                think_match = re.search(r"<think>(.*?)</think>", content, re.DOTALL)
+                if think_match:
+                    if not reasoning_trace:
+                        reasoning_trace = think_match.group(1).strip()
+                    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+
+                return content.strip(), str(reasoning_trace).strip()
+            except Exception as e2:
+                last_err = e2
+
+            if attempt < max_retries:
+                time.sleep(2 ** attempt)
+            else:
+                logger.error("LLM thinking call failed after %d attempts", max_retries)
+                raise
+    raise RuntimeError(f"LLM thinking call failed: {last_err}")
+
+
 def parse_json_array(text: str) -> List[Any]:
+
     """
     Robustly parse JSON array from LLM output.
     Handles markdown fences, leading/trailing text, object-wrapping, and truncated outputs.
@@ -2053,4 +2211,91 @@ def extract_contradictions_auto(
         )
 
     return contradictions, decision
+
+
+def extract_opinion_auto(
+    warehouse_text: str,
+    chunks: Optional[List[Dict[str, Any]]] = None,
+    known_entities: Optional[List[Dict[str, Any]]] = None,
+    known_relations: Optional[List[Dict[str, Any]]] = None,
+    known_timeline: Optional[List[Dict[str, Any]]] = None,
+    known_contradictions: Optional[List[Dict[str, Any]]] = None,
+    model: Optional[str] = None,
+    llm_config: Optional[LLMConfig | Dict[str, Any]] = None,
+    project_path: Optional[str | Path] = None,
+    enable_thinking: bool = True,
+    verbose: bool = True,
+) -> Dict[str, Any]:
+    """
+    Synthesize all case context with thinking mode enabled and return Sherlock's Opinion.
+    """
+    from engine.prompts import OPINION_SYSTEM_PROMPT, build_opinion_prompt
+
+    cfg = llm_config if isinstance(llm_config, LLMConfig) else load_llm_config(project_path, overrides=llm_config if isinstance(llm_config, dict) else None)
+    if model:
+        cfg.model = model
+
+    if verbose:
+        print(f"[Sherlock LLM] Formulating Sherlock's Opinion (thinking_mode={enable_thinking}) | provider={cfg.provider} model={cfg.model}")
+
+    prompt = build_opinion_prompt(
+        warehouse_text=warehouse_text,
+        entities=known_entities,
+        relations=known_relations,
+        timeline=known_timeline,
+        contradictions=known_contradictions,
+    )
+
+    content, reasoning_trace = call_llm_with_thinking(
+        user_prompt=prompt,
+        system_prompt=OPINION_SYSTEM_PROMPT,
+        model=cfg.model,
+        llm_config=cfg,
+        project_path=project_path,
+        enable_thinking=enable_thinking,
+    )
+
+    # Parse JSON from content
+    parsed: Dict[str, Any] = {}
+    fence_match = re.search(r"```(?:json)?\s*(.*?)\s*```", content, re.DOTALL)
+    text_to_parse = fence_match.group(1).strip() if fence_match else content.strip()
+
+    try:
+        data = json.loads(text_to_parse)
+        if isinstance(data, dict):
+            parsed = data
+    except json.JSONDecodeError:
+        obj_match = re.search(r"\{.*\}", text_to_parse, re.DOTALL)
+        if obj_match:
+            try:
+                data = json.loads(obj_match.group(0))
+                if isinstance(data, dict):
+                    parsed = data
+            except json.JSONDecodeError:
+                pass
+
+    # If reasoning trace was returned natively or parsed from <think>, prioritize it, else use field from JSON
+    final_reasoning = reasoning_trace.strip() if reasoning_trace else str(parsed.get("reasoning_trace", "")).strip()
+
+    result = {
+        "case_id": parsed.get("case_id") or "UNKNOWN_CASE",
+        "preliminary_analysis": parsed.get("preliminary_analysis") or "",
+        "possible_causes": parsed.get("possible_causes") or parsed.get("causes") or [],
+        "self_debate_summary": parsed.get("self_debate_summary") or parsed.get("debate") or "",
+        "executive_summary": parsed.get("executive_summary") or parsed.get("summary") or "Investigation synthesis completed.",
+        "primary_hypothesis": parsed.get("primary_hypothesis") or parsed.get("hypothesis") or "Primary theory formulated based on evidence.",
+        "confidence": float(parsed.get("confidence", 0.85)) if parsed.get("confidence") is not None else 0.85,
+        "confidence_explanation": parsed.get("confidence_explanation") or "",
+        "supporting_evidence": parsed.get("supporting_evidence") or [],
+        "flaws_and_counter_evidence": parsed.get("flaws_and_counter_evidence") or parsed.get("counter_evidence") or parsed.get("flaws") or [],
+        "alternative_hypotheses": parsed.get("alternative_hypotheses") or [],
+        "investigative_leads": parsed.get("investigative_leads") or parsed.get("leads") or [],
+        "reasoning_trace": final_reasoning,
+    }
+
+    if verbose:
+        print(f"[Sherlock LLM] Opinion synthesized: {len(result['supporting_evidence'])} supporting evidence points, {len(result['flaws_and_counter_evidence'])} flaws/counter-points, confidence={result['confidence']}")
+
+    return result
+
 

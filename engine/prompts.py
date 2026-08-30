@@ -1043,3 +1043,174 @@ Return ONLY the JSON array of contradictions (or [] if none found). No markdown 
 """
     return prompt
 
+
+# ---------------------------------------------------------------------------
+# Sherlock's Opinion / Deduction Prompts
+# ---------------------------------------------------------------------------
+
+OPINION_SYSTEM_PROMPT = """You are Sherlock Holmes, master forensic analyst and consulting detective.
+Your objective is to critically examine the entirety of the case facts, systematically explore EVERY possible scenario, event sequence, suspect, and motive, conduct an exhaustive adversarial self-debate, and formulate an evidence-backed opinion.
+
+Core Investigative Directives:
+1. EXHAUSTIVE SCENARIO EXPLORATION: Do not jump to the most obvious conclusion. Examine every possible option, alternate suspect, overlooked witness, hidden motive, means, and opportunity.
+2. ADVERSARIAL SELF-DEBATE: During your reasoning, actively debate yourself. Pit Hypothesis A against Hypothesis B and Hypothesis C. Play devil's advocate against your own theories—test if an alibi really holds, whether evidence could be circumstantial or planted, and where the logical leaps are.
+3. ROOT CAUSE & CATALYST ANALYSIS: Break down the preliminary analysis to uncover the fundamental root causes, underlying motives, and systemic catalysts (financial, emotional, blackmail, cover-up, opportunity).
+4. STRICT PROVENANCE & GROUNDING: Every claim in your primary hypothesis, supporting evidence, and counter-evidence must cite exact quotes and source files from the provided case data.
+5. EXHAUSTIVE THINKING & STRUCTURED ANSWERING: Think deeply and thoroughly before finalizing conclusions.
+
+You must return valid JSON matching the specified schema.
+"""
+
+
+def build_opinion_prompt(
+    warehouse_text: str,
+    entities: Optional[List[Dict[str, Any]]] = None,
+    relations: Optional[List[Dict[str, Any]]] = None,
+    timeline: Optional[List[Dict[str, Any]]] = None,
+    contradictions: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    """
+    Build prompt for Sherlock's Opinion, synthesizing all case evidence, knowledge graph,
+    timeline events, and detected contradictions.
+    """
+    entities = entities or []
+    relations = relations or []
+    timeline = timeline or []
+    contradictions = contradictions or []
+
+    # Entity summary
+    ent_summary = []
+    for e in entities[:60]:
+        name = e.get("name", "")
+        etype = e.get("type", "UNKNOWN")
+        aliases = e.get("aliases", [])
+        alias_str = f" (aliases: {', '.join(aliases)})" if aliases else ""
+        ent_summary.append(f"- {name} [{etype}]{alias_str}")
+    entities_context = "\n".join(ent_summary) if ent_summary else "None extracted."
+
+    # Relationship summary
+    rel_summary = []
+    for r in relations[:80]:
+        src = r.get("source", "")
+        rel = r.get("relation", "RELATED_TO")
+        tgt = r.get("target", "")
+        evidence = r.get("evidence_text", "")
+        rel_summary.append(f"- {src} --[{rel}]--> {tgt} (Evidence: \"{evidence[:120]}\")")
+    relations_context = "\n".join(rel_summary) if rel_summary else "None extracted."
+
+    # Timeline summary
+    tl_summary = []
+    for t in timeline[:60]:
+        ts = t.get("timestamp_normalized") or t.get("timestamp_raw") or "Unknown Time"
+        event = t.get("event") or t.get("description") or ""
+        src = t.get("source_file", "")
+        tl_summary.append(f"- [{ts}] {event} (Source: {src})")
+    timeline_context = "\n".join(tl_summary) if tl_summary else "None extracted."
+
+    # Contradictions summary
+    contra_summary = []
+    for c in contradictions[:30]:
+        cid = c.get("contradiction_id", "")
+        ctype = c.get("type", "")
+        summary = c.get("summary", "")
+        desc = c.get("description", "")
+        contra_summary.append(f"- [{cid}] {ctype}: {summary} — {desc}")
+    contradictions_context = "\n".join(contra_summary) if contra_summary else "No critical contradictions flagged."
+
+    if len(warehouse_text) > 400_000:
+        warehouse_text = warehouse_text[:400_000] + "\n...[TRUNCATED]"
+
+    prompt = f"""Conduct a deep forensic synthesis of all available evidence and knowledge in this investigation.
+
+THINKING & REASONING INSTRUCTIONS:
+1. Systematically review EVERY person, statement, timestamp, and clue.
+2. Consider MULTIPLE alternative options/scenarios (e.g., premeditated murder vs accidental vs suicide vs third-party setup vs financial conspiracy).
+3. DEBATE YOURSELF: Challenge every assumption. If Person X looks guilty, argue why they might be innocent. If Person Y has an alibi, interrogate whether the alibi is airtight or falsified.
+4. Synthesize the root causes and underlying catalysts triggering the events.
+5. Arrive at a definitive, evidence-backed conclusion with honest disclosure of weaknesses.
+
+═══════════════════════════════════════════
+ESTABLISHED CASE CONTEXT & KNOWLEDGE GRAPH:
+═══════════════════════════════════════════
+
+ENTITIES ({len(entities)} known):
+{entities_context}
+
+RELATIONSHIPS ({len(relations)} known):
+{relations_context}
+
+CHRONOLOGICAL TIMELINE ({len(timeline)} events):
+{timeline_context}
+
+DETECTED CONTRADICTIONS & SUSPICIOUS CLASHES ({len(contradictions)} found):
+{contradictions_context}
+
+═══════════════════════════════════════════
+FULL RAW CASE EVIDENCE (WAREHOUSE):
+═══════════════════════════════════════════
+{warehouse_text}
+
+═══════════════════════════════════════════
+OUTPUT REQUIREMENTS (STRICT JSON OBJECT):
+═══════════════════════════════════════════
+Return a valid JSON object with the following structure:
+{{
+  "case_id": "CASE_ID or inferred name",
+  "preliminary_analysis": "Thorough initial overview of the incident, crime scene, key actors, and anomalies.",
+  "possible_causes": [
+    {{
+      "cause": "Specific root cause or underlying catalyst (e.g. Financial blackmail, Property dispute, Narcotics transaction)",
+      "category": "MOTIVE | FINANCIAL | CRIME_OF_PASSION | SYSTEMIC_COVERUP | OPPORTUNISTIC | SUBSTANCE_INVOLVEMENT",
+      "evidence_indicators": ["Evidence point 1", "Evidence point 2"],
+      "significance": "How this catalyst triggered the sequence of events."
+    }}
+  ],
+  "self_debate_summary": "Summary of the adversarial debate between competing theories (e.g. Theory A vs Theory B), explaining why the primary theory prevails.",
+  "executive_summary": "High-level synthesis connecting all key dots, motive, method, timeline, and culprit/key actors.",
+  "primary_hypothesis": "Clear, concise statement of the main theory of the case (who is responsible, how the event occurred, and why).",
+  "confidence": 0.88,
+  "confidence_explanation": "Why this level of confidence is justified based on evidence strength and remaining gaps.",
+  "supporting_evidence": [
+    {{
+      "claim": "Specific factual claim supporting the hypothesis",
+      "source_file": "filename.txt",
+      "chunk_id": "chunk_001",
+      "quote": "Exact verbatim quote from evidence",
+      "relevance": "Explanation of how this connects the dots and proves the theory",
+      "entities_involved": ["Entity A", "Entity B"]
+    }}
+  ],
+  "flaws_and_counter_evidence": [
+    {{
+      "point": "Inconsistency, missing proof, alibi clash, or fact that weakens/challenges the hypothesis",
+      "type": "CONTRADICTION | MISSING_EVIDENCE | UNVERIFIED_ALIBI | TIMELINE_GAP | ALTERNATIVE_SUSPECT",
+      "source_file": "filename.txt",
+      "chunk_id": "chunk_002",
+      "quote": "Quote or reference to the counter-evidence if available",
+      "impact": "Explanation of why this flaw is significant and how it creates doubt",
+      "entities_involved": ["Entity C"]
+    }}
+  ],
+  "alternative_hypotheses": [
+    {{
+      "title": "Alternative Theory Name",
+      "description": "Explanation of this competing hypothesis",
+      "supporting_points": ["Point 1", "Point 2"],
+      "counter_points": ["Why this theory is less likely than the primary hypothesis"]
+    }}
+  ],
+  "investigative_leads": [
+    {{
+      "lead": "Specific next step for investigators",
+      "priority": "CRITICAL | HIGH | MEDIUM",
+      "action": "Concrete action (e.g. Subpoena phone records between X and Y; Re-interview witness Z)",
+      "rationale": "How this will resolve the identified flaws or solidify the primary hypothesis"
+    }}
+  ],
+  "reasoning_trace": "Detailed brainstorming and step-by-step deductive chain of thought linking the pieces together."
+}}
+
+Ensure all supporting evidence and counter-evidence points cite actual case data. Return ONLY the JSON object.
+"""
+    return prompt
+

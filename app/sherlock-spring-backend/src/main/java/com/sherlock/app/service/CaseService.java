@@ -486,8 +486,33 @@ public class CaseService {
         return status;
     }
 
+    public ProcessingStatus startOpinionProcessing(String caseId) {
+        return runPythonPipelineBackground(caseId, caseId + "_opinion", "PROCESSING_OPINION", "Sherlock's Opinion formulated successfully.", List.of("--opinion-only"));
+    }
+
+    public ProcessingStatus getOpinionProcessingStatus(String caseId) {
+        ProcessingStatus status = statusTracker.get(caseId + "_opinion");
+        if (status == null) {
+            Path caseDirectory = getCaseDirectory(caseId);
+            Path opinionFile = caseDirectory.resolve("processed").resolve("opinion.json");
+            status = new ProcessingStatus();
+            status.setCaseId(caseId);
+            if (Files.exists(opinionFile)) {
+                status.setStatus("COMPLETED");
+                status.setCompleted(true);
+                status.setSuccess(true);
+                status.setMessage("Sherlock's Opinion ready.");
+            } else {
+                status.setStatus("READY");
+                status.setCompleted(false);
+                status.setMessage("Ready for processing.");
+            }
+        }
+        return status;
+    }
+
     public ProcessingStatus startProcessing(String caseId) {
-        return runPythonPipelineBackground(caseId, caseId, "PROCESSING", "Investigation Knowledge Graph generated successfully.", List.of("--extract", "--timeline", "--contradictions"));
+        return runPythonPipelineBackground(caseId, caseId, "PROCESSING", "Investigation Knowledge Graph generated successfully.", List.of("--extract", "--timeline", "--contradictions", "--opinion"));
     }
 
     public ProcessingStatus getProcessingStatus(String caseId) {
@@ -707,6 +732,26 @@ public class CaseService {
         resp.setProject(caseId);
         resp.setTotalContradictions(0);
         resp.setSummary("No contradictions detected.");
+        return resp;
+    }
+
+    public OpinionResponse getOpinion(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        Path opinionFile = caseDirectory.resolve("processed").resolve("opinion.json");
+
+        if (Files.exists(opinionFile)) {
+            try {
+                return objectMapper.readValue(opinionFile.toFile(), OpinionResponse.class);
+            } catch (IOException e) {
+                log.warn("Failed to read opinion.json for {}: {}", caseId, e.getMessage());
+            }
+        }
+
+        OpinionResponse resp = new OpinionResponse();
+        resp.setCaseId(caseId);
+        resp.setExecutiveSummary("No opinion generated yet.");
+        resp.setPrimaryHypothesis("Click 'Brainstorm / Formulate Opinion' to generate Sherlock's deep deduction.");
+        resp.setConfidence(0.0);
         return resp;
     }
 

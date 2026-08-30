@@ -170,4 +170,20 @@ class CaseServiceTest {
         assertTrue(warehouse.contains("SOURCE_FILE: evidence_sample.txt"));
         assertTrue(warehouse.contains("Sample evidence text about the suspect."));
     }
+
+    @Test
+    void testGetOpinionDefaultAndStatus() {
+        CaseRequest request = new CaseRequest("Opinion Case");
+        request.setCaseId("opinion_case_001");
+        caseService.createCase(request);
+
+        var status = caseService.getOpinionProcessingStatus("opinion_case_001");
+        assertNotNull(status);
+        assertEquals("opinion_case_001", status.getCaseId());
+
+        var opinion = caseService.getOpinion("opinion_case_001");
+        assertNotNull(opinion);
+        assertEquals("opinion_case_001", opinion.getCaseId());
+        assertNotNull(opinion.getExecutiveSummary());
+    }
 }

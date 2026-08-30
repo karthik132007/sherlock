@@ -134,6 +134,16 @@ def parse_args() -> argparse.Namespace:
         help="For contradictions, force batched mode even when warehouse fits (default: single_call when fits)",
     )
     parser.add_argument(
+        "--opinion",
+        action="store_true",
+        help="Also formulate Sherlock's Opinion (deep theory deduction, dot-connecting, supporting evidence & flaws -> opinion.json)",
+    )
+    parser.add_argument(
+        "--opinion-only",
+        action="store_true",
+        help="Run ONLY Sherlock's Opinion deduction (uses warehouse + processed/ context, with thinking mode)",
+    )
+    parser.add_argument(
         "--query",
         type=str,
         default=None,
@@ -339,9 +349,27 @@ def main() -> None:
     except Exception:
         pass
 
-    # Optional: LLM extraction / timeline / contradictions
-    if args.extract or args.timeline_only or args.contradictions_only:
-        if args.contradictions_only:
+    # Optional: LLM extraction / timeline / contradictions / opinion
+    if args.extract or args.timeline_only or args.contradictions_only or args.opinion_only:
+        if args.opinion_only:
+            print(f"[Sherlock] --opinion-only enabled — formulating Sherlock's Opinion with thinking mode (model={effective_model})")
+            try:
+                from engine.opinion import generate_opinion
+
+                op_result = generate_opinion(
+                    project_path=project_path,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    save_outputs=True,
+                    enable_thinking=True,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Opinion formulated: confidence={op_result['confidence']}, {len(op_result['supporting_evidence'])} supporting points, {len(op_result['flaws_and_counter_evidence'])} flaws/counter-points → {project_path / 'processed' / 'opinion.json'}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Opinion formulation failed: {e}", file=sys.stderr)
+                logger.exception("Opinion formulation failed")
+                print(f"[Sherlock] Chunking succeeded; opinion error is non-fatal. Check processed/ for partial results.", file=sys.stderr)
+        elif args.contradictions_only:
             print(f"[Sherlock] --contradictions-only enabled — starting ONLY contradiction detection (batch_size={args.batch_size}, model={effective_model}, window={effective_window})")
             try:
                 from engine.contradictions import run_contradictions_pipeline
@@ -409,6 +437,20 @@ def main() -> None:
                     print(f"[Sherlock] Contradictions done: {clen} detected")
                     if clen and result.get("contradiction_paths"):
                         print(f"[Sherlock] Contradictions → {result['contradiction_paths'].get('contradictions_json')}")
+
+                if args.opinion:
+                    from engine.opinion import generate_opinion
+
+                    op_result = generate_opinion(
+                        project_path=project_path,
+                        model=effective_model,
+                        llm_config=llm_cfg,
+                        save_outputs=True,
+                        enable_thinking=True,
+                        verbose=True,
+                    )
+                    print(f"[Sherlock] Opinion formulated: confidence={op_result['confidence']}, {len(op_result['supporting_evidence'])} supporting points, {len(op_result['flaws_and_counter_evidence'])} flaws/counter-points → {project_path / 'processed' / 'opinion.json'}")
+
             except Exception as e:
                 print(f"[Sherlock] ERROR: LLM extraction failed: {e}", file=sys.stderr)
                 logger.exception("Extraction failed")
@@ -456,6 +498,25 @@ def main() -> None:
                 print(f"[Sherlock] ERROR: Contradiction detection failed: {e}", file=sys.stderr)
                 logger.exception("Contradiction detection failed")
                 print(f"[Sherlock] Chunking succeeded; contradiction error is non-fatal.", file=sys.stderr)
+
+        if args.opinion:
+            print(f"[Sherlock] --opinion enabled — formulating Sherlock's Opinion (model={effective_model})")
+            try:
+                from engine.opinion import generate_opinion
+
+                op_result = generate_opinion(
+                    project_path=project_path,
+                    model=effective_model,
+                    llm_config=llm_cfg,
+                    save_outputs=True,
+                    enable_thinking=True,
+                    verbose=True,
+                )
+                print(f"[Sherlock] Opinion formulated: confidence={op_result['confidence']}, {len(op_result['supporting_evidence'])} supporting points, {len(op_result['flaws_and_counter_evidence'])} flaws/counter-points → {project_path / 'processed' / 'opinion.json'}")
+            except Exception as e:
+                print(f"[Sherlock] ERROR: Opinion formulation failed: {e}", file=sys.stderr)
+                logger.exception("Opinion formulation failed")
+                print(f"[Sherlock] Chunking succeeded; opinion error is non-fatal.", file=sys.stderr)
 
     print(f"[Sherlock] Processing completed successfully")
 

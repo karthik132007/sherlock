@@ -38,6 +38,7 @@ public class MainFrameView extends BorderPane {
     private final GraphCanvas graphCanvas = new GraphCanvas();
     private final TimelinePanel timelinePanel = new TimelinePanel(this::startTimelineExtraction);
     private final ContradictionsPanel contradictionsPanel = new ContradictionsPanel(this::startContradictionsExtraction);
+    private final OpinionPanel opinionPanel = new OpinionPanel(this::startOpinionExtraction);
     private final DocumentsPanel documentsPanel;
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
@@ -46,6 +47,7 @@ public class MainFrameView extends BorderPane {
     private ToggleButton graphBtn;
     private ToggleButton timelineBtn;
     private ToggleButton contradictionsBtn;
+    private ToggleButton opinionBtn;
 
     private boolean isSidebarCollapsed = false;
     private final VBox sidebar = new VBox(14);
@@ -168,6 +170,15 @@ public class MainFrameView extends BorderPane {
                 }))
                 .exceptionally(ex -> {
                     System.err.println("Failed to load contradictions data: " + ex.getMessage());
+                    return null;
+                });
+
+        client.getOpinionAsync(caseId)
+                .thenAccept(opinionData -> Platform.runLater(() -> {
+                    opinionPanel.setOpinionData(opinionData);
+                }))
+                .exceptionally(ex -> {
+                    System.err.println("Failed to load opinion data: " + ex.getMessage());
                     return null;
                 });
 
@@ -348,18 +359,21 @@ public class MainFrameView extends BorderPane {
         graphBtn = new ToggleButton("🕸 Graph View");
         timelineBtn = new ToggleButton("⏳ Timeline View");
         contradictionsBtn = new ToggleButton("⚡ Contradictions");
+        opinionBtn = new ToggleButton("🧠 Sherlock's Opinion");
 
         graphBtn.setToggleGroup(group);
         timelineBtn.setToggleGroup(group);
         contradictionsBtn.setToggleGroup(group);
+        opinionBtn.setToggleGroup(group);
 
         graphBtn.setOnAction(e -> switchToView("GRAPH"));
         timelineBtn.setOnAction(e -> switchToView("TIMELINE"));
         contradictionsBtn.setOnAction(e -> switchToView("CONTRADICTIONS"));
+        opinionBtn.setOnAction(e -> switchToView("OPINION"));
 
         HBox toggleWrapper = new HBox(4);
         toggleWrapper.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 8px; -fx-padding: 4px;");
-        toggleWrapper.getChildren().addAll(graphBtn, timelineBtn, contradictionsBtn);
+        toggleWrapper.getChildren().addAll(graphBtn, timelineBtn, contradictionsBtn, opinionBtn);
 
         Region hSpacer = new Region();
         HBox.setHgrow(hSpacer, Priority.ALWAYS);
@@ -376,11 +390,11 @@ public class MainFrameView extends BorderPane {
         header.getChildren().addAll(toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
                 nodeCountBadge, edgeCountBadge, refreshBtn);
 
-        // Stack for Graph/Timeline/Contradictions/Documents
+        // Stack for Graph/Timeline/Contradictions/Opinion/Documents
         viewStack = new StackPane();
         VBox.setVgrow(viewStack, Priority.ALWAYS);
 
-        viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel, documentsPanel);
+        viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel, opinionPanel, documentsPanel);
 
         detailsPanel.setMinHeight(150.0);
         detailsPanel.setPrefHeight(300.0);
@@ -401,6 +415,7 @@ public class MainFrameView extends BorderPane {
         boolean isGraph = "GRAPH".equalsIgnoreCase(viewName);
         boolean isTimeline = "TIMELINE".equalsIgnoreCase(viewName);
         boolean isContra = "CONTRADICTIONS".equalsIgnoreCase(viewName);
+        boolean isOpinion = "OPINION".equalsIgnoreCase(viewName);
         boolean isDocs = "DOCUMENTS".equalsIgnoreCase(viewName);
 
         // 1. Sidebar active styles
@@ -418,10 +433,12 @@ public class MainFrameView extends BorderPane {
         if (isGraph && graphBtn != null) graphBtn.setSelected(true);
         else if (isTimeline && timelineBtn != null) timelineBtn.setSelected(true);
         else if (isContra && contradictionsBtn != null) contradictionsBtn.setSelected(true);
+        else if (isOpinion && opinionBtn != null) opinionBtn.setSelected(true);
         else if (isDocs) {
             if (graphBtn != null) graphBtn.setSelected(false);
             if (timelineBtn != null) timelineBtn.setSelected(false);
             if (contradictionsBtn != null) contradictionsBtn.setSelected(false);
+            if (opinionBtn != null) opinionBtn.setSelected(false);
         }
 
         // 3. Update top toggle button styling
@@ -433,6 +450,7 @@ public class MainFrameView extends BorderPane {
             if (graphBtn != null) graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
             if (timelineBtn != null) timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
             if (contradictionsBtn != null) contradictionsBtn.setStyle(baseStyle + (contradictionsBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
+            if (opinionBtn != null) opinionBtn.setStyle(baseStyle + (opinionBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
         };
         updateToggleStyles.run();
 
@@ -445,6 +463,9 @@ public class MainFrameView extends BorderPane {
 
         contradictionsPanel.setVisible(isContra);
         contradictionsPanel.setManaged(isContra);
+
+        opinionPanel.setVisible(isOpinion);
+        opinionPanel.setManaged(isOpinion);
 
         documentsPanel.setVisible(isDocs);
         documentsPanel.setManaged(isDocs);
@@ -518,6 +539,16 @@ public class MainFrameView extends BorderPane {
                 }
             }
         });
+
+        opinionPanel.setOnNavigateToEntity(entityName -> {
+            if (entityName != null && !entityName.isBlank()) {
+                switchToView("GRAPH");
+                var node = graphCanvas.getNode(entityName);
+                if (node != null) {
+                    graphCanvas.selectAndFocusNode(node);
+                }
+            }
+        });
     }
 
     // (Timeline processing, Investigation progress dialogs, and settings dialogs
@@ -557,6 +588,26 @@ public class MainFrameView extends BorderPane {
                         "⚡ Contradiction Detection",
                         "Comparing statements, alibis, and evidence to detect contradictory facts...",
                         () -> client.getContradictionsProcessingStatusAsync(caseId),
+                        this::refreshGraphData
+                );
+                dialog.showAndStart();
+            });
+        });
+    }
+
+    private void startOpinionExtraction() {
+        if (currentCase == null || currentCase.getCaseId() == null)
+            return;
+        String caseId = currentCase.getCaseId();
+
+        client.startOpinionProcessingAsync(caseId).thenAccept(status -> {
+            Platform.runLater(() -> {
+                Stage owner = getScene() != null ? (Stage) getScene().getWindow() : null;
+                ProcessingLogsDialog dialog = new ProcessingLogsDialog(
+                        owner,
+                        "🧠 Sherlock's Opinion & Theory Deduction",
+                        "Connecting dots across all evidence with LLM thinking mode...",
+                        () -> client.getOpinionProcessingStatusAsync(caseId),
                         this::refreshGraphData
                 );
                 dialog.showAndStart();
