@@ -38,6 +38,7 @@ public class MainFrameView extends BorderPane {
     private final GraphCanvas graphCanvas = new GraphCanvas();
     private final TimelinePanel timelinePanel = new TimelinePanel(this::startTimelineExtraction);
     private final ContradictionsPanel contradictionsPanel = new ContradictionsPanel(this::startContradictionsExtraction);
+    private final DocumentsPanel documentsPanel;
     private final DetailsPanel detailsPanel = new DetailsPanel();
     private final ChatPanel chatPanel;
     private Button investigateBtn;
@@ -46,10 +47,18 @@ public class MainFrameView extends BorderPane {
     private ToggleButton timelineBtn;
     private ToggleButton contradictionsBtn;
 
+    private boolean isSidebarCollapsed = false;
+    private final VBox sidebar = new VBox(14);
+    private Button navDocs;
+    private StackPane viewStack;
+    private SplitPane mainAreaSplit;
+
     public MainFrameView(SherlockBackendClient client, Runnable onNewCaseRequested) {
         this.client = client;
         this.onNewCaseRequested = onNewCaseRequested;
         this.chatPanel = new ChatPanel(client);
+        this.documentsPanel = new DocumentsPanel(client);
+        this.documentsPanel.setOnFilesChanged(this::refreshGraphData);
 
         getStyleClass().add("root");
 
@@ -94,6 +103,8 @@ public class MainFrameView extends BorderPane {
                 if (firstMatch != null) graphCanvas.selectAndFocusNode(firstMatch);
             }
         });
+
+        switchToView("GRAPH");
     }
 
     public void loadCase(CaseDto caseDto) {
@@ -101,6 +112,7 @@ public class MainFrameView extends BorderPane {
         String caseId = caseDto != null ? caseDto.getCaseId() : "—";
         caseBadge.setText("CASE: " + caseId.toUpperCase());
         chatPanel.setCaseId(caseId);
+        documentsPanel.setCase(caseDto);
 
         refreshGraphData();
     }
@@ -131,6 +143,7 @@ public class MainFrameView extends BorderPane {
                     nodeCountBadge.setText(nodes + " Node" + (nodes == 1 ? "" : "s"));
                     edgeCountBadge.setText(edges + " Edge" + (edges == 1 ? "" : "s"));
                     detailsPanel.showPlaceholder();
+                    graphCanvas.fitToView();
                 }))
                 .exceptionally(ex -> {
                     Platform.runLater(() -> {
@@ -157,98 +170,149 @@ public class MainFrameView extends BorderPane {
                     System.err.println("Failed to load contradictions data: " + ex.getMessage());
                     return null;
                 });
+
+        documentsPanel.refreshFiles();
     }
 
     private VBox buildSidebar() {
-        VBox sidebar = new VBox(16);
-        sidebar.setPrefWidth(260);
-        sidebar.setMinWidth(260);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.7); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
-
-        // Brand
-        HBox brand = new HBox(8);
-        brand.setAlignment(Pos.CENTER_LEFT);
-        brand.setPadding(new Insets(0, 0, 16, 0));
-        Label icon = new Label("✨");
-        icon.setStyle("-fx-font-size: 33.6px;");
-        Label title = new Label("Sherlock");
-        title.setStyle("-fx-font-size: 28.8px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
-        brand.getChildren().addAll(icon, title);
-
-        // Navigation
-        VBox navMenu = new VBox(4);
-
-        Button navHome = createNavButton("🏠", "Home");
-        navHome.getStyleClass().add("nav-item-active");
-        navHome.setOnAction(e -> {
-            if (onNewCaseRequested != null)
-                onNewCaseRequested.run();
-        });
-
-        Button navGraph = createNavButton("🕸", "Knowledge Graph");
-        navGraph.setOnAction(e -> {
-            if (graphBtn != null) graphBtn.setSelected(true);
-        });
-
-        Button navTimeline = createNavButton("⏳", "Timeline");
-        navTimeline.setOnAction(e -> {
-            if (timelineBtn != null) timelineBtn.setSelected(true);
-        });
-
-        Button navContradictions = createNavButton("⚡", "Contradictions");
-        navContradictions.setOnAction(e -> {
-            if (contradictionsBtn != null) contradictionsBtn.setSelected(true);
-        });
-
-        Button navDocs = createNavButton("📄", "Documents");
-        Button navSaved = createNavButton("🔖", "Saved Views");
-        Button navSettings = createNavButton("⚙️", "Settings");
-        navSettings.setOnAction(e -> showSettingsDialog());
-
-        navMenu.getChildren().addAll(navHome, navGraph, navTimeline, navContradictions, navDocs, navSettings);
-
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-
-        // System Online Status
-        VBox statusBox = new VBox(4);
-        statusBox.setPadding(new Insets(12));
-        statusBox.setStyle(
-                "-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-background-radius: 8px; -fx-border-radius: 8px;");
-        HBox onlineStatus = new HBox(6);
-        onlineStatus.setAlignment(Pos.CENTER_LEFT);
-        Circle dot = new Circle(4, Color.web("#10b981"));
-        Label onlineLbl = new Label("System Online");
-        onlineLbl.setStyle("-fx-font-size: 15.6px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
-        onlineStatus.getChildren().addAll(dot, onlineLbl);
-
-        Label version = new Label("v1.0.0");
-        version.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #94a3b8;");
-        statusBox.getChildren().addAll(onlineStatus, version);
-
-        // User Profile Mockup
-        HBox userBox = new HBox(10);
-        userBox.setAlignment(Pos.CENTER_LEFT);
-        userBox.setPadding(new Insets(10, 0, 0, 0));
-
-        Label avatar = new Label("S");
-        avatar.setAlignment(Pos.CENTER);
-        avatar.setMinSize(32, 32);
-        avatar.setStyle(
-                "-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
-
-        VBox userInfo = new VBox(2);
-        Label userName = new Label("Sherlock Admin");
-        userName.setStyle("-fx-font-size: 16.8px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
-        Label userRole = new Label("Investigator");
-        userRole.setStyle("-fx-font-size: 14.4px; -fx-text-fill: #64748b;");
-        userInfo.getChildren().addAll(userName, userRole);
-
-        userBox.getChildren().addAll(avatar, userInfo);
-
-        sidebar.getChildren().addAll(brand, navMenu, spacer, statusBox, userBox);
+        updateSidebarLayout();
         return sidebar;
+    }
+
+    private void toggleSidebar() {
+        isSidebarCollapsed = !isSidebarCollapsed;
+        updateSidebarLayout();
+    }
+
+    private void updateSidebarLayout() {
+        sidebar.getChildren().clear();
+
+        if (isSidebarCollapsed) {
+            sidebar.setPrefWidth(68);
+            sidebar.setMinWidth(68);
+            sidebar.setMaxWidth(68);
+            sidebar.setPadding(new Insets(16, 8, 16, 8));
+            sidebar.setAlignment(Pos.TOP_CENTER);
+            sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.85); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
+
+            // Hamburger button
+            Button hamburgerBtn = new Button("☰");
+            hamburgerBtn.getStyleClass().add("tool-button");
+            hamburgerBtn.setStyle("-fx-font-size: 16px; -fx-padding: 6px 10px;");
+            hamburgerBtn.setTooltip(new Tooltip("Expand sidebar"));
+            hamburgerBtn.setOnAction(e -> toggleSidebar());
+
+            // Nav Menu (icons only)
+            VBox navMenu = new VBox(8);
+            navMenu.setAlignment(Pos.TOP_CENTER);
+
+            navDocs = createNavIconButton("📄", "Documents");
+            navDocs.setOnAction(e -> switchToView("DOCUMENTS"));
+
+            Button navSettings = createNavIconButton("⚙️", "Settings");
+            navSettings.setOnAction(e -> showSettingsDialog());
+
+            navMenu.getChildren().addAll(navDocs, navSettings);
+
+            Region spacer = new Region();
+            VBox.setVgrow(spacer, Priority.ALWAYS);
+
+            // Collapsed status dot
+            Circle dot = new Circle(5, Color.web("#10b981"));
+            Tooltip.install(dot, new Tooltip("System Online • v1.0.0"));
+
+            // Collapsed avatar
+            Label avatar = new Label("S");
+            avatar.setAlignment(Pos.CENTER);
+            avatar.setMinSize(32, 32);
+            avatar.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
+            Tooltip.install(avatar, new Tooltip("Sherlock Admin (Investigator)"));
+
+            sidebar.getChildren().addAll(hamburgerBtn, navMenu, spacer, dot, avatar);
+        } else {
+            sidebar.setPrefWidth(240);
+            sidebar.setMinWidth(240);
+            sidebar.setMaxWidth(240);
+            sidebar.setPadding(new Insets(16));
+            sidebar.setAlignment(Pos.TOP_LEFT);
+            sidebar.setStyle("-fx-background-color: rgba(248, 250, 252, 0.85); -fx-border-color: #e2e8f0; -fx-border-width: 0 1px 0 0;");
+
+            // Header with Brand and Hamburger
+            HBox brandHeader = new HBox(8);
+            brandHeader.setAlignment(Pos.CENTER_LEFT);
+            brandHeader.setPadding(new Insets(0, 0, 8, 0));
+
+            Label icon = new Label("✨");
+            icon.setStyle("-fx-font-size: 24px;");
+            Label title = new Label("Sherlock");
+            title.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+
+            Region hSpacer = new Region();
+            HBox.setHgrow(hSpacer, Priority.ALWAYS);
+
+            Button hamburgerBtn = new Button("☰");
+            hamburgerBtn.getStyleClass().add("tool-button");
+            hamburgerBtn.setStyle("-fx-font-size: 15px; -fx-padding: 4px 8px;");
+            hamburgerBtn.setTooltip(new Tooltip("Collapse sidebar"));
+            hamburgerBtn.setOnAction(e -> toggleSidebar());
+
+            brandHeader.getChildren().addAll(icon, title, hSpacer, hamburgerBtn);
+
+            // Nav Menu (Documents, Settings)
+            VBox navMenu = new VBox(4);
+
+            navDocs = createNavButton("📄", "Documents");
+            navDocs.setOnAction(e -> switchToView("DOCUMENTS"));
+
+            Button navSettings = createNavButton("⚙️", "Settings");
+            navSettings.setOnAction(e -> showSettingsDialog());
+
+            navMenu.getChildren().addAll(navDocs, navSettings);
+
+            Region spacer = new Region();
+            VBox.setVgrow(spacer, Priority.ALWAYS);
+
+            // System Online Status
+            VBox statusBox = new VBox(4);
+            statusBox.setPadding(new Insets(10));
+            statusBox.setStyle("-fx-background-color: #ffffff; -fx-border-color: #e2e8f0; -fx-background-radius: 8px; -fx-border-radius: 8px;");
+            HBox onlineStatus = new HBox(6);
+            onlineStatus.setAlignment(Pos.CENTER_LEFT);
+            Circle dot = new Circle(4, Color.web("#10b981"));
+            Label onlineLbl = new Label("System Online");
+            onlineLbl.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #0f172a;");
+            onlineStatus.getChildren().addAll(dot, onlineLbl);
+
+            Label version = new Label("v1.0.0");
+            version.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #94a3b8;");
+            statusBox.getChildren().addAll(onlineStatus, version);
+
+            // User Profile
+            HBox userBox = new HBox(10);
+            userBox.setAlignment(Pos.CENTER_LEFT);
+            userBox.setPadding(new Insets(6, 0, 0, 0));
+
+            Label avatar = new Label("S");
+            avatar.setAlignment(Pos.CENTER);
+            avatar.setMinSize(32, 32);
+            avatar.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 16px;");
+
+            VBox userInfo = new VBox(2);
+            Label userName = new Label("Sherlock Admin");
+            userName.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+            Label userRole = new Label("Investigator");
+            userRole.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
+            userInfo.getChildren().addAll(userName, userRole);
+
+            userBox.getChildren().addAll(avatar, userInfo);
+
+            sidebar.getChildren().addAll(brandHeader, navMenu, spacer, statusBox, userBox);
+        }
+
+        // Maintain active class on navDocs if currently viewing documents
+        if (documentsPanel != null && documentsPanel.isVisible() && navDocs != null) {
+            navDocs.getStyleClass().add("nav-item-active");
+        }
     }
 
     private Button createNavButton(String iconText, String text) {
@@ -256,6 +320,15 @@ public class MainFrameView extends BorderPane {
         btn.getStyleClass().add("nav-item");
         btn.setMaxWidth(Double.MAX_VALUE);
         btn.setAlignment(Pos.CENTER_LEFT);
+        return btn;
+    }
+
+    private Button createNavIconButton(String iconText, String tooltipText) {
+        Button btn = new Button(iconText);
+        btn.getStyleClass().add("nav-item");
+        btn.setStyle("-fx-font-size: 16px; -fx-padding: 8px; -fx-alignment: center;");
+        btn.setTooltip(new Tooltip(tooltipText));
+        btn.setMaxWidth(Double.MAX_VALUE);
         return btn;
     }
 
@@ -271,78 +344,18 @@ public class MainFrameView extends BorderPane {
         header.getStyleClass().add("glass-toolbar");
         header.setStyle("-fx-background-color: rgba(255, 255, 255, 0.6);");
 
-        
-
         ToggleGroup group = new ToggleGroup();
         graphBtn = new ToggleButton("🕸 Graph View");
         timelineBtn = new ToggleButton("⏳ Timeline View");
         contradictionsBtn = new ToggleButton("⚡ Contradictions");
+
         graphBtn.setToggleGroup(group);
         timelineBtn.setToggleGroup(group);
         contradictionsBtn.setToggleGroup(group);
-        graphBtn.setSelected(true);
 
-        Runnable updateStyles = () -> {
-            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 13.5px; -fx-padding: 6px 12px; ";
-            String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
-            String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
-
-            graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors)
-                    + "-fx-background-radius: 6px;");
-            timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors)
-                    + "-fx-background-radius: 6px;");
-            contradictionsBtn.setStyle(baseStyle + (contradictionsBtn.isSelected() ? selColors : unselColors)
-                    + "-fx-background-radius: 6px;");
-        };
-
-        graphBtn.selectedProperty().addListener((obs, old, isSel) -> {
-            updateStyles.run();
-            if (isSel) {
-                graphCanvas.setVisible(true);
-                graphCanvas.setManaged(true);
-                timelinePanel.setVisible(false);
-                timelinePanel.setManaged(false);
-                contradictionsPanel.setVisible(false);
-                contradictionsPanel.setManaged(false);
-                detailsPanel.setVisible(true);
-                detailsPanel.setManaged(true);
-            }
-        });
-
-        timelineBtn.selectedProperty().addListener((obs, old, isSel) -> {
-            updateStyles.run();
-            if (isSel) {
-                timelinePanel.setVisible(true);
-                timelinePanel.setManaged(true);
-                graphCanvas.setVisible(false);
-                graphCanvas.setManaged(false);
-                contradictionsPanel.setVisible(false);
-                contradictionsPanel.setManaged(false);
-                detailsPanel.setVisible(true);
-                detailsPanel.setManaged(true);
-            }
-        });
-
-        contradictionsBtn.selectedProperty().addListener((obs, old, isSel) -> {
-            updateStyles.run();
-            if (isSel) {
-                contradictionsPanel.setVisible(true);
-                contradictionsPanel.setManaged(true);
-                graphCanvas.setVisible(false);
-                graphCanvas.setManaged(false);
-                timelinePanel.setVisible(false);
-                timelinePanel.setManaged(false);
-                detailsPanel.setVisible(false);
-                detailsPanel.setManaged(false);
-            }
-        });
-
-        group.selectedToggleProperty().addListener((obs, old, newVal) -> {
-            if (newVal == null)
-                old.setSelected(true);
-        });
-
-        updateStyles.run();
+        graphBtn.setOnAction(e -> switchToView("GRAPH"));
+        timelineBtn.setOnAction(e -> switchToView("TIMELINE"));
+        contradictionsBtn.setOnAction(e -> switchToView("CONTRADICTIONS"));
 
         HBox toggleWrapper = new HBox(4);
         toggleWrapper.setStyle("-fx-background-color: #f1f5f9; -fx-background-radius: 8px; -fx-padding: 4px;");
@@ -363,67 +376,98 @@ public class MainFrameView extends BorderPane {
         header.getChildren().addAll(toggleWrapper, hSpacer, investigateBtn, refreshIndicator, caseBadge,
                 nodeCountBadge, edgeCountBadge, refreshBtn);
 
-        // Stack for Graph/Timeline/Contradictions
-        StackPane viewStack = new StackPane();
+        // Stack for Graph/Timeline/Contradictions/Documents
+        viewStack = new StackPane();
         VBox.setVgrow(viewStack, Priority.ALWAYS);
 
-        timelinePanel.setVisible(false);
-        timelinePanel.setManaged(false);
-        contradictionsPanel.setVisible(false);
-        contradictionsPanel.setManaged(false);
-        viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel);
-        
-        viewStack.setOnMouseClicked(e -> {
-            detailsPanel.setPrefHeight(345.0);
-        });
+        viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel, documentsPanel);
 
-        detailsPanel.setMinHeight(270.0);
-        detailsPanel.setPrefHeight(345.0);
-
-        SplitPane mainAreaSplit = new SplitPane();
-        mainAreaSplit.setOrientation(javafx.geometry.Orientation.VERTICAL);
-        VBox.setVgrow(mainAreaSplit, Priority.ALWAYS);
-        
-        mainAreaSplit.getItems().addAll(viewStack, detailsPanel);
-        // Set initial divider position (e.g. 70% graph, 30% details)
-        mainAreaSplit.setDividerPositions(0.7);
-        
         detailsPanel.setMinHeight(150.0);
         detailsPanel.setPrefHeight(300.0);
         detailsPanel.setMaxHeight(600.0);
 
+        mainAreaSplit = new SplitPane();
+        mainAreaSplit.setOrientation(javafx.geometry.Orientation.VERTICAL);
+        VBox.setVgrow(mainAreaSplit, Priority.ALWAYS);
+        
+        mainAreaSplit.getItems().addAll(viewStack, detailsPanel);
+        mainAreaSplit.setDividerPositions(0.7);
+
         center.getChildren().addAll(header, mainAreaSplit);
         return center;
     }
-    
-    private VBox buildHomeView() {
-        VBox home = new VBox(20);
-        home.setAlignment(Pos.CENTER);
-        Label lbl = new Label("Sherlock Home");
-        lbl.setStyle("-fx-font-size: 34.5px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
-        
-        
-        
-        home.getChildren().addAll(lbl);
-        return home;
+
+    public void switchToView(String viewName) {
+        boolean isGraph = "GRAPH".equalsIgnoreCase(viewName);
+        boolean isTimeline = "TIMELINE".equalsIgnoreCase(viewName);
+        boolean isContra = "CONTRADICTIONS".equalsIgnoreCase(viewName);
+        boolean isDocs = "DOCUMENTS".equalsIgnoreCase(viewName);
+
+        // 1. Sidebar active styles
+        if (navDocs != null) {
+            if (isDocs) {
+                if (!navDocs.getStyleClass().contains("nav-item-active")) {
+                    navDocs.getStyleClass().add("nav-item-active");
+                }
+            } else {
+                navDocs.getStyleClass().remove("nav-item-active");
+            }
+        }
+
+        // 2. Top toggle selection
+        if (isGraph && graphBtn != null) graphBtn.setSelected(true);
+        else if (isTimeline && timelineBtn != null) timelineBtn.setSelected(true);
+        else if (isContra && contradictionsBtn != null) contradictionsBtn.setSelected(true);
+        else if (isDocs) {
+            if (graphBtn != null) graphBtn.setSelected(false);
+            if (timelineBtn != null) timelineBtn.setSelected(false);
+            if (contradictionsBtn != null) contradictionsBtn.setSelected(false);
+        }
+
+        // 3. Update top toggle button styling
+        Runnable updateToggleStyles = () -> {
+            String baseStyle = "-fx-font-weight: 600; -fx-font-size: 13.5px; -fx-padding: 6px 12px; ";
+            String selColors = "-fx-background-color: #ffffff; -fx-text-fill: #0f172a; -fx-border-color: #e2e8f0; ";
+            String unselColors = "-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-border-color: transparent; ";
+
+            if (graphBtn != null) graphBtn.setStyle(baseStyle + (graphBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
+            if (timelineBtn != null) timelineBtn.setStyle(baseStyle + (timelineBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
+            if (contradictionsBtn != null) contradictionsBtn.setStyle(baseStyle + (contradictionsBtn.isSelected() ? selColors : unselColors) + "-fx-background-radius: 6px;");
+        };
+        updateToggleStyles.run();
+
+        // 4. Update view visibility
+        graphCanvas.setVisible(isGraph);
+        graphCanvas.setManaged(isGraph);
+
+        timelinePanel.setVisible(isTimeline);
+        timelinePanel.setManaged(isTimeline);
+
+        contradictionsPanel.setVisible(isContra);
+        contradictionsPanel.setManaged(isContra);
+
+        documentsPanel.setVisible(isDocs);
+        documentsPanel.setManaged(isDocs);
+
+        // 5. Manage details panel in mainAreaSplit
+        if (mainAreaSplit != null) {
+            if (isGraph || isTimeline) {
+                if (!mainAreaSplit.getItems().contains(detailsPanel)) {
+                    mainAreaSplit.getItems().add(detailsPanel);
+                    mainAreaSplit.setDividerPositions(0.70);
+                }
+            } else {
+                mainAreaSplit.getItems().remove(detailsPanel);
+            }
+        }
+
+        if (isGraph) {
+            Platform.runLater(graphCanvas::fitToView);
+        } else if (isDocs) {
+            documentsPanel.refreshFiles();
+        }
     }
-    
-    private VBox buildSavedViews() {
-        VBox saved = new VBox(20);
-        saved.setPadding(new Insets(40));
-        saved.setAlignment(Pos.TOP_LEFT);
-        
-        Label title = new Label("Saved Checkpoints");
-        title.setStyle("-fx-font-size: 30.7px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
-        
-        ListView<String> savedList = new ListView<>();
-        savedList.getItems().addAll("Checkpoint 1 - Initial Graph", "Checkpoint 2 - Suspect Connections");
-        VBox.setVgrow(savedList, Priority.ALWAYS);
-        
-        saved.getChildren().addAll(title, savedList);
-        return saved;
-    }
-    
+
     private VBox buildRightPanel() {
         VBox right = new VBox();
         right.setPrefWidth(380);
@@ -457,7 +501,7 @@ public class MainFrameView extends BorderPane {
 
         detailsPanel.setOnNavigateToEntity(entityName -> {
             if (entityName != null && !entityName.isBlank()) {
-                if (graphBtn != null) graphBtn.setSelected(true);
+                switchToView("GRAPH");
                 var node = graphCanvas.getNode(entityName);
                 if (node != null) {
                     graphCanvas.selectAndFocusNode(node);
@@ -467,7 +511,7 @@ public class MainFrameView extends BorderPane {
 
         contradictionsPanel.setOnNavigateToEntity(entityName -> {
             if (entityName != null && !entityName.isBlank()) {
-                if (graphBtn != null) graphBtn.setSelected(true);
+                switchToView("GRAPH");
                 var node = graphCanvas.getNode(entityName);
                 if (node != null) {
                     graphCanvas.selectAndFocusNode(node);

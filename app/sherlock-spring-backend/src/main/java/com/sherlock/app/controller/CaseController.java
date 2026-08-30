@@ -56,6 +56,18 @@ public class CaseController {
         return ResponseEntity.ok(caseService.saveUploadedFiles(caseId, files));
     }
 
+    @GetMapping(value = "/cases/{caseId}/files/{fileName}", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getFileContent(
+            @PathVariable String caseId,
+            @PathVariable String fileName) {
+        return ResponseEntity.ok(caseService.getFileContent(caseId, fileName));
+    }
+
+    @GetMapping(value = "/cases/{caseId}/warehouse", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getWarehouse(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getWarehouseContent(caseId));
+    }
+
     @PostMapping("/cases/{caseId}/process")
     public ResponseEntity<ProcessingStatus> processCase(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.startProcessing(caseId));
@@ -136,5 +148,33 @@ public class CaseController {
     @GetMapping("/cases/{caseId}/chat")
     public ResponseEntity<List<java.util.Map<String, Object>>> getChatHistory(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.getChatHistory(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/chat/sessions")
+    public ResponseEntity<List<com.sherlock.app.model.ChatSession>> getChatSessions(@PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getChatSessions(caseId));
+    }
+
+    @GetMapping("/cases/{caseId}/chat/sessions/{sessionId}")
+    public ResponseEntity<com.sherlock.app.model.ChatSession> getChatSession(
+            @PathVariable String caseId,
+            @PathVariable String sessionId) {
+        return ResponseEntity.ok(caseService.getChatSession(caseId, sessionId));
+    }
+
+    @PostMapping("/cases/{caseId}/chat/sessions")
+    public ResponseEntity<com.sherlock.app.model.ChatSession> createChatSession(
+            @PathVariable String caseId,
+            @RequestBody(required = false) java.util.Map<String, String> payload) {
+        String title = payload != null ? payload.get("title") : null;
+        return ResponseEntity.ok(caseService.createChatSession(caseId, title));
+    }
+
+    @DeleteMapping("/cases/{caseId}/chat/sessions/{sessionId}")
+    public ResponseEntity<java.util.Map<String, Object>> deleteChatSession(
+            @PathVariable String caseId,
+            @PathVariable String sessionId) {
+        boolean deleted = caseService.deleteChatSession(caseId, sessionId);
+        return ResponseEntity.ok(java.util.Map.of("caseId", caseId, "sessionId", sessionId, "deleted", deleted));
     }
 }

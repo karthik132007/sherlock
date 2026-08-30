@@ -82,5 +82,28 @@ class CaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.caseId").value("operation_test_200"));
     }
+
+    @Test
+    void testChatSessionsEndpoints() throws Exception {
+        CaseRequest request = new CaseRequest("Operation Test 3");
+        request.setCaseId("operation_test_300");
+        mockMvc.perform(post("/api/cases")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // List sessions - initially empty
+        mockMvc.perform(get("/api/cases/operation_test_300/chat/sessions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        // Create new session
+        mockMvc.perform(post("/api/cases/operation_test_300/chat/sessions")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(java.util.Map.of("title", "Alpha Session"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Alpha Session"))
+                .andExpect(jsonPath("$.sessionId").exists());
+    }
 }
 

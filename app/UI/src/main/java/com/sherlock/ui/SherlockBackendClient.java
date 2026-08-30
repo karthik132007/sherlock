@@ -102,6 +102,64 @@ public class SherlockBackendClient {
         }, ioExecutor);
     }
 
+    public CompletableFuture<CaseDto> getCaseAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId))
+                        .GET()
+                        .timeout(Duration.ofSeconds(10))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), CaseDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get case: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<String> getFileContentAsync(String caseId, String fileName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String encodedFileName = java.net.URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/files/" + encodedFileName))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return response.body();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load file " + fileName + ": " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<String> getWarehouseContentAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/warehouse"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return response.body();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load warehouse content: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
     public CompletableFuture<ProcessingStatusDto> startTimelineProcessingAsync(String caseId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -263,14 +321,18 @@ public class SherlockBackendClient {
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query) {
-        return sendChatMessageAsync(caseId, query, null);
+        return sendChatMessageAsync(caseId, query, null, null, null);
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model) {
-        return sendChatMessageAsync(caseId, query, model, null);
+        return sendChatMessageAsync(caseId, query, model, null, null);
     }
 
     public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model, String provider) {
+        return sendChatMessageAsync(caseId, query, model, provider, null);
+    }
+
+    public CompletableFuture<ChatMessageDto> sendChatMessageAsync(String caseId, String query, String model, String provider, String sessionId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Map<String, Object> map = new HashMap<>();
@@ -280,6 +342,9 @@ public class SherlockBackendClient {
                 }
                 if (provider != null && !provider.isBlank()) {
                     map.put("provider", provider);
+                }
+                if (sessionId != null && !sessionId.isBlank()) {
+                    map.put("sessionId", sessionId);
                 }
                 String json = objectMapper.writeValueAsString(map);
                 HttpRequest request = HttpRequest.newBuilder()
@@ -297,6 +362,88 @@ public class SherlockBackendClient {
                 return objectMapper.readValue(response.body(), ChatMessageDto.class);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to query Sherlock chat: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<List<ChatSessionDto>> getChatSessionsAsync(String caseId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat/sessions"))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), new TypeReference<List<ChatSessionDto>>() {});
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load chat sessions: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<ChatSessionDto> getChatSessionAsync(String caseId, String sessionId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat/sessions/" + sessionId))
+                        .GET()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), ChatSessionDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load chat session: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<ChatSessionDto> createChatSessionAsync(String caseId, String title) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Map<String, String> map = new HashMap<>();
+                if (title != null && !title.isBlank()) {
+                    map.put("title", title);
+                }
+                String json = objectMapper.writeValueAsString(map);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat/sessions"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return objectMapper.readValue(response.body(), ChatSessionDto.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create chat session: " + e.getMessage(), e);
+            }
+        }, ioExecutor);
+    }
+
+    public CompletableFuture<Boolean> deleteChatSessionAsync(String caseId, String sessionId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/cases/" + caseId + "/chat/sessions/" + sessionId))
+                        .DELETE()
+                        .timeout(Duration.ofSeconds(15))
+                        .build();
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 400) {
+                    throw new IOException("Backend error (" + response.statusCode() + "): " + response.body());
+                }
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete chat session: " + e.getMessage(), e);
             }
         }, ioExecutor);
     }

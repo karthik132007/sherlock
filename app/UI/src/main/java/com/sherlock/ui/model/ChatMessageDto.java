@@ -14,6 +14,8 @@ public class ChatMessageDto {
     private String answer;
     private String content;
     private String timestamp;
+    private String sessionId;
+    private String sessionTitle;
     private List<String> referencedEntities = new ArrayList<>();
     private List<String> referencedSources = new ArrayList<>();
     private List<String> evidenceSnippets = new ArrayList<>();
@@ -31,6 +33,12 @@ public class ChatMessageDto {
         this.role = role;
         this.answer = answer;
     }
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+    public String getSessionTitle() { return sessionTitle; }
+    public void setSessionTitle(String sessionTitle) { this.sessionTitle = sessionTitle; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }

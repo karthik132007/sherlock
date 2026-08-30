@@ -11,6 +11,8 @@ import java.util.List;
 public class ChatResponse {
 
     private String answer;
+    private String sessionId;
+    private String sessionTitle;
     private List<String> referencedEntities = new ArrayList<>();
     private List<String> referencedSources = new ArrayList<>();
     private List<String> evidenceSnippets = new ArrayList<>();
@@ -32,6 +34,12 @@ public class ChatResponse {
 
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+    public String getSessionTitle() { return sessionTitle; }
+    public void setSessionTitle(String sessionTitle) { this.sessionTitle = sessionTitle; }
 
     public List<String> getReferencedEntities() { return referencedEntities; }
     public void setReferencedEntities(List<String> referencedEntities) { this.referencedEntities = referencedEntities; }

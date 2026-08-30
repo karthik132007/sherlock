@@ -279,6 +279,52 @@ public class CaseService {
         return warehouseFile.toString();
     }
 
+    public String getFileContent(String caseId, String fileName) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        String sanitized = sanitizeFileName(fileName);
+        Path target = caseDirectory.resolve("data").resolve(sanitized);
+        if (!Files.exists(target)) {
+            // Also check case root for files like warehouse.txt
+            target = caseDirectory.resolve(sanitized);
+        }
+        if (!Files.exists(target) || !Files.isRegularFile(target)) {
+            throw new IllegalArgumentException("File not found: " + fileName);
+        }
+        try {
+            return Files.readString(target, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            try {
+                return Files.readString(target, StandardCharsets.ISO_8859_1);
+            } catch (Exception ex) {
+                throw new RuntimeException("Could not read file " + fileName + ": " + ex.getMessage(), ex);
+            }
+        }
+    }
+
+    public String getWarehouseContent(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        Path warehouseFile = caseDirectory.resolve("warehouse.txt");
+        if (!Files.exists(warehouseFile)) {
+            try {
+                buildWarehouseFile(caseDirectory);
+            } catch (IOException ignored) {}
+        }
+        if (!Files.exists(warehouseFile)) {
+            return "No warehouse.txt found for case: " + caseId;
+        }
+        try {
+            return Files.readString(warehouseFile, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "Error reading warehouse.txt: " + e.getMessage();
+        }
+    }
+
     public ProcessingStatus startTimelineProcessing(String caseId) {
         Path caseDirectory = getCaseDirectory(caseId);
         if (!Files.exists(caseDirectory)) {
@@ -825,6 +871,64 @@ public class CaseService {
         return resp;
     }
 
+    public List<ChatSession> getChatSessions(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            return readChatSessions(caseDirectory);
+        }
+    }
+
+    public ChatSession getChatSession(String caseId, String sessionId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            List<ChatSession> sessions = readChatSessions(caseDirectory);
+            for (ChatSession session : sessions) {
+                if (session.getSessionId().equals(sessionId)) {
+                    return session;
+                }
+            }
+            throw new IllegalArgumentException("Chat session not found: " + sessionId);
+        }
+    }
+
+    public ChatSession createChatSession(String caseId, String title) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            List<ChatSession> sessions = readChatSessions(caseDirectory);
+            String sessionId = "session_" + UUID.randomUUID().toString();
+            String sessionTitle = (title != null && !title.isBlank()) ? title.trim() : "New Chat";
+            ChatSession newSession = new ChatSession(sessionId, sessionTitle);
+            sessions.add(0, newSession);
+            writeChatSessions(caseId, caseDirectory, sessions, sessionId);
+            return newSession;
+        }
+    }
+
+    public boolean deleteChatSession(String caseId, String sessionId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            List<ChatSession> sessions = readChatSessions(caseDirectory);
+            boolean removed = sessions.removeIf(s -> s.getSessionId().equals(sessionId));
+            if (removed) {
+                String nextActiveId = sessions.isEmpty() ? null : sessions.get(0).getSessionId();
+                writeChatSessions(caseId, caseDirectory, sessions, nextActiveId);
+            }
+            return removed;
+        }
+    }
+
     @SuppressWarnings("null")
     public ChatResponse chatWithSherlock(String caseId, ChatRequest request) {
         Path caseDirectory = getCaseDirectory(caseId);
@@ -832,9 +936,45 @@ public class CaseService {
             throw new IllegalArgumentException("Case not found: " + caseId);
         }
         String question = request != null ? request.getQuery() : "";
-        ChatResponse response = runPythonQueryAgent(caseId, caseDirectory, question);
-        appendChatExchange(caseId, caseDirectory, question, response);
-        return response;
+        String reqSessionId = request != null ? request.getSessionId() : null;
+
+        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
+            List<ChatSession> sessions = readChatSessions(caseDirectory);
+            ChatSession activeSession = null;
+            if (reqSessionId != null && !reqSessionId.isBlank()) {
+                for (ChatSession s : sessions) {
+                    if (s.getSessionId().equals(reqSessionId.trim())) {
+                        activeSession = s;
+                        break;
+                    }
+                }
+            }
+
+            if (activeSession == null) {
+                String newSessionId = "session_" + UUID.randomUUID().toString();
+                String initialTitle = generateSessionTitle(question);
+                activeSession = new ChatSession(newSessionId, initialTitle);
+                sessions.add(0, activeSession);
+            } else if ("New Chat".equalsIgnoreCase(activeSession.getTitle()) && question != null && !question.isBlank()) {
+                activeSession.setTitle(generateSessionTitle(question));
+            }
+
+            syncAgentResponsesFile(caseId, caseDirectory, activeSession.getMessages());
+
+            ChatResponse response = runPythonQueryAgent(caseId, caseDirectory, question);
+            response.setSessionId(activeSession.getSessionId());
+            response.setSessionTitle(activeSession.getTitle());
+
+            appendChatExchangeToSession(caseId, caseDirectory, sessions, activeSession, question, response);
+            return response;
+        }
+    }
+
+    private String generateSessionTitle(String question) {
+        if (question == null || question.isBlank()) return "New Chat";
+        String clean = question.trim().replaceAll("\\s+", " ");
+        if (clean.length() <= 35) return clean;
+        return clean.substring(0, 35).trim() + "...";
     }
 
     /** Returns the persistent case chat transcript for the JavaFX chat panel. */
@@ -844,54 +984,142 @@ public class CaseService {
             throw new IllegalArgumentException("Case not found: " + caseId);
         }
         synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
-            return readChatMessages(caseDirectory);
-        }
-    }
-
-    private void appendChatExchange(String caseId, Path caseDirectory, String question, ChatResponse response) {
-        if (question == null || question.isBlank()) return;
-        synchronized (chatHistoryLocks.computeIfAbsent(caseId, ignored -> new Object())) {
-            List<Map<String, Object>> messages = readChatMessages(caseDirectory);
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-
-            Map<String, Object> userMessage = new LinkedHashMap<>();
-            userMessage.put("role", "user");
-            userMessage.put("content", question.trim());
-            userMessage.put("timestamp", timestamp);
-            messages.add(userMessage);
-
-            Map<String, Object> assistantMessage = new LinkedHashMap<>();
-            assistantMessage.put("role", "assistant");
-            assistantMessage.put("content", response.getAnswer() != null ? response.getAnswer() : "No answer returned.");
-            assistantMessage.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            assistantMessage.put("highlightNodeIds", response.getHighlightNodeIds());
-            assistantMessage.put("highlightRelationIds", response.getHighlightRelationIds());
-            assistantMessage.put("cypherQueries", response.getCypherQueries());
-            assistantMessage.put("toolCallsUsed", response.getToolCallsUsed());
-            messages.add(assistantMessage);
-
-            Map<String, Object> fileBody = new LinkedHashMap<>();
-            fileBody.put("caseId", caseId);
-            fileBody.put("updatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            fileBody.put("messages", messages);
-            Path historyFile = caseDirectory.resolve("agent_responses.json");
-            Path tempFile = caseDirectory.resolve("agent_responses.json.tmp");
-            try {
-                objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile.toFile(), fileBody);
-                try {
-                    Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                } catch (AtomicMoveNotSupportedException ignored) {
-                    Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException e) {
-                log.warn("Could not persist agent responses for case {}: {}", caseId, e.getMessage());
-                try { Files.deleteIfExists(tempFile); } catch (IOException ignored) { }
+            List<ChatSession> sessions = readChatSessions(caseDirectory);
+            if (!sessions.isEmpty()) {
+                return sessions.get(0).getMessages();
             }
+            return readLegacyChatMessages(caseDirectory);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> readChatMessages(Path caseDirectory) {
+    private List<ChatSession> readChatSessions(Path caseDirectory) {
+        Path sessionsFile = caseDirectory.resolve("chat_sessions.json");
+        if (Files.exists(sessionsFile)) {
+            try {
+                JsonNode root = objectMapper.readTree(sessionsFile.toFile());
+                JsonNode sessionsNode = root.path("sessions");
+                if (sessionsNode.isArray()) {
+                    List<ChatSession> list = new ArrayList<>();
+                    for (JsonNode node : sessionsNode) {
+                        if (node.isObject()) {
+                            ChatSession session = objectMapper.convertValue(node, ChatSession.class);
+                            list.add(session);
+                        }
+                    }
+                    return list;
+                }
+            } catch (IOException e) {
+                log.warn("Could not read chat sessions from {}: {}", sessionsFile, e.getMessage());
+            }
+        }
+
+        List<Map<String, Object>> legacyMessages = readLegacyChatMessages(caseDirectory);
+        if (!legacyMessages.isEmpty()) {
+            String sessionId = "session_legacy_" + System.currentTimeMillis();
+            String title = "Previous Investigation Chat";
+            for (Map<String, Object> msg : legacyMessages) {
+                if ("user".equals(msg.get("role")) && msg.get("content") != null) {
+                    title = generateSessionTitle(msg.get("content").toString());
+                    break;
+                }
+            }
+            ChatSession migrated = new ChatSession(sessionId, title);
+            migrated.setMessages(legacyMessages);
+            List<ChatSession> list = new ArrayList<>();
+            list.add(migrated);
+            writeChatSessions(caseDirectory.getFileName().toString(), caseDirectory, list, sessionId);
+            return list;
+        }
+
+        return new ArrayList<>();
+    }
+
+    private void writeChatSessions(String caseId, Path caseDirectory, List<ChatSession> sessions, String activeSessionId) {
+        Map<String, Object> fileBody = new LinkedHashMap<>();
+        fileBody.put("caseId", caseId);
+        fileBody.put("activeSessionId", activeSessionId);
+        fileBody.put("updatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        fileBody.put("sessions", sessions);
+
+        Path sessionsFile = caseDirectory.resolve("chat_sessions.json");
+        Path tempFile = caseDirectory.resolve("chat_sessions.json.tmp");
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile.toFile(), fileBody);
+            try {
+                Files.move(tempFile, sessionsFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException ignored) {
+                Files.move(tempFile, sessionsFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            log.warn("Could not persist chat sessions for case {}: {}", caseId, e.getMessage());
+            try { Files.deleteIfExists(tempFile); } catch (IOException ignored) { }
+        }
+
+        if (sessions != null && !sessions.isEmpty()) {
+            ChatSession active = sessions.stream()
+                    .filter(s -> s.getSessionId().equals(activeSessionId))
+                    .findFirst()
+                    .orElse(sessions.get(0));
+            syncAgentResponsesFile(caseId, caseDirectory, active.getMessages());
+        } else {
+            syncAgentResponsesFile(caseId, caseDirectory, Collections.emptyList());
+        }
+    }
+
+    private void syncAgentResponsesFile(String caseId, Path caseDirectory, List<Map<String, Object>> messages) {
+        Map<String, Object> fileBody = new LinkedHashMap<>();
+        fileBody.put("caseId", caseId);
+        fileBody.put("updatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        fileBody.put("messages", messages != null ? messages : Collections.emptyList());
+        Path historyFile = caseDirectory.resolve("agent_responses.json");
+        Path tempFile = caseDirectory.resolve("agent_responses.json.tmp");
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile.toFile(), fileBody);
+            try {
+                Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException ignored) {
+                Files.move(tempFile, historyFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            log.warn("Could not sync agent responses file for case {}: {}", caseId, e.getMessage());
+            try { Files.deleteIfExists(tempFile); } catch (IOException ignored) { }
+        }
+    }
+
+    private void appendChatExchangeToSession(String caseId, Path caseDirectory, List<ChatSession> sessions,
+                                            ChatSession session, String question, ChatResponse response) {
+        if (question == null || question.isBlank()) return;
+        List<Map<String, Object>> messages = session.getMessages();
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+        Map<String, Object> userMessage = new LinkedHashMap<>();
+        userMessage.put("role", "user");
+        userMessage.put("content", question.trim());
+        userMessage.put("timestamp", timestamp);
+        messages.add(userMessage);
+
+        Map<String, Object> assistantMessage = new LinkedHashMap<>();
+        assistantMessage.put("role", "assistant");
+        assistantMessage.put("content", response.getAnswer() != null ? response.getAnswer() : "No answer returned.");
+        assistantMessage.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        assistantMessage.put("highlightNodeIds", response.getHighlightNodeIds());
+        assistantMessage.put("highlightRelationIds", response.getHighlightRelationIds());
+        assistantMessage.put("cypherQueries", response.getCypherQueries());
+        assistantMessage.put("toolCallsUsed", response.getToolCallsUsed());
+        messages.add(assistantMessage);
+
+        session.setUpdatedAt(timestamp);
+        session.setMessages(messages);
+
+        sessions.remove(session);
+        sessions.add(0, session);
+
+        writeChatSessions(caseId, caseDirectory, sessions, session.getSessionId());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> readLegacyChatMessages(Path caseDirectory) {
         Path historyFile = caseDirectory.resolve("agent_responses.json");
         if (!Files.exists(historyFile)) return new ArrayList<>();
         try {

@@ -1,73 +1,123 @@
 package com.sherlock.ui.view;
 
 import com.sherlock.ui.SherlockBackendClient;
+import com.sherlock.ui.model.ChatMessageDto;
+import com.sherlock.ui.model.ChatSessionDto;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
-import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class ChatPanel extends VBox {
 
     private final SherlockBackendClient client;
     private String currentCaseId = "";
+    private String currentSessionId = null;
+    private String currentSessionTitle = "New Chat";
+    private final List<ChatSessionDto> cachedSessions = new ArrayList<>();
 
+    // UI Structure
+    private final Label sessionTitleLbl = new Label("New Chat");
+    private final Button newChatBtn = new Button("+ New Chat");
+    private final Button historyToggleBtn = new Button("📜 History");
+    private final StackPane mainStack = new StackPane();
+
+    // Conversation View
+    private final VBox conversationView = new VBox(10);
     private final VBox messageContainer = new VBox(12);
     private final ScrollPane scrollPane = new ScrollPane();
+    private final FlowPane suggestionsPane = new FlowPane(6, 6);
     private final TextField inputField = new TextField();
     private final Button sendButton = new Button("➤");
     private final ProgressIndicator typingIndicator = new ProgressIndicator();
-    private Consumer<com.sherlock.ui.model.ChatMessageDto> onQueryResult;
+
+    // History View
+    private final VBox historyView = new VBox(12);
+    private final VBox historyListContainer = new VBox(10);
+    private final ScrollPane historyScrollPane = new ScrollPane();
+
+    private Consumer<ChatMessageDto> onQueryResult;
 
     public ChatPanel(SherlockBackendClient client) {
         this.client = client;
 
         getStyleClass().add("glass-panel");
-        setPadding(new Insets(16));
-        setSpacing(12);
+        setPadding(new Insets(14));
+        setSpacing(10);
 
-        // Header
-        HBox header = new HBox(8);
-        header.setAlignment(Pos.CENTER_LEFT);
-        
+        HBox topBar = buildTopBar();
+        buildConversationView();
+        buildHistoryView();
+
+        mainStack.getChildren().addAll(conversationView, historyView);
+        VBox.setVgrow(mainStack, Priority.ALWAYS);
+
+        getChildren().addAll(topBar, mainStack);
+
+        startNewChat();
+    }
+
+    private HBox buildTopBar() {
+        HBox topBar = new HBox(8);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
         Label icon = new Label("🤖");
+        icon.setStyle("-fx-font-size: 18px;");
+
+        VBox titleBox = new VBox(2);
         Label title = new Label("Sherlock Assistant");
-        title.setStyle("-fx-font-size: 21.6px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #0f172a;");
+
+        sessionTitleLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: 600;");
+        sessionTitleLbl.setMaxWidth(130);
+        titleBox.getChildren().addAll(title, sessionTitleLbl);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox status = new HBox(4);
-        status.setAlignment(Pos.CENTER);
-        Circle dot = new Circle(3, Color.web("#10b981"));
-        Label statusLbl = new Label("Ready");
-        statusLbl.setStyle("-fx-text-fill: #10b981; -fx-font-size: 14.4px; -fx-font-weight: bold;");
-        status.getChildren().addAll(dot, statusLbl);
-        status.setStyle("-fx-background-color: rgba(16, 185, 129, 0.1); -fx-padding: 4px 10px; -fx-background-radius: 12px;");
+        newChatBtn.getStyleClass().add("primary-button");
+        newChatBtn.setStyle("-fx-font-size: 12px; -fx-padding: 5px 10px; -fx-font-weight: 700;");
+        newChatBtn.setTooltip(new Tooltip("Start a brand new investigation chat"));
+        newChatBtn.setOnAction(e -> startNewChat());
 
-        header.getChildren().addAll(icon, title, spacer, status);
+        historyToggleBtn.getStyleClass().add("secondary-button");
+        historyToggleBtn.setStyle("-fx-font-size: 12px; -fx-padding: 5px 10px; -fx-font-weight: 600;");
+        historyToggleBtn.setTooltip(new Tooltip("View all previous chat sessions"));
+        historyToggleBtn.setOnAction(e -> {
+            if (historyView.isVisible()) {
+                showConversationView();
+            } else {
+                showHistoryView();
+            }
+        });
 
-        // Config Row Removed
+        topBar.getChildren().addAll(icon, titleBox, spacer, newChatBtn, historyToggleBtn);
+        return topBar;
+    }
+
+    private void buildConversationView() {
+        conversationView.setFillWidth(true);
+        VBox.setVgrow(conversationView, Priority.ALWAYS);
 
         // Quick suggestions
-        FlowPane suggestions = buildQuickSuggestions();
+        suggestionsPane.getChildren().add(createSuggestionPill("Key timeline events?"));
+        suggestionsPane.getChildren().add(createSuggestionPill("Who was near the victim?"));
+        suggestionsPane.getChildren().add(createSuggestionPill("Summarize motives."));
 
         // Message List
-        messageContainer.setPadding(new Insets(4, 8, 4, 8));
+        messageContainer.setPadding(new Insets(4, 6, 4, 6));
         messageContainer.setFillWidth(true);
 
         scrollPane.setContent(messageContainer);
@@ -95,58 +145,257 @@ public class ChatPanel extends VBox {
         sendButton.setStyle("-fx-padding: 8px 16px; -fx-font-size: 14px;");
         sendButton.setOnAction(e -> sendMessage());
 
-        HBox inputRow = new HBox(8, inputField, sendButton);
+        HBox inputRow = new HBox(8, typingIndicator, inputField, sendButton);
         inputRow.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(header, suggestions, scrollPane, inputRow);
+        conversationView.getChildren().addAll(suggestionsPane, scrollPane, inputRow);
+    }
 
-        addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. How may I assist your investigation?");
+    private void buildHistoryView() {
+        historyView.setFillWidth(true);
+        historyView.setVisible(false);
+        historyView.setManaged(false);
+        VBox.setVgrow(historyView, Priority.ALWAYS);
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label title = new Label("Investigation Chats");
+        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button backBtn = new Button("✕ Close");
+        backBtn.getStyleClass().add("tool-button");
+        backBtn.setStyle("-fx-font-size: 12px; -fx-padding: 4px 8px;");
+        backBtn.setOnAction(e -> showConversationView());
+
+        header.getChildren().addAll(title, spacer, backBtn);
+
+        historyListContainer.setPadding(new Insets(4, 2, 4, 2));
+        historyListContainer.setFillWidth(true);
+
+        historyScrollPane.setContent(historyListContainer);
+        historyScrollPane.setFitToWidth(true);
+        historyScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        historyScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        VBox.setVgrow(historyScrollPane, Priority.ALWAYS);
+        historyScrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        Button newChatFullBtn = new Button("＋ Start New Chat Session");
+        newChatFullBtn.getStyleClass().add("primary-button");
+        newChatFullBtn.setMaxWidth(Double.MAX_VALUE);
+        newChatFullBtn.setStyle("-fx-font-size: 13.5px; -fx-padding: 8px; -fx-font-weight: 600;");
+        newChatFullBtn.setOnAction(e -> startNewChat());
+
+        historyView.getChildren().addAll(header, newChatFullBtn, historyScrollPane);
     }
 
     public void setCaseId(String caseId) {
         this.currentCaseId = caseId;
-        messageContainer.getChildren().clear();
-        client.getChatHistoryAsync(caseId)
-                .thenAccept(history -> Platform.runLater(() -> {
-                    if (!caseId.equals(currentCaseId)) return;
-                    messageContainer.getChildren().clear();
-                    if (history == null || history.isEmpty()) {
-                        addSherlockMessage("Case **" + caseId + "** loaded. Knowledge graph and evidence inventory are synchronized.");
-                        return;
+        loadSessionsAndShowHistory();
+    }
+
+    public void loadSessionsAndShowHistory() {
+        if (currentCaseId == null || currentCaseId.isBlank()) return;
+
+        client.getChatSessionsAsync(currentCaseId)
+                .thenAccept(sessions -> Platform.runLater(() -> {
+                    cachedSessions.clear();
+                    if (sessions != null) {
+                        cachedSessions.addAll(sessions);
                     }
-                    for (com.sherlock.ui.model.ChatMessageDto message : history) {
-                        String content = message.getContent() != null ? message.getContent() : message.getAnswer();
-                        if (content == null || content.isBlank()) continue;
-                        if ("user".equalsIgnoreCase(message.getRole())) {
-                            addUserMessage(content);
-                        } else {
-                            addSherlockMessage(content);
-                        }
+                    updateHistoryButtonBadge();
+                    renderHistoryList();
+
+                    if (!cachedSessions.isEmpty()) {
+                        // After opening the dashboard, show the chat history panel
+                        showHistoryView();
+                    } else {
+                        startNewChat();
                     }
                 }))
                 .exceptionally(ex -> {
                     Platform.runLater(() -> {
-                        if (caseId.equals(currentCaseId) && messageContainer.getChildren().isEmpty()) {
-                            addSherlockMessage("Case **" + caseId + "** loaded. Previous chat could not be restored.");
-                        }
+                        cachedSessions.clear();
+                        updateHistoryButtonBadge();
+                        startNewChat();
                     });
                     return null;
                 });
     }
 
-    /** Called with the structured query result so the graph can highlight evidence. */
-    public void setOnQueryResult(Consumer<com.sherlock.ui.model.ChatMessageDto> onQueryResult) {
+    private void updateHistoryButtonBadge() {
+        int count = cachedSessions.size();
+        if (count > 0) {
+            historyToggleBtn.setText("📜 History (" + count + ")");
+        } else {
+            historyToggleBtn.setText("📜 History");
+        }
+    }
+
+    private void renderHistoryList() {
+        historyListContainer.getChildren().clear();
+
+        if (cachedSessions.isEmpty()) {
+            VBox emptyBox = new VBox(10);
+            emptyBox.setAlignment(Pos.CENTER);
+            emptyBox.setPadding(new Insets(30, 10, 30, 10));
+            Label emptyLbl = new Label("No chat sessions yet for this case.");
+            emptyLbl.setStyle("-fx-font-size: 13.5px; -fx-text-fill: #94a3b8;");
+            Label hintLbl = new Label("Start a new chat to begin asking questions.");
+            hintLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #cbd5e1;");
+            emptyBox.getChildren().addAll(emptyLbl, hintLbl);
+            historyListContainer.getChildren().add(emptyBox);
+            return;
+        }
+
+        for (ChatSessionDto session : cachedSessions) {
+            VBox card = new VBox(6);
+            boolean isActive = session.getSessionId() != null && session.getSessionId().equals(currentSessionId);
+            if (isActive) {
+                card.getStyleClass().add("chat-session-card-active");
+            } else {
+                card.getStyleClass().add("chat-session-card");
+            }
+
+            HBox topRow = new HBox(6);
+            topRow.setAlignment(Pos.CENTER_LEFT);
+
+            Label titleLbl = new Label(session.getTitle() != null ? session.getTitle() : "Chat");
+            titleLbl.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+            HBox.setHgrow(titleLbl, Priority.ALWAYS);
+
+            Button deleteBtn = new Button("🗑");
+            deleteBtn.getStyleClass().add("tool-button");
+            deleteBtn.setStyle("-fx-font-size: 11px; -fx-padding: 2px 5px;");
+            deleteBtn.setTooltip(new Tooltip("Delete this chat session"));
+            deleteBtn.setOnAction(e -> {
+                e.consume();
+                deleteSession(session.getSessionId());
+            });
+
+            topRow.getChildren().addAll(titleLbl, deleteBtn);
+
+            HBox metaRow = new HBox(8);
+            metaRow.setAlignment(Pos.CENTER_LEFT);
+
+            Label countBadge = new Label(session.getMessageCount() + " msg" + (session.getMessageCount() == 1 ? "" : "s"));
+            countBadge.getStyleClass().add("chat-badge-pill");
+
+            String timeStr = formatTimestamp(session.getUpdatedAt());
+            Label timeLbl = new Label(timeStr);
+            timeLbl.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #94a3b8;");
+
+            metaRow.getChildren().addAll(countBadge, timeLbl);
+
+            card.getChildren().addAll(topRow, metaRow);
+
+            card.setOnMouseClicked(e -> loadSession(session));
+
+            historyListContainer.getChildren().add(card);
+        }
+    }
+
+    public void startNewChat() {
+        currentSessionId = null;
+        currentSessionTitle = "New Chat";
+        sessionTitleLbl.setText("New Chat");
+        messageContainer.getChildren().clear();
+        suggestionsPane.setVisible(true);
+        suggestionsPane.setManaged(true);
+        showConversationView();
+
+        addSherlockMessage("Greetings. I am Sherlock, your investigation intelligence assistant. How may I assist your investigation?");
+    }
+
+    public void loadSession(ChatSessionDto session) {
+        if (session == null) return;
+        currentSessionId = session.getSessionId();
+        currentSessionTitle = session.getTitle() != null ? session.getTitle() : "Chat";
+        sessionTitleLbl.setText(currentSessionTitle);
+        messageContainer.getChildren().clear();
+        suggestionsPane.setVisible(false);
+        suggestionsPane.setManaged(false);
+        showConversationView();
+
+        if (session.getMessages() != null && !session.getMessages().isEmpty()) {
+            for (ChatMessageDto msg : session.getMessages()) {
+                String content = msg.getContent() != null ? msg.getContent() : msg.getAnswer();
+                if (content == null || content.isBlank()) continue;
+                if ("user".equalsIgnoreCase(msg.getRole())) {
+                    addUserMessage(content, msg.getTimestamp());
+                } else {
+                    addSherlockMessage(content, msg.getTimestamp());
+                }
+            }
+        } else if (currentCaseId != null && !currentCaseId.isBlank() && currentSessionId != null) {
+            client.getChatSessionAsync(currentCaseId, currentSessionId)
+                    .thenAccept(loaded -> Platform.runLater(() -> {
+                        if (loaded != null && loaded.getMessages() != null) {
+                            session.setMessages(loaded.getMessages());
+                            for (ChatMessageDto msg : loaded.getMessages()) {
+                                String content = msg.getContent() != null ? msg.getContent() : msg.getAnswer();
+                                if (content == null || content.isBlank()) continue;
+                                if ("user".equalsIgnoreCase(msg.getRole())) {
+                                    addUserMessage(content, msg.getTimestamp());
+                                } else {
+                                    addSherlockMessage(content, msg.getTimestamp());
+                                }
+                            }
+                        }
+                    }));
+        }
+    }
+
+    public void showHistoryView() {
+        conversationView.setVisible(false);
+        conversationView.setManaged(false);
+        historyView.setVisible(true);
+        historyView.setManaged(true);
+        historyToggleBtn.setText("💬 Active Chat");
+        renderHistoryList();
+    }
+
+    public void showConversationView() {
+        historyView.setVisible(false);
+        historyView.setManaged(false);
+        conversationView.setVisible(true);
+        conversationView.setManaged(true);
+        updateHistoryButtonBadge();
+    }
+
+    private void deleteSession(String sessionId) {
+        if (sessionId == null || currentCaseId == null) return;
+        client.deleteChatSessionAsync(currentCaseId, sessionId)
+                .thenAccept(deleted -> Platform.runLater(() -> {
+                    cachedSessions.removeIf(s -> sessionId.equals(s.getSessionId()));
+                    updateHistoryButtonBadge();
+                    if (sessionId.equals(currentSessionId)) {
+                        startNewChat();
+                    } else {
+                        renderHistoryList();
+                    }
+                }));
+    }
+
+    private String formatTimestamp(String isoTimestamp) {
+        if (isoTimestamp == null || isoTimestamp.isBlank()) return "";
+        try {
+            LocalDateTime dt = LocalDateTime.parse(isoTimestamp);
+            return dt.format(DateTimeFormatter.ofPattern("MMM dd, hh:mm a"));
+        } catch (Exception e) {
+            return isoTimestamp;
+        }
+    }
+
+    public void setOnQueryResult(Consumer<ChatMessageDto> onQueryResult) {
         this.onQueryResult = onQueryResult;
     }
 
-
-
     private FlowPane buildQuickSuggestions() {
-        FlowPane pane = new FlowPane(6, 6);
-        pane.getChildren().add(createSuggestionPill("Key timeline events?"));
-        pane.getChildren().add(createSuggestionPill("Who was near the victim?"));
-        pane.getChildren().add(createSuggestionPill("Summarize motives."));
-        return pane;
+        return suggestionsPane;
     }
 
     private Button createSuggestionPill(String query) {
@@ -167,6 +416,8 @@ public class ChatPanel extends VBox {
 
         addUserMessage(query);
         inputField.clear();
+        suggestionsPane.setVisible(false);
+        suggestionsPane.setManaged(false);
 
         sendButton.setDisable(true);
         typingIndicator.setVisible(true);
@@ -178,15 +429,33 @@ public class ChatPanel extends VBox {
             return;
         }
 
-        String selectedModel = null;
-        String selectedProvider = null;
-        client.sendChatMessageAsync(currentCaseId, query, selectedModel, selectedProvider)
+        client.sendChatMessageAsync(currentCaseId, query, null, null, currentSessionId)
                 .thenAccept(resp -> Platform.runLater(() -> {
                     sendButton.setDisable(false);
                     typingIndicator.setVisible(false);
-                    if (resp != null && resp.getAnswer() != null) {
-                        addSherlockMessage(resp.getAnswer());
-                        if (onQueryResult != null) onQueryResult.accept(resp);
+                    if (resp != null) {
+                        if (resp.getSessionId() != null && !resp.getSessionId().isBlank()) {
+                            currentSessionId = resp.getSessionId();
+                        }
+                        if (resp.getSessionTitle() != null && !resp.getSessionTitle().isBlank()) {
+                            currentSessionTitle = resp.getSessionTitle();
+                            sessionTitleLbl.setText(currentSessionTitle);
+                        }
+                        if (resp.getAnswer() != null) {
+                            addSherlockMessage(resp.getAnswer(), resp.getTimestamp());
+                            if (onQueryResult != null) onQueryResult.accept(resp);
+                        } else {
+                            addSherlockMessage("No specific evidence found.");
+                        }
+
+                        // Silently refresh sessions in background to keep history drawer updated
+                        client.getChatSessionsAsync(currentCaseId).thenAccept(updatedSessions -> Platform.runLater(() -> {
+                            if (updatedSessions != null) {
+                                cachedSessions.clear();
+                                cachedSessions.addAll(updatedSessions);
+                                updateHistoryButtonBadge();
+                            }
+                        }));
                     } else {
                         addSherlockMessage("No specific evidence found.");
                     }
@@ -202,6 +471,10 @@ public class ChatPanel extends VBox {
     }
 
     public void addUserMessage(String text) {
+        addUserMessage(text, LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
+    }
+
+    public void addUserMessage(String text, String timestampStr) {
         VBox bubble = new VBox(4);
         bubble.getStyleClass().add("chat-bubble-user");
         bubble.setMaxWidth(260);
@@ -213,11 +486,12 @@ public class ChatPanel extends VBox {
         content.setWrapText(true);
         content.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffffff; -fx-line-spacing: 4px;");
 
-        Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 13.2px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
-        time.setMaxWidth(Double.MAX_VALUE);
+        String time = timestampStr != null && !timestampStr.isBlank() ? timestampStr : LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
+        Label timeLbl = new Label(time);
+        timeLbl.setStyle("-fx-font-size: 13.2px; -fx-text-fill: rgba(255,255,255,0.6); -fx-alignment: center-right;");
+        timeLbl.setMaxWidth(Double.MAX_VALUE);
 
-        bubble.getChildren().addAll(userLbl, content, time);
+        bubble.getChildren().addAll(userLbl, content, timeLbl);
 
         HBox row = new HBox(bubble);
         row.setAlignment(Pos.CENTER_RIGHT);
@@ -226,6 +500,10 @@ public class ChatPanel extends VBox {
     }
 
     public void addSherlockMessage(String text) {
+        addSherlockMessage(text, LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
+    }
+
+    public void addSherlockMessage(String text, String timestampStr) {
         VBox bubble = new VBox(4);
         bubble.getStyleClass().add("chat-bubble-sherlock");
         bubble.setMaxWidth(280);
@@ -240,10 +518,11 @@ public class ChatPanel extends VBox {
         TextFlow content = renderMarkdown(text);
         content.setMaxWidth(280);
 
-        Label time = new Label(LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
-        time.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #94a3b8;");
+        String time = timestampStr != null && !timestampStr.isBlank() ? timestampStr : LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
+        Label timeLbl = new Label(time);
+        timeLbl.setStyle("-fx-font-size: 13.2px; -fx-text-fill: #94a3b8;");
 
-        bubble.getChildren().addAll(header, content, time);
+        bubble.getChildren().addAll(header, content, timeLbl);
 
         HBox row = new HBox(bubble);
         row.setAlignment(Pos.CENTER_LEFT);

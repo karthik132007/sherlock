@@ -107,9 +107,69 @@ class CaseServiceTest {
         assertNotNull(response);
         Path historyFile = tempDir.resolve("chat_case_001").resolve("agent_responses.json");
         assertTrue(Files.exists(historyFile));
+        Path sessionsFile = tempDir.resolve("chat_case_001").resolve("chat_sessions.json");
+        assertTrue(Files.exists(sessionsFile));
         String history = Files.readString(historyFile);
         assertTrue(history.contains("Who is Rose?"));
         assertTrue(history.contains("No processed knowledge graph"));
         assertEquals(2, caseService.getChatHistory("chat_case_001").size());
+    }
+
+    @Test
+    void testMultipleChatSessionsManagement() throws IOException {
+        CaseRequest request = new CaseRequest("Multi Chat Case");
+        request.setCaseId("multi_chat_001");
+        caseService.createCase(request);
+
+        // 1. Initial sessions should be empty
+        assertEquals(0, caseService.getChatSessions("multi_chat_001").size());
+
+        // 2. Create explicit session
+        var session1 = caseService.createChatSession("multi_chat_001", "Session Alpha");
+        assertNotNull(session1);
+        assertEquals("Session Alpha", session1.getTitle());
+        assertNotNull(session1.getSessionId());
+
+        // 3. Send query in session 1
+        ChatRequest req1 = new ChatRequest("First question in alpha");
+        req1.setSessionId(session1.getSessionId());
+        ChatResponse resp1 = caseService.chatWithSherlock("multi_chat_001", req1);
+        assertEquals(session1.getSessionId(), resp1.getSessionId());
+
+        // 4. Send query in brand new session (sessionId = null)
+        ChatRequest req2 = new ChatRequest("Second question in beta");
+        ChatResponse resp2 = caseService.chatWithSherlock("multi_chat_001", req2);
+        assertNotNull(resp2.getSessionId());
+        assertNotEquals(session1.getSessionId(), resp2.getSessionId());
+
+        // 5. Verify sessions list has 2 sessions
+        var sessions = caseService.getChatSessions("multi_chat_001");
+        assertEquals(2, sessions.size());
+
+        // 6. Delete session 1
+        boolean deleted = caseService.deleteChatSession("multi_chat_001", session1.getSessionId());
+        assertTrue(deleted);
+        assertEquals(1, caseService.getChatSessions("multi_chat_001").size());
+    }
+
+    @Test
+    void testGetFileContentAndWarehouse() throws IOException {
+        CaseRequest request = new CaseRequest("Doc Case");
+        request.setCaseId("doc_case_001");
+        caseService.createCase(request);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "files",
+                "evidence_sample.txt",
+                "text/plain",
+                "Sample evidence text about the suspect.".getBytes(StandardCharsets.UTF_8));
+        caseService.saveUploadedFiles("doc_case_001", List.of(file));
+
+        String content = caseService.getFileContent("doc_case_001", "evidence_sample.txt");
+        assertEquals("Sample evidence text about the suspect.", content);
+
+        String warehouse = caseService.getWarehouseContent("doc_case_001");
+        assertTrue(warehouse.contains("SOURCE_FILE: evidence_sample.txt"));
+        assertTrue(warehouse.contains("Sample evidence text about the suspect."));
     }
 }

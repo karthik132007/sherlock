@@ -407,3 +407,39 @@
     -fx-padding: 10px 20px;
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 6, 0, 0, 2);
 }
+
+/* Chat Session Cards & History */
+.chat-session-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 12px 14px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.03), 4, 0, 0, 1);
+}
+
+.chat-session-card:hover {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #3b82f6;
+    -fx-effect: dropshadow(three-pass-box, rgba(59, 130, 246, 0.12), 8, 0, 0, 2);
+}
+
+.chat-session-card-active {
+    -fx-background-color: rgba(59, 130, 246, 0.06);
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 12px 14px;
+    -fx-cursor: hand;
+}
+
+.chat-badge-pill {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #64748b;
+    -fx-font-size: 12px;
+    -fx-padding: 2px 8px;
+    -fx-background-radius: 10px;
+}
+

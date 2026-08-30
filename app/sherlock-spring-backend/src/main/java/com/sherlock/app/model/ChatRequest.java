@@ -11,6 +11,7 @@ public class ChatRequest {
     private String query;
     private String model;
     private String provider;
+    private String sessionId;
     private List<ChatMessage> history = new ArrayList<>();
 
     public ChatRequest() {}
@@ -27,6 +28,9 @@ public class ChatRequest {
 
     public String getProvider() { return provider; }
     public void setProvider(String provider) { this.provider = provider; }
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
 
     public List<ChatMessage> getHistory() { return history; }
     public void setHistory(List<ChatMessage> history) { this.history = history; }
