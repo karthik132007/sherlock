@@ -550,10 +550,31 @@ public class GraphCanvas extends StackPane {
         });
 
         canvas.addEventHandler(ScrollEvent.SCROLL, (ScrollEvent e) -> {
+            if (e.isShortcutDown()) {
+                double mouseX = e.getX();
+                double mouseY = e.getY();
+                double zoomFactor = e.getDeltaY() > 0 ? 1.14 : 1 / 1.14;
+    
+                double newZoom = Math.max(0.15, Math.min(4.0, zoom * zoomFactor));
+                if (newZoom != zoom) {
+                    panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+                    panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+                    zoom = newZoom;
+                    render();
+                }
+            } else {
+                panX += e.getDeltaX();
+                panY += e.getDeltaY();
+                render();
+            }
+            e.consume();
+        });
+
+        canvas.addEventHandler(javafx.scene.input.ZoomEvent.ZOOM, e -> {
             double mouseX = e.getX();
             double mouseY = e.getY();
-            double zoomFactor = e.getDeltaY() > 0 ? 1.14 : 1 / 1.14;
-
+            double zoomFactor = e.getZoomFactor();
+            
             double newZoom = Math.max(0.15, Math.min(4.0, zoom * zoomFactor));
             if (newZoom != zoom) {
                 panX = mouseX - (mouseX - panX) * (newZoom / zoom);

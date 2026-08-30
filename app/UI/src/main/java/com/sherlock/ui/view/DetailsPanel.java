@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.sherlock.ui.model.GraphDataDto.EdgeDto;
 import com.sherlock.ui.model.GraphDataDto.NodeDto;
+import com.sherlock.ui.model.TimelineEventDto;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -29,8 +30,17 @@ public class DetailsPanel extends VBox {
     private com.sherlock.ui.SherlockBackendClient client;
     private String currentCaseId;
     
+    private TimelineEventDto currentTimeline;
+    
     // Local session storage for investigation notes (keyed by node ID)
     private final Map<String, String> nodeNotes = new HashMap<>();
+
+    public void setTimelineData(TimelineEventDto timeline) {
+        this.currentTimeline = timeline;
+        if ("timeline".equals(currentTab) && currentNode != null) {
+            javafx.application.Platform.runLater(() -> showNodeDetails(currentNode, currentEdges));
+        }
+    }
 
     public DetailsPanel() {
         getStyleClass().add("details-panel");
@@ -236,7 +246,7 @@ public class DetailsPanel extends VBox {
             case "connections":
                 return buildConnectionsSection(node, relatedEdges);
             case "timeline":
-                return buildPlaceholderSection("Timeline Events", "No timeline events available for this entity.");
+                return buildTimelineSection(node);
             case "notes":
                 return buildNotesSection(node);
             case "overview":
@@ -261,6 +271,74 @@ public class DetailsPanel extends VBox {
         }
         VBox.setVgrow(jsonArea, Priority.ALWAYS);
         center.getChildren().addAll(title, jsonArea);
+        return center;
+    }
+
+    private VBox buildTimelineSection(NodeDto node) {
+        VBox center = new VBox(10);
+        center.setPadding(new Insets(12, 16, 12, 16));
+        
+        Label title = new Label("Timeline Events");
+        title.setStyle("-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #475569;");
+        
+        if (currentTimeline == null || currentTimeline.getTimeline() == null || currentTimeline.getTimeline().isEmpty()) {
+            return buildPlaceholderSection("Timeline Events", "No timeline events available for this case yet.");
+        }
+        
+        VBox eventList = new VBox(12);
+        boolean found = false;
+        
+        for (TimelineEventDto.TimelineEventItem event : currentTimeline.getTimeline()) {
+            boolean matches = false;
+            if (event.getEntitiesInvolved() != null) {
+                for (String e : event.getEntitiesInvolved()) {
+                    if (e.equals(node.getId()) || e.equals(node.getName())) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback: If entities_involved didn't match (or is empty), check if the text contains the node name
+            if (!matches && node.getName() != null) {
+                String nameLower = node.getName().toLowerCase();
+                if (event.getTitle() != null && event.getTitle().toLowerCase().contains(nameLower)) matches = true;
+                else if (event.getDescription() != null && event.getDescription().toLowerCase().contains(nameLower)) matches = true;
+                else if (event.getEvidenceText() != null && event.getEvidenceText().toLowerCase().contains(nameLower)) matches = true;
+            }
+            
+            if (!matches) continue;
+            found = true;
+            
+            VBox eventBox = new VBox(4);
+            eventBox.setPadding(new Insets(8));
+            eventBox.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 4px; -fx-background-radius: 4px;");
+            
+            Label timeLbl = new Label(event.getTimestamp() != null ? event.getTimestamp() : "Unknown Time");
+            timeLbl.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #64748b;");
+            
+            Label titleLbl = new Label(event.getTitle());
+            titleLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;");
+            titleLbl.setWrapText(true);
+            
+            Label descLbl = new Label(event.getDescription());
+            descLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569;");
+            descLbl.setWrapText(true);
+            
+            eventBox.getChildren().addAll(timeLbl, titleLbl, descLbl);
+            eventList.getChildren().add(eventBox);
+        }
+        
+        if (!found) {
+            return buildPlaceholderSection("Timeline Events", "No timeline events available for this specific entity.");
+        }
+        
+        ScrollPane scrollPane = new ScrollPane(eventList);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-padding: 0;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        center.getChildren().addAll(title, scrollPane);
         return center;
     }
 

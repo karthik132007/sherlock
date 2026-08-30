@@ -162,6 +162,7 @@ public class MainFrameView extends BorderPane {
         client.getTimelineAsync(caseId)
                 .thenAccept(timelineData -> Platform.runLater(() -> {
                     timelinePanel.setTimelineData(timelineData);
+                    detailsPanel.setTimelineData(timelineData);
                 }))
                 .exceptionally(ex -> {
                     System.err.println("Failed to load timeline data: " + ex.getMessage());
