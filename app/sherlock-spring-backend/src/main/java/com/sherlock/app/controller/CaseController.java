@@ -124,10 +124,7 @@ public class CaseController {
         return ResponseEntity.ok(java.util.Map.of("caseId", caseId, "synced", success));
     }
 
-    @GetMapping("/llm/ollama/models")
-    public ResponseEntity<List<String>> getOllamaModels() {
-        return ResponseEntity.ok(caseService.getOllamaModels());
-    }
+
 
     @PostMapping("/cases/{caseId}/neo4j/query")
     public ResponseEntity<java.util.Map<String, Object>> queryNeo4j(

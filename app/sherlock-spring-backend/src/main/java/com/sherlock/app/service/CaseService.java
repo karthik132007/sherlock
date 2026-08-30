@@ -38,8 +38,7 @@ public class CaseService {
 
     private final AppProperties appProperties;
     private final Neo4jGraphService neo4jGraphService;
-    private final OllamaService ollamaService;
-    private final ObjectMapper objectMapper;
+        private final ObjectMapper objectMapper;
     private final Map<String, ProcessingStatus> statusTracker = new ConcurrentHashMap<>();
     private final Map<String, Object> chatHistoryLocks = new ConcurrentHashMap<>();
     /**
@@ -53,16 +52,18 @@ public class CaseService {
         return t;
     });
 
-    public CaseService(AppProperties appProperties, Neo4jGraphService neo4jGraphService, OllamaService ollamaService) {
+    public CaseService(AppProperties appProperties, Neo4jGraphService neo4jGraphService) {
         this.appProperties = appProperties;
         this.neo4jGraphService = neo4jGraphService;
-        this.ollamaService = ollamaService;
-        this.objectMapper = new ObjectMapper();
+                this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     public CaseResponse createCase(CaseRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Case request cannot be null");
+        }
         String caseName = request.getCaseName() != null ? request.getCaseName().trim() : "Case";
         String caseId = request.getCaseId() != null && !request.getCaseId().isBlank()
                 ? normalizeCaseId(request.getCaseId())
@@ -325,223 +326,7 @@ public class CaseService {
         }
     }
 
-    public ProcessingStatus startTimelineProcessing(String caseId) {
-        Path caseDirectory = getCaseDirectory(caseId);
-        if (!Files.exists(caseDirectory)) {
-            throw new IllegalArgumentException("Case not found: " + caseId);
-        }
-
-        // Ensure warehouse.txt exists
-        Path warehousePath = caseDirectory.resolve("warehouse.txt");
-        if (!Files.exists(warehousePath)) {
-            try {
-                buildWarehouseFile(caseDirectory);
-            } catch (IOException e) {
-                log.error("Failed to build warehouse.txt before timeline processing: {}", e.getMessage());
-            }
-        }
-
-        String pythonScript = resolvePythonScriptPath();
-        String pythonCommand = resolvePythonCommand(pythonScript);
-        List<String> commandTokens = new ArrayList<>();
-        commandTokens.add(pythonCommand);
-        commandTokens.add("-u");
-        commandTokens.add(pythonScript);
-        commandTokens.add(appProperties.getProcessArgument());
-        commandTokens.add(caseDirectory.toAbsolutePath().toString());
-        commandTokens.add("--timeline-only");
-
-        ProcessingStatus status = new ProcessingStatus();
-        status.setCaseId(caseId);
-        status.setStatus("PROCESSING_TIMELINE");
-        status.setScriptPath(pythonScript);
-        status.setCommand(String.join(" ", commandTokens));
-        status.setMessage("Timeline extraction started...");
-        status.setCompleted(false);
-        status.setSuccess(false);
-
-        statusTracker.put(caseId + "_timeline", status);
-
-        pipelineExecutor.submit(() -> {
-            try {
-                log.info("Executing Python timeline command: {}", String.join(" ", commandTokens));
-                ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
-                processBuilder.directory(new File(pythonScript).getParentFile());
-                processBuilder.environment().put("PYTHONUNBUFFERED", "1");
-                processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
-                processBuilder.environment().put("PYTHONUTF8", "1");
-                processBuilder.redirectErrorStream(true);
-
-                Process process = processBuilder.start();
-
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        final String logLine = line;
-                        status.getLogs().add(logLine);
-                        status.setMessage(logLine);
-                        log.info("[Python Timeline - {}] {}", caseId, logLine);
-                    }
-                }
-
-                int exitCode = process.waitFor();
-                status.setExitCode(exitCode);
-                status.setCompleted(true);
-
-                if (exitCode == 0) {
-                    status.setStatus("COMPLETED");
-                    status.setSuccess(true);
-                    status.setMessage("Timeline extracted successfully.");
-                } else {
-                    status.setStatus("FAILED");
-                    status.setSuccess(false);
-                    status.setMessage("Python timeline pipeline finished with error exit code: " + exitCode);
-                }
-
-            } catch (Exception e) {
-                log.error("Error executing Python timeline pipeline for case: {}", caseId, e);
-                status.setStatus("FAILED");
-                status.setCompleted(true);
-                status.setSuccess(false);
-                status.setMessage("Processing failed: " + e.getMessage());
-                status.getLogs().add("ERROR: " + e.getMessage());
-            }
-        });
-
-        return status;
-    }
-
-    public ProcessingStatus getTimelineProcessingStatus(String caseId) {
-        ProcessingStatus status = statusTracker.get(caseId + "_timeline");
-        if (status == null) {
-            Path caseDirectory = getCaseDirectory(caseId);
-            Path timelineFile = caseDirectory.resolve("processed").resolve("timeline.json");
-            status = new ProcessingStatus();
-            status.setCaseId(caseId);
-            if (Files.exists(timelineFile)) {
-                status.setStatus("COMPLETED");
-                status.setCompleted(true);
-                status.setSuccess(true);
-                status.setMessage("Timeline ready.");
-            } else {
-                status.setStatus("READY");
-                status.setCompleted(false);
-                status.setMessage("Ready for processing.");
-            }
-        }
-        return status;
-    }
-
-    public ProcessingStatus startContradictionsProcessing(String caseId) {
-        Path caseDirectory = getCaseDirectory(caseId);
-        if (!Files.exists(caseDirectory)) {
-            throw new IllegalArgumentException("Case not found: " + caseId);
-        }
-
-        // Ensure warehouse.txt exists
-        Path warehousePath = caseDirectory.resolve("warehouse.txt");
-        if (!Files.exists(warehousePath)) {
-            try {
-                buildWarehouseFile(caseDirectory);
-            } catch (IOException e) {
-                log.error("Failed to build warehouse.txt before contradiction processing: {}", e.getMessage());
-            }
-        }
-
-        String pythonScript = resolvePythonScriptPath();
-        String pythonCommand = resolvePythonCommand(pythonScript);
-        List<String> commandTokens = new ArrayList<>();
-        commandTokens.add(pythonCommand);
-        commandTokens.add("-u");
-        commandTokens.add(pythonScript);
-        commandTokens.add(appProperties.getProcessArgument());
-        commandTokens.add(caseDirectory.toAbsolutePath().toString());
-        commandTokens.add("--contradictions-only");
-
-        ProcessingStatus status = new ProcessingStatus();
-        status.setCaseId(caseId);
-        status.setStatus("PROCESSING_CONTRADICTIONS");
-        status.setScriptPath(pythonScript);
-        status.setCommand(String.join(" ", commandTokens));
-        status.setMessage("Contradiction detection started...");
-        status.setCompleted(false);
-        status.setSuccess(false);
-
-        statusTracker.put(caseId + "_contradictions", status);
-
-        pipelineExecutor.submit(() -> {
-            try {
-                log.info("Executing Python contradictions command: {}", String.join(" ", commandTokens));
-                ProcessBuilder processBuilder = new ProcessBuilder(commandTokens);
-                processBuilder.directory(new File(pythonScript).getParentFile());
-                processBuilder.environment().put("PYTHONUNBUFFERED", "1");
-                processBuilder.environment().put("PYTHONIOENCODING", "utf-8");
-                processBuilder.environment().put("PYTHONUTF8", "1");
-                processBuilder.redirectErrorStream(true);
-
-                Process process = processBuilder.start();
-
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        final String logLine = line;
-                        status.getLogs().add(logLine);
-                        status.setMessage(logLine);
-                        log.info("[Python Contradictions - {}] {}", caseId, logLine);
-                    }
-                }
-
-                int exitCode = process.waitFor();
-                status.setExitCode(exitCode);
-                status.setCompleted(true);
-
-                if (exitCode == 0) {
-                    status.setStatus("COMPLETED");
-                    status.setSuccess(true);
-                    status.setMessage("Contradictions detected successfully.");
-                } else {
-                    status.setStatus("FAILED");
-                    status.setSuccess(false);
-                    status.setMessage("Python contradiction pipeline finished with error exit code: " + exitCode);
-                }
-
-            } catch (Exception e) {
-                log.error("Error executing Python contradiction pipeline for case: {}", caseId, e);
-                status.setStatus("FAILED");
-                status.setCompleted(true);
-                status.setSuccess(false);
-                status.setMessage("Processing failed: " + e.getMessage());
-                status.getLogs().add("ERROR: " + e.getMessage());
-            }
-        });
-
-        return status;
-    }
-
-    public ProcessingStatus getContradictionsProcessingStatus(String caseId) {
-        ProcessingStatus status = statusTracker.get(caseId + "_contradictions");
-        if (status == null) {
-            Path caseDirectory = getCaseDirectory(caseId);
-            Path contraFile = caseDirectory.resolve("processed").resolve("contradictions.json");
-            status = new ProcessingStatus();
-            status.setCaseId(caseId);
-            if (Files.exists(contraFile)) {
-                status.setStatus("COMPLETED");
-                status.setCompleted(true);
-                status.setSuccess(true);
-                status.setMessage("Contradictions ready.");
-            } else {
-                status.setStatus("READY");
-                status.setCompleted(false);
-                status.setMessage("Ready for processing.");
-            }
-        }
-        return status;
-    }
-
-    public ProcessingStatus startProcessing(String caseId) {
+    private ProcessingStatus runPythonPipelineBackground(String caseId, String statusKey, String processingState, String successMsg, List<String> args) {
         Path caseDirectory = getCaseDirectory(caseId);
         if (!Files.exists(caseDirectory)) {
             throw new IllegalArgumentException("Case not found: " + caseId);
@@ -565,20 +350,18 @@ public class CaseService {
         commandTokens.add(pythonScript);
         commandTokens.add(appProperties.getProcessArgument());
         commandTokens.add(caseDirectory.toAbsolutePath().toString());
-        commandTokens.add("--extract");
-        commandTokens.add("--timeline");
-        commandTokens.add("--contradictions");
+        commandTokens.addAll(args);
 
         ProcessingStatus status = new ProcessingStatus();
         status.setCaseId(caseId);
-        status.setStatus("PROCESSING");
+        status.setStatus(processingState);
         status.setScriptPath(pythonScript);
         status.setCommand(String.join(" ", commandTokens));
-        status.setMessage("Extraction and graph construction started...");
+        status.setMessage(successMsg.replace(" successfully.", " started..."));
         status.setCompleted(false);
         status.setSuccess(false);
 
-        statusTracker.put(caseId, status);
+        statusTracker.put(statusKey, status);
 
         pipelineExecutor.submit(() -> {
             try {
@@ -610,20 +393,21 @@ public class CaseService {
                 if (exitCode == 0) {
                     status.setStatus("COMPLETED");
                     status.setSuccess(true);
-                    status.setMessage("Investigation Knowledge Graph generated successfully.");
+                    status.setMessage(successMsg);
 
-                    // Auto-sync into Neo4j database
-                    try {
-                        GraphDataResponse graphData = getGraphData(caseId);
-                        if (graphData != null && neo4jGraphService != null && neo4jGraphService.isConnected()) {
-                            boolean synced = neo4jGraphService.syncGraphToNeo4j(caseId, graphData);
-                            if (synced) {
-                                log.info("Auto-synced case {} to Neo4j database", caseId);
-                                status.getLogs().add("[Sherlock] Graph data synchronized to Neo4j database.");
+                    if ("PROCESSING".equals(processingState)) {
+                        try {
+                            GraphDataResponse graphData = getGraphData(caseId);
+                            if (graphData != null && neo4jGraphService != null && neo4jGraphService.isConnected()) {
+                                boolean synced = neo4jGraphService.syncGraphToNeo4j(caseId, graphData);
+                                if (synced) {
+                                    log.info("Auto-synced case {} to Neo4j database", caseId);
+                                    status.getLogs().add("[Sherlock] Graph data synchronized to Neo4j database.");
+                                }
                             }
+                        } catch (Exception syncEx) {
+                            log.warn("Failed auto-syncing to Neo4j for case {}: {}", caseId, syncEx.getMessage());
                         }
-                    } catch (Exception syncEx) {
-                        log.warn("Failed auto-syncing to Neo4j for case {}: {}", caseId, syncEx.getMessage());
                     }
                 } else {
                     status.setStatus("FAILED");
@@ -631,11 +415,12 @@ public class CaseService {
                     status.setMessage("Python pipeline finished with error exit code: " + exitCode);
                 }
 
-                // Update case metadata status
-                CaseResponse meta = readCaseMetadata(caseDirectory);
-                if (meta != null) {
-                    meta.setStatus(status.getStatus());
-                    writeMetadata(caseDirectory, meta);
+                if ("PROCESSING".equals(processingState)) {
+                    CaseResponse meta = readCaseMetadata(caseDirectory);
+                    if (meta != null) {
+                        meta.setStatus(status.getStatus());
+                        writeMetadata(caseDirectory, meta);
+                    }
                 }
 
             } catch (Exception e) {
@@ -649,6 +434,60 @@ public class CaseService {
         });
 
         return status;
+    }
+
+    public ProcessingStatus startTimelineProcessing(String caseId) {
+        return runPythonPipelineBackground(caseId, caseId + "_timeline", "PROCESSING_TIMELINE", "Timeline extracted successfully.", List.of("--timeline-only"));
+    }
+
+    public ProcessingStatus getTimelineProcessingStatus(String caseId) {
+        ProcessingStatus status = statusTracker.get(caseId + "_timeline");
+        if (status == null) {
+            Path caseDirectory = getCaseDirectory(caseId);
+            Path timelineFile = caseDirectory.resolve("processed").resolve("timeline.json");
+            status = new ProcessingStatus();
+            status.setCaseId(caseId);
+            if (Files.exists(timelineFile)) {
+                status.setStatus("COMPLETED");
+                status.setCompleted(true);
+                status.setSuccess(true);
+                status.setMessage("Timeline ready.");
+            } else {
+                status.setStatus("READY");
+                status.setCompleted(false);
+                status.setMessage("Ready for processing.");
+            }
+        }
+        return status;
+    }
+
+    public ProcessingStatus startContradictionsProcessing(String caseId) {
+        return runPythonPipelineBackground(caseId, caseId + "_contradictions", "PROCESSING_CONTRADICTIONS", "Contradictions detected successfully.", List.of("--contradictions-only"));
+    }
+
+    public ProcessingStatus getContradictionsProcessingStatus(String caseId) {
+        ProcessingStatus status = statusTracker.get(caseId + "_contradictions");
+        if (status == null) {
+            Path caseDirectory = getCaseDirectory(caseId);
+            Path contraFile = caseDirectory.resolve("processed").resolve("contradictions.json");
+            status = new ProcessingStatus();
+            status.setCaseId(caseId);
+            if (Files.exists(contraFile)) {
+                status.setStatus("COMPLETED");
+                status.setCompleted(true);
+                status.setSuccess(true);
+                status.setMessage("Contradictions ready.");
+            } else {
+                status.setStatus("READY");
+                status.setCompleted(false);
+                status.setMessage("Ready for processing.");
+            }
+        }
+        return status;
+    }
+
+    public ProcessingStatus startProcessing(String caseId) {
+        return runPythonPipelineBackground(caseId, caseId, "PROCESSING", "Investigation Knowledge Graph generated successfully.", List.of("--extract", "--timeline", "--contradictions"));
     }
 
     public ProcessingStatus getProcessingStatus(String caseId) {
@@ -1112,7 +951,7 @@ public class CaseService {
         session.setUpdatedAt(timestamp);
         session.setMessages(messages);
 
-        sessions.remove(session);
+        sessions.removeIf(s -> s.getSessionId().equals(session.getSessionId()));
         sessions.add(0, session);
 
         writeChatSessions(caseId, caseDirectory, sessions, session.getSessionId());
@@ -1409,17 +1248,13 @@ public class CaseService {
         return neo4jGraphService.executeScopedReadOnlyCypher(caseId, cypherQuery).records();
     }
 
-    public List<String> getOllamaModels() {
-        return ollamaService != null ? ollamaService.getAvailableModels() : Collections.emptyList();
-    }
+
 
     public Map<String, Object> getNeo4jStatus() {
         return neo4jGraphService != null ? neo4jGraphService.getStatus() : Map.of("enabled", false, "connected", false);
     }
 
-    private GraphDataResponse getGraphDataFromFileOnly(String caseId) {
-        return readGraphDataFromFiles(caseId);
-    }
+
 
     private String normalizeCaseName(String caseName) {
         String trimmed = caseName == null ? "case" : caseName.trim();

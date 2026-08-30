@@ -115,7 +115,7 @@ PROVIDER_REGISTRY: Dict[str, Dict[str, Any]] = {
         "context_window": 128000,
     },
     "ollama": {
-        "base_url": "http://localhost:11434/v1",
+        "base_url": "http://127.0.0.1:11434/v1",
         "env_keys": ["OLLAMA_API_KEY", "LLM_API"],
         "default_model": "llama3.1",
         "context_window": 128000,
@@ -322,6 +322,9 @@ def load_llm_config(
     base_url = _get_nested(raw, "base_url", "baseUrl", "api_base", "baseURL", "endpoint", "api_url", default=None)
     if not base_url:
         base_url = registry.get("base_url")
+    elif provider == "ollama" and not base_url.endswith("/v1"):
+        base_url = base_url.rstrip("/") + "/v1"
+
 
     context_window = _get_nested(raw, "context_window", "contextWindow", "max_tokens", "maxTokens", "window", default=None)
     if context_window is None:

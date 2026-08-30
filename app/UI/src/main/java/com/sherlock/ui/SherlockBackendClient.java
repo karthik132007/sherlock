@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -491,14 +492,23 @@ public class SherlockBackendClient {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(baseUrl + "/llm/ollama/models"))
+                        .uri(URI.create("http://127.0.0.1:11434/api/tags"))
                         .GET()
                         .timeout(Duration.ofSeconds(4))
                         .build();
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) {
-                    return objectMapper.readValue(response.body(), new TypeReference<List<String>>() {});
+                    com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(response.body());
+                    List<String> models = new ArrayList<>();
+                    if (root.has("models") && root.get("models").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode m : root.get("models")) {
+                            if (m.has("name")) {
+                                models.add(m.get("name").asText());
+                            }
+                        }
+                    }
+                    return models;
                 }
                 return List.of();
             } catch (Exception e) {
