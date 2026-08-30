@@ -35,6 +35,8 @@ public class DetailsPanel extends VBox {
     // Local session storage for investigation notes (keyed by node ID)
     private final Map<String, String> nodeNotes = new HashMap<>();
 
+    private boolean isCollapsed = false;
+
     public void setTimelineData(TimelineEventDto timeline) {
         this.currentTimeline = timeline;
         if ("timeline".equals(currentTab) && currentNode != null) {
@@ -46,13 +48,37 @@ public class DetailsPanel extends VBox {
         getStyleClass().add("details-panel");
         setPadding(new Insets(0));
         setSpacing(0);
-        setPrefHeight(260);
+        setPrefHeight(420);
         setMinHeight(200);
+
+        Button toggleCollapseBtn = new Button("▼");
+        toggleCollapseBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 2 15;");
+        
+        HBox toggleBar = new HBox(toggleCollapseBtn);
+        toggleBar.setAlignment(Pos.CENTER);
+        toggleBar.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #edf1f6; -fx-border-width: 1 0 1 0; -fx-padding: 0;");
+        toggleBar.setMinHeight(20);
+
+        toggleCollapseBtn.setOnAction(e -> {
+            isCollapsed = !isCollapsed;
+            contentContainer.setVisible(!isCollapsed);
+            contentContainer.setManaged(!isCollapsed);
+            toggleCollapseBtn.setText(isCollapsed ? "▲" : "▼");
+            if (isCollapsed) {
+                setMinHeight(20);
+                setPrefHeight(20);
+                setMaxHeight(20);
+            } else {
+                setMinHeight(200);
+                setPrefHeight(420);
+                setMaxHeight(Double.MAX_VALUE);
+            }
+        });
 
         contentContainer.setAlignment(Pos.TOP_LEFT);
         VBox.setVgrow(contentContainer, Priority.ALWAYS);
 
-        getChildren().add(contentContainer);
+        getChildren().addAll(toggleBar, contentContainer);
         showPlaceholder();
     }
 
@@ -104,9 +130,9 @@ public class DetailsPanel extends VBox {
         this.currentNode = node;
         this.currentEdges = relatedEdges;
 
-        HBox root = new HBox(0);
-        root.setStyle("-fx-background-color: #ffffff; -fx-border-color: #edf1f6; -fx-border-width: 1 0 0 0;");
-        root.setFillHeight(true);
+        SplitPane root = new SplitPane();
+        root.setStyle("-fx-background-color: #ffffff; -fx-border-color: #edf1f6; -fx-border-width: 1 0 0 0; -fx-padding: 0;");
+        // Remove default SplitPane padding and styling if necessary, but this inline style is fine.
 
         // LEFT SECTION: Inspector navigation + entity identity
         VBox leftSection = buildLeftSection(node, relatedEdges);
@@ -134,20 +160,9 @@ public class DetailsPanel extends VBox {
         rightSection.setPrefWidth(300);
         rightSection.setMinWidth(260);
 
-        // Separators
-        Region sep1 = new Region();
-        sep1.setPrefWidth(1);
-        sep1.setMinWidth(1);
-        sep1.setMaxWidth(1);
-        sep1.setStyle("-fx-background-color: #edf1f6;");
-
-        Region sep2 = new Region();
-        sep2.setPrefWidth(1);
-        sep2.setMinWidth(1);
-        sep2.setMaxWidth(1);
-        sep2.setStyle("-fx-background-color: #edf1f6;");
-
-        root.getChildren().addAll(leftScroll, sep1, centerScroll, sep2, rightSection);
+        root.getItems().addAll(leftScroll, centerScroll, rightSection);
+        root.setDividerPositions(0.25, 0.70); // Set initial percentages (Left=25%, Center=45%, Right=30%)
+        
         contentContainer.getChildren().setAll(root);
     }
 
@@ -165,19 +180,19 @@ public class DetailsPanel extends VBox {
         int connectionCount = relatedEdges != null ? relatedEdges.size() : 0;
         int mentions = node.getMentions() != null ? node.getMentions() : 1;
 
-        Button overviewTab = createInspectorTab("📋  Overview", "overview".equals(currentTab));
+        Button overviewTab = createInspectorTab("Overview", "overview.png", "overview".equals(currentTab));
         overviewTab.setOnAction(e -> switchTab("overview"));
 
-        Button attribTab = createInspectorTab("📝  Attributes", "attributes".equals(currentTab));
+        Button attribTab = createInspectorTab("Attributes", "attributes.png", "attributes".equals(currentTab));
         attribTab.setOnAction(e -> switchTab("attributes"));
 
-        Button connTab = createInspectorTab("🔗  Connections  " + connectionCount, "connections".equals(currentTab));
+        Button connTab = createInspectorTab("Connections  " + connectionCount, "connections.png", "connections".equals(currentTab));
         connTab.setOnAction(e -> switchTab("connections"));
 
-        Button timelineTab = createInspectorTab("📅  Timeline", "timeline".equals(currentTab));
+        Button timelineTab = createInspectorTab("Timeline", "timeline.png", "timeline".equals(currentTab));
         timelineTab.setOnAction(e -> switchTab("timeline"));
 
-        Button notesTab = createInspectorTab("📌  Notes  " + mentions, "notes".equals(currentTab));
+        Button notesTab = createInspectorTab("Notes", "notes.png", "notes".equals(currentTab));
         notesTab.setOnAction(e -> switchTab("notes"));
 
         navList.getChildren().addAll(overviewTab, attribTab, connTab, timelineTab, notesTab);
@@ -208,10 +223,7 @@ public class DetailsPanel extends VBox {
         typeLbl.getStyleClass().addAll("badge-pill", getTypeBadgeClass(node.getType()));
         typeLbl.setStyle(typeLbl.getStyle() + " -fx-font-size: 14px; -fx-padding: 3px 8px;");
 
-        String confText = node.getConfidence() != null ? String.format("%.0f%%", node.getConfidence() * 100) : "98%";
-        Label confLbl = new Label("• " + confText + " Confidence");
-        confLbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #10b981; -fx-font-weight: 600;");
-        typeConfRow.getChildren().addAll(typeLbl, confLbl);
+        typeConfRow.getChildren().addAll(typeLbl);
 
         Label descLbl = new Label("Primary individual in this investigation.");
         descLbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #64748b;");
@@ -219,14 +231,9 @@ public class DetailsPanel extends VBox {
 
         entityInfo.getChildren().addAll(entityName, typeConfRow, descLbl);
 
-        // Add Note button
-        Button addNoteBtn = new Button("+ Add Note");
-        addNoteBtn.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-size: 15px; -fx-font-weight: 600; -fx-padding: 4px 10px; -fx-background-radius: 6px; -fx-cursor: hand; -fx-border-color: #e2e8f0; -fx-border-radius: 6px;");
-        addNoteBtn.setOnAction(e -> switchTab("notes"));
-
         entityCard.getChildren().addAll(avatarPane, entityInfo);
 
-        left.getChildren().addAll(sectionTitle, navList, entityCard, addNoteBtn);
+        left.getChildren().addAll(sectionTitle, navList, entityCard);
         return left;
     }
 
@@ -417,6 +424,8 @@ public class DetailsPanel extends VBox {
                 HBox.setHgrow(spacer, Priority.ALWAYS);
                 
                 Button viewBtn = new Button("View Edge");
+                viewBtn.setGraphic(createIcon("eye.png", 14));
+                viewBtn.setGraphicTextGap(6);
                 viewBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #64748b; -fx-font-size: 14px; -fx-cursor: hand; -fx-underline: true; -fx-padding: 0;");
                 viewBtn.setOnAction(e -> showEdgeDetails(edge));
                 
@@ -484,7 +493,9 @@ public class DetailsPanel extends VBox {
 
         int row = 0;
         addMetaRow(metaGrid, row++, "Entity ID", node.getId() != null ? node.getId() : "—");
-        addMetaRow(metaGrid, row++, "Confidence", node.getConfidence() != null ? String.format("%.0f%%", node.getConfidence() * 100) : "98%");
+        if (node.getAliases() != null && !node.getAliases().isEmpty()) {
+            addMetaRow(metaGrid, row++, "Name", String.join(", ", node.getAliases()));
+        }
         addMetaRow(metaGrid, row++, "Connections", String.valueOf(relatedEdges != null ? relatedEdges.size() : 0));
         addMetaRow(metaGrid, row++, "Mentions", String.valueOf(node.getMentions() != null ? node.getMentions() : 1));
 
@@ -514,19 +525,7 @@ public class DetailsPanel extends VBox {
         }
         tags.getChildren().add(createTag("Active", "#059669", "#d1fae5"));
 
-        if (node.getAliases() != null && !node.getAliases().isEmpty()) {
-            VBox aliasBox = new VBox(4);
-            aliasBox.setPadding(new Insets(4, 0, 0, 0));
-            Label aliasTitle = new Label("Aliases");
-            aliasTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #475569;");
-            Label aliasLbl = new Label(String.join(", ", node.getAliases()));
-            aliasLbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #64748b; -fx-font-style: italic;");
-            aliasLbl.setWrapText(true);
-            aliasBox.getChildren().addAll(aliasTitle, aliasLbl);
-            center.getChildren().addAll(summaryBox, metaBox, tags, aliasBox);
-        } else {
-            center.getChildren().addAll(summaryBox, metaBox, tags);
-        }
+        center.getChildren().addAll(summaryBox, metaBox, tags);
 
         return center;
     }
@@ -546,9 +545,7 @@ public class DetailsPanel extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label viewAll = new Label("View All");
-        viewAll.setStyle("-fx-font-size: 16px; -fx-text-fill: #2563eb; -fx-cursor: hand; -fx-font-weight: 600;");
-        titleRow.getChildren().addAll(title, spacer, viewAll);
+        titleRow.getChildren().addAll(title, spacer);
 
         right.getChildren().add(titleRow);
 
@@ -561,9 +558,7 @@ public class DetailsPanel extends VBox {
                 fileRow.setPadding(new Insets(8, 8, 8, 8)); // increased padding
                 fileRow.setStyle("-fx-background-color: #f8fafc; -fx-background-radius: 6px;");
 
-                Label fileIcon = new Label(getFileIcon(file));
-                fileIcon.setStyle("-fx-font-size: 20px;");
-                fileIcon.setMinWidth(Region.USE_PREF_SIZE); // prevent icon from shrinking
+                javafx.scene.Node fileIcon = createIcon("chunck.png", 20);
 
                 VBox fileInfo = new VBox(2);
                 HBox.setHgrow(fileInfo, Priority.ALWAYS);
@@ -581,8 +576,9 @@ public class DetailsPanel extends VBox {
                 
                 fileInfo.getChildren().addAll(fileName, fileSource);
 
-                Label viewIcon = new Label("👁");
-                viewIcon.setStyle("-fx-font-size: 17px; -fx-text-fill: #94a3b8; -fx-cursor: hand;");
+                Label viewIcon = new Label();
+                viewIcon.setGraphic(createIcon("eye.png", 16));
+                viewIcon.setStyle("-fx-cursor: hand;");
                 viewIcon.setMinWidth(Region.USE_PREF_SIZE); // prevent icon from shrinking
                 viewIcon.setOnMouseClicked(e -> showDocumentPopup(file, node.getChunkIds()));
 
@@ -639,8 +635,7 @@ public class DetailsPanel extends VBox {
         HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         
-        Label icon = new Label(getFileIcon(filename));
-        icon.setStyle("-fx-font-size: 32px;");
+        javafx.scene.Node icon = createIcon("chunck.png", 32);
         
         VBox titleBox = new VBox(2);
         Label title = new Label(filename);
@@ -662,7 +657,7 @@ public class DetailsPanel extends VBox {
         TextArea textArea = new TextArea();
         textArea.setEditable(false);
         textArea.setWrapText(true);
-        textArea.setStyle("-fx-control-inner-background: #f8fafc; -fx-font-family: monospace; -fx-font-size: 15px; -fx-text-fill: #334155; -fx-padding: 12px; -fx-border-color: #e2e8f0; -fx-border-radius: 6px;");
+        textArea.setStyle("-fx-control-inner-background: #f8fafc; -fx-font-family: monospace; -fx-font-size: 15px; -fx-text-fill: #020617; -fx-font-weight: 500; -fx-padding: 12px; -fx-border-color: #e2e8f0; -fx-border-radius: 6px; -fx-opacity: 1;");
         
         if (client != null && currentCaseId != null) {
             textArea.setText("Loading evidence for " + filename + "...\n\nFetching from case warehouse...");
@@ -807,8 +802,23 @@ public class DetailsPanel extends VBox {
     // HELPERS
     // =========================================================================
 
-    private Button createInspectorTab(String text, boolean active) {
+    private javafx.scene.Node createIcon(String name, int size) {
+        try {
+            java.net.URL url = getClass().getResource("/icon/" + name);
+            if (url != null) {
+                javafx.scene.image.ImageView img = new javafx.scene.image.ImageView(new javafx.scene.image.Image(url.toExternalForm()));
+                img.setFitWidth(size);
+                img.setFitHeight(size);
+                return img;
+            }
+        } catch (Exception e) {}
+        return new Label();
+    }
+
+    private Button createInspectorTab(String text, String iconName, boolean active) {
         Button tab = new Button(text);
+        tab.setGraphic(createIcon(iconName, 16));
+        tab.setGraphicTextGap(10);
         tab.setMaxWidth(Double.MAX_VALUE);
         tab.setAlignment(Pos.CENTER_LEFT);
         if (active) {
@@ -827,7 +837,7 @@ public class DetailsPanel extends VBox {
 
     private void addMetaRow(GridPane grid, int row, String label, String value) {
         Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #94a3b8; -fx-min-width: 80px;");
+        lbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-min-width: 80px;");
 
         Label val = new Label(value != null ? value : "—");
         val.setStyle("-fx-font-size: 16px; -fx-text-fill: #0f172a; -fx-font-weight: 600;");

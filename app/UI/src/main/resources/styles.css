@@ -129,7 +129,7 @@
     -fx-border-color: transparent;
     -fx-text-fill: #0f172a;
     -fx-prompt-text-fill: #94a3b8;
-    -fx-font-size: 13px;
+    -fx-font-size: 11px;
     -fx-padding: 4px 6px;
 }
 
@@ -141,9 +141,9 @@
 .toolbar-icon-btn {
     -fx-background-color: #ffffff;
     -fx-text-fill: #475569;
-    -fx-font-size: 14px;
+    -fx-font-size: 17px;
     -fx-font-weight: 600;
-    -fx-padding: 5px 10px;
+    -fx-padding: 4px 9px;
     -fx-background-radius: 7px;
     -fx-cursor: hand;
     -fx-border-color: #e2e8f0;
@@ -159,9 +159,9 @@
 .toolbar-text-btn {
     -fx-background-color: #ffffff;
     -fx-text-fill: #334155;
-    -fx-font-size: 13px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
-    -fx-padding: 5px 12px;
+    -fx-padding: 4px 10px;
     -fx-background-radius: 7px;
     -fx-cursor: hand;
     -fx-border-color: #e2e8f0;
@@ -176,9 +176,9 @@
 .toolbar-menu-btn {
     -fx-background-color: #ffffff;
     -fx-text-fill: #334155;
-    -fx-font-size: 13px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
-    -fx-padding: 5px 12px;
+    -fx-padding: 4px 10px;
     -fx-background-radius: 7px;
     -fx-cursor: hand;
     -fx-border-color: #e2e8f0;
@@ -450,6 +450,12 @@
     -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.02), 4, 0, 0, 2);
 }
 
+.clean-editable-combo > .arrow-button, .clean-editable-combo > .arrow-button * {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
 .text-input:focused, .text-field:focused, .password-field:focused, .combo-box:focused {
     -fx-border-color: #3b82f6;
     -fx-border-width: 1.5px;
@@ -663,8 +669,8 @@
 .chat-badge-pill {
     -fx-background-color: #f1f5f9;
     -fx-text-fill: #64748b;
-    -fx-font-size: 12px;
-    -fx-padding: 2px 8px;
+    -fx-font-size: 16px;
+    -fx-padding: 3px 10px;
     -fx-background-radius: 10px;
 }
 

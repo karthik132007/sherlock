@@ -364,19 +364,40 @@ public class InitialView extends BorderPane {
         apiKeyField.textProperty().bindBidirectional(apiKeyVisibleField.textProperty());
 
         toggleKeyVisibilityBtn.getStyleClass().add("tool-button");
+        toggleKeyVisibilityBtn.setText("");
+        try {
+            java.net.URL url = getClass().getResource("/icon/eye.png");
+            if (url != null) {
+                javafx.scene.image.ImageView eyeImg = new javafx.scene.image.ImageView(new javafx.scene.image.Image(url.toExternalForm()));
+                eyeImg.setFitWidth(16);
+                eyeImg.setFitHeight(16);
+                toggleKeyVisibilityBtn.setGraphic(eyeImg);
+            }
+        } catch (Exception ex) {}
+
         toggleKeyVisibilityBtn.setOnAction(e -> {
             if (apiKeyField.isVisible()) {
                 apiKeyField.setVisible(false);
                 apiKeyField.setManaged(false);
                 apiKeyVisibleField.setVisible(true);
                 apiKeyVisibleField.setManaged(true);
+                toggleKeyVisibilityBtn.setGraphic(null);
                 toggleKeyVisibilityBtn.setText("🔒");
             } else {
                 apiKeyVisibleField.setVisible(false);
                 apiKeyVisibleField.setManaged(false);
                 apiKeyField.setVisible(true);
                 apiKeyField.setManaged(true);
-                toggleKeyVisibilityBtn.setText("👁");
+                toggleKeyVisibilityBtn.setText("");
+                try {
+                    java.net.URL url = getClass().getResource("/icon/eye.png");
+                    if (url != null) {
+                        javafx.scene.image.ImageView eyeImg = new javafx.scene.image.ImageView(new javafx.scene.image.Image(url.toExternalForm()));
+                        eyeImg.setFitWidth(16);
+                        eyeImg.setFitHeight(16);
+                        toggleKeyVisibilityBtn.setGraphic(eyeImg);
+                    }
+                } catch (Exception ex) {}
             }
         });
 
@@ -401,6 +422,7 @@ public class InitialView extends BorderPane {
         modelCombo.getItems().setAll(LlmModelHelper.getModelsForProvider("OpenAI"));
         modelCombo.setValue(LlmModelHelper.getDefaultModel("OpenAI"));
         modelCombo.setMaxWidth(Double.MAX_VALUE);
+        modelCombo.getStyleClass().add("clean-editable-combo");
         LlmModelHelper.setupCustomModelListener(modelCombo);
 
         HBox modelInputRow = new HBox(8);

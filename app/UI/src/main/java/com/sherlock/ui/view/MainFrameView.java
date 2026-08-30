@@ -315,8 +315,8 @@ public class MainFrameView extends BorderPane {
         viewStack.getChildren().addAll(graphCanvas, timelinePanel, contradictionsPanel, opinionPanel, documentsPanel);
 
         detailsPanel.setMinHeight(150.0);
-        detailsPanel.setPrefHeight(280.0);
-        detailsPanel.setMaxHeight(600.0);
+        detailsPanel.setPrefHeight(420.0);
+        detailsPanel.setMaxHeight(Double.MAX_VALUE);
 
         mainAreaSplit = new SplitPane();
         mainAreaSplit.setOrientation(javafx.geometry.Orientation.VERTICAL);

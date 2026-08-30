@@ -168,14 +168,14 @@ public class ChatPanel extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
 
         Label title = new Label("Investigation Chats");
-        title.setStyle("-fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+        title.setStyle("-fx-font-size: 21px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button backBtn = new Button("✕ Close");
         backBtn.getStyleClass().add("tool-button");
-        backBtn.setStyle("-fx-font-size: 12px; -fx-padding: 4px 8px;");
+        backBtn.setStyle("-fx-font-size: 16px; -fx-padding: 5px 10px;");
         backBtn.setOnAction(e -> showConversationView());
 
         header.getChildren().addAll(title, spacer, backBtn);
@@ -193,7 +193,7 @@ public class ChatPanel extends VBox {
         Button newChatFullBtn = new Button("＋ Start New Chat Session");
         newChatFullBtn.getStyleClass().add("primary-button");
         newChatFullBtn.setMaxWidth(Double.MAX_VALUE);
-        newChatFullBtn.setStyle("-fx-font-size: 13.5px; -fx-padding: 8px; -fx-font-weight: 600;");
+        newChatFullBtn.setStyle("-fx-font-size: 18px; -fx-padding: 10px; -fx-font-weight: 600;");
         newChatFullBtn.setOnAction(e -> startNewChat());
 
         historyView.getChildren().addAll(header, newChatFullBtn, historyScrollPane);
@@ -250,9 +250,9 @@ public class ChatPanel extends VBox {
             emptyBox.setAlignment(Pos.CENTER);
             emptyBox.setPadding(new Insets(30, 10, 30, 10));
             Label emptyLbl = new Label("No chat sessions yet for this case.");
-            emptyLbl.setStyle("-fx-font-size: 13.5px; -fx-text-fill: #94a3b8;");
+            emptyLbl.setStyle("-fx-font-size: 18px; -fx-text-fill: #94a3b8;");
             Label hintLbl = new Label("Start a new chat to begin asking questions.");
-            hintLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #cbd5e1;");
+            hintLbl.setStyle("-fx-font-size: 16px; -fx-text-fill: #cbd5e1;");
             emptyBox.getChildren().addAll(emptyLbl, hintLbl);
             historyListContainer.getChildren().add(emptyBox);
             return;
@@ -271,12 +271,12 @@ public class ChatPanel extends VBox {
             topRow.setAlignment(Pos.CENTER_LEFT);
 
             Label titleLbl = new Label(session.getTitle() != null ? session.getTitle() : "Chat");
-            titleLbl.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
+            titleLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #0f172a;");
             HBox.setHgrow(titleLbl, Priority.ALWAYS);
 
             Button deleteBtn = new Button("🗑");
             deleteBtn.getStyleClass().add("tool-button");
-            deleteBtn.setStyle("-fx-font-size: 11px; -fx-padding: 2px 5px;");
+            deleteBtn.setStyle("-fx-font-size: 14px; -fx-padding: 3px 6px;");
             deleteBtn.setTooltip(new Tooltip("Delete this chat session"));
             deleteBtn.setOnAction(e -> {
                 e.consume();
@@ -293,7 +293,7 @@ public class ChatPanel extends VBox {
 
             String timeStr = formatTimestamp(session.getUpdatedAt());
             Label timeLbl = new Label(timeStr);
-            timeLbl.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #94a3b8;");
+            timeLbl.setStyle("-fx-font-size: 15px; -fx-text-fill: #94a3b8;");
 
             metaRow.getChildren().addAll(countBadge, timeLbl);
 

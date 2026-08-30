@@ -50,7 +50,7 @@ public class GraphCanvas extends StackPane {
     private final Map<String, Integer> nodeDegreeMap = new HashMap<>();
     private final Map<String, Image> nodeIcons = new HashMap<>();
 
-    private double zoom = 1.0;
+    private double zoom = 0.66;
     private double panX = 0.0;
     private double panY = 0.0;
 
@@ -160,7 +160,7 @@ public class GraphCanvas extends StackPane {
         }
 
         if (nodes.isEmpty()) {
-            zoom = 1.0; panX = 0; panY = 0;
+            zoom = 0.66; panX = 0; panY = 0;
             isSimulating = false;
             render();
             return;
@@ -328,9 +328,9 @@ public class GraphCanvas extends StackPane {
         searchIcon.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b;");
 
         searchField = new TextField();
-        searchField.setPromptText("Search entity / connection...");
+        searchField.setPromptText("Search...");
         searchField.getStyleClass().add("graph-search");
-        searchField.setPrefWidth(180);
+        searchField.setPrefWidth(130);
         searchField.textProperty().addListener((obs, oldV, newV) -> {
             searchQuery = newV != null ? newV.trim().toLowerCase(Locale.ROOT) : "";
             render();
@@ -525,10 +525,8 @@ public class GraphCanvas extends StackPane {
                     return;
                 }
 
-                selectedNode = null;
-                selectedEdge = null;
-                if (onSelectionCleared != null) onSelectionCleared.run();
-                render();
+                // Don't clear selection on empty click - only clear via the 'X' button
+                // (which calls clearQueryHighlights())
             }
         });
 
@@ -653,7 +651,7 @@ public class GraphCanvas extends StackPane {
 
     public void fitToView() {
         if (nodes.isEmpty()) {
-            zoom = 1.0; panX = 0; panY = 0; render(); return;
+            zoom = 0.66; panX = 0; panY = 0; render(); return;
         }
 
         double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
@@ -672,7 +670,7 @@ public class GraphCanvas extends StackPane {
         double canvasW = Math.max(120, canvas.getWidth());
         double canvasH = Math.max(120, canvas.getHeight());
 
-        zoom = Math.min(1.2, Math.min(canvasW / graphW, canvasH / graphH) * 0.85);
+        zoom = Math.min(0.8, Math.min(canvasW / graphW, canvasH / graphH) * 0.55);
         if (zoom < 0.2) zoom = 0.2;
 
         double graphCenterX = (minX + maxX) / 2;
@@ -1016,9 +1014,9 @@ public class GraphCanvas extends StackPane {
         // Entity name label below node
         String label = node.getName() != null ? node.getName() : "Entity";
         if (label.length() > 18) label = label.substring(0, 16) + "…";
-        gc.setFont(Font.font("System", FontWeight.BOLD, 11));
+        gc.setFont(Font.font("System", FontWeight.BOLD, 19));
         gc.setFill(Color.color(0.06, 0.09, 0.16, opacity));
-        gc.fillText(label, x, y + radius + 14);
+        gc.fillText(label, x, y + radius + 18);
 
         // Degree badge (top-right corner)
         if (degree > 0 && opacity > 0.4) {
