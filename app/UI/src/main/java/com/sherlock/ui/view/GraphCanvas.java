@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -47,6 +48,7 @@ public class GraphCanvas extends StackPane {
     private final List<EdgeDto> edges = new ArrayList<>();
     private final Map<String, NodeDto> nodeLookup = new HashMap<>();
     private final Map<String, Integer> nodeDegreeMap = new HashMap<>();
+    private final Map<String, Image> nodeIcons = new HashMap<>();
 
     private double zoom = 1.0;
     private double panX = 0.0;
@@ -88,6 +90,24 @@ public class GraphCanvas extends StackPane {
 
         widthProperty().addListener((obs, oldVal, newVal) -> render());
         heightProperty().addListener((obs, oldVal, newVal) -> render());
+
+        try {
+            nodeIcons.put("PERSON", new Image(getClass().getResourceAsStream("/person.png")));
+            nodeIcons.put("LOCATION", new Image(getClass().getResourceAsStream("/location.png")));
+            nodeIcons.put("ORGANIZATION", new Image(getClass().getResourceAsStream("/building.png")));
+            nodeIcons.put("DOCUMENT", new Image(getClass().getResourceAsStream("/document.png")));
+            nodeIcons.put("PHONE", new Image(getClass().getResourceAsStream("/phone.png")));
+            nodeIcons.put("EVENT", new Image(getClass().getResourceAsStream("/event.png")));
+            nodeIcons.put("GROUP", new Image(getClass().getResourceAsStream("/group.png")));
+            nodeIcons.put("MEDICAL", new Image(getClass().getResourceAsStream("/hospital.png")));
+            nodeIcons.put("MESSAGE", new Image(getClass().getResourceAsStream("/message.png")));
+            nodeIcons.put("EMAIL", new Image(getClass().getResourceAsStream("/message_or_mail.png")));
+            nodeIcons.put("VEHICLE", new Image(getClass().getResourceAsStream("/vehical.png")));
+            nodeIcons.put("DATE", new Image(getClass().getResourceAsStream("/date_and_time.png")));
+            nodeIcons.put("DEFAULT", new Image(getClass().getResourceAsStream("/others.png")));
+        } catch (Exception e) {
+            System.err.println("Could not load node icons: " + e.getMessage());
+        }
 
         HBox topToolbar = buildGraphTopToolbar();
         StackPane.setAlignment(topToolbar, Pos.TOP_CENTER);
@@ -878,7 +898,7 @@ public class GraphCanvas extends StackPane {
         double endX = x2 - (dx / dist) * (radiusTgt + 6);
         double endY = y2 - (dy / dist) * (radiusTgt + 6);
 
-        Color baseColor = isSelected ? Color.web("#2563EB") : isQueryHighlighted ? Color.web("#D946EF") : isHovered ? Color.web("#60A5FA") : Color.web("#94A3B8");
+        Color baseColor = isSelected ? Color.web("#1D4ED8") : isQueryHighlighted ? Color.web("#C026D3") : isHovered ? Color.web("#3B82F6") : Color.web("#64748B");
         Color strokeColor = Color.color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), opacity);
 
         double lineWidth = isSelected || isQueryHighlighted ? 3.2 : isHovered ? 2.4 : 1.5;
@@ -963,28 +983,35 @@ public class GraphCanvas extends StackPane {
             gc.strokeOval(x - radius - 4, y - radius - 4, (radius + 4) * 2, (radius + 4) * 2);
         }
 
-        // White fill circle
-        gc.setFill(Color.color(1.0, 1.0, 1.0, opacity));
-        gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
-
-        // Colored border ring — thicker and more prominent
-        gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
-        gc.setLineWidth(isSelected ? 3.5 : degree >= 3 ? 3.0 : 2.5);
-        gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
-
-        // Inner colored icon circle (matching reference design)
-        double innerR = radius * 0.55;
-        Color innerBg = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.12 * opacity);
-        gc.setFill(innerBg);
-        gc.fillOval(x - innerR, y - innerR - 2, innerR * 2, innerR * 2);
-
-        // Icon symbol
-        String symbol = getTypeSymbol(node.getType());
-        gc.setFont(Font.font("System", FontWeight.BOLD, Math.max(13, radius * 0.45)));
-        Color symColor = typeColor.darker();
-        gc.setFill(Color.color(symColor.getRed(), symColor.getGreen(), symColor.getBlue(), opacity));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText(symbol, x, y - 1);
+        Image icon = getIconForType(node.getType());
+        if (icon != null) {
+            double iconSize = radius * 2;
+            gc.setGlobalAlpha(opacity);
+            gc.drawImage(icon, x - radius, y - radius, iconSize, iconSize);
+            gc.setGlobalAlpha(1.0);
+        } else {
+            // White fill circle
+            gc.setFill(Color.color(1.0, 1.0, 1.0, opacity));
+            gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
+    
+            // Colored border ring — thicker and more prominent
+            gc.setStroke(Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), opacity));
+            gc.setLineWidth(isSelected ? 3.5 : degree >= 3 ? 3.0 : 2.5);
+            gc.strokeOval(x - radius, y - radius, radius * 2, radius * 2);
+    
+            // Inner colored icon circle (matching reference design)
+            double innerR = radius * 0.55;
+            Color innerBg = Color.color(typeColor.getRed(), typeColor.getGreen(), typeColor.getBlue(), 0.12 * opacity);
+            gc.setFill(innerBg);
+            gc.fillOval(x - innerR, y - innerR - 2, innerR * 2, innerR * 2);
+    
+            String symbol = getTypeSymbol(node.getType());
+            gc.setFont(Font.font("System", FontWeight.BOLD, Math.max(13, radius * 0.45)));
+            Color symColor = typeColor.darker();
+            gc.setFill(Color.color(symColor.getRed(), symColor.getGreen(), symColor.getBlue(), opacity));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText(symbol, x, y - 1);
+        }
 
         // Entity name label below node
         String label = node.getName() != null ? node.getName() : "Entity";
@@ -1176,18 +1203,42 @@ public class GraphCanvas extends StackPane {
     }
 
     private Color getTypeColor(String type) {
-        if (type == null) return Color.web("#94A3B8");
+        if (type == null) return Color.web("#64748B");
         String t = type.toUpperCase(Locale.ROOT);
         return switch (t) {
-            case "PERSON" -> Color.web("#3B82F6");
-            case "PHONE_NUMBER", "PHONE" -> Color.web("#06B6D4");
-            case "DOCUMENT", "TRANSCRIPT" -> Color.web("#F59E0B");
-            case "LOCATION" -> Color.web("#10B981");
-            case "ORGANIZATION", "ORG" -> Color.web("#8B5CF6");
-            case "MESSAGE", "MSG" -> Color.web("#0D9488");
-            case "MEDICAL", "HOSPITAL", "HEALTH" -> Color.web("#F43F5E");
-            case "EVENT" -> Color.web("#EF4444");
-            default -> Color.web("#64748B");
+            case "PERSON" -> Color.web("#2563EB");
+            case "PHONE_NUMBER", "PHONE" -> Color.web("#0891B2");
+            case "DOCUMENT", "TRANSCRIPT" -> Color.web("#D97706");
+            case "LOCATION" -> Color.web("#059669");
+            case "ORGANIZATION", "ORG" -> Color.web("#7C3AED");
+            case "MESSAGE", "MSG" -> Color.web("#0F766E");
+            case "MEDICAL", "HOSPITAL", "HEALTH" -> Color.web("#E11D48");
+            case "EVENT" -> Color.web("#DC2626");
+            case "GROUP" -> Color.web("#CA8A04");
+            case "EMAIL", "MAIL" -> Color.web("#4F46E5");
+            case "VEHICLE" -> Color.web("#475569");
+            case "DATE", "TIME" -> Color.web("#9333EA");
+            default -> Color.web("#475569");
+        };
+    }
+
+    private Image getIconForType(String type) {
+        if (type == null) return nodeIcons.get("DEFAULT");
+        String t = type.toUpperCase(Locale.ROOT);
+        return switch (t) {
+            case "PERSON" -> nodeIcons.get("PERSON");
+            case "PHONE_NUMBER", "PHONE" -> nodeIcons.get("PHONE");
+            case "DOCUMENT", "TRANSCRIPT" -> nodeIcons.get("DOCUMENT");
+            case "LOCATION" -> nodeIcons.get("LOCATION");
+            case "ORGANIZATION", "ORG" -> nodeIcons.get("ORGANIZATION");
+            case "EVENT" -> nodeIcons.get("EVENT");
+            case "GROUP" -> nodeIcons.get("GROUP");
+            case "MEDICAL", "HOSPITAL", "HEALTH" -> nodeIcons.get("MEDICAL");
+            case "MESSAGE", "MSG" -> nodeIcons.get("MESSAGE");
+            case "EMAIL", "MAIL" -> nodeIcons.get("EMAIL");
+            case "VEHICLE" -> nodeIcons.get("VEHICLE");
+            case "DATE", "TIME" -> nodeIcons.get("DATE");
+            default -> nodeIcons.get("DEFAULT");
         };
     }
 

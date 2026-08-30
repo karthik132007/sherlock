@@ -26,8 +26,8 @@
 .nav-tab {
     -fx-background-color: transparent;
     -fx-text-fill: #64748b;
-    -fx-font-size: 14px;
-    -fx-font-weight: 600;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
     -fx-padding: 14px 16px;
     -fx-cursor: hand;
     -fx-border-color: transparent;
@@ -44,7 +44,7 @@
     -fx-text-fill: #1d4ed8 !important;
     -fx-border-color: #2563eb;
     -fx-border-width: 0 0 2px 0;
-    -fx-font-weight: 700;
+    -fx-font-weight: bold;
 }
 
 .nav-settings-btn {

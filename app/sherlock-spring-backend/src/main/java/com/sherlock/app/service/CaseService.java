@@ -305,6 +305,22 @@ public class CaseService {
         }
     }
 
+    public String getChunksContent(String caseId) {
+        Path caseDirectory = getCaseDirectory(caseId);
+        if (!Files.exists(caseDirectory)) {
+            throw new IllegalArgumentException("Case not found: " + caseId);
+        }
+        Path chunksFile = caseDirectory.resolve("processed").resolve("chunks.json");
+        if (!Files.exists(chunksFile) || !Files.isRegularFile(chunksFile)) {
+            throw new IllegalArgumentException("Chunks file not found for case: " + caseId);
+        }
+        try {
+            return Files.readString(chunksFile, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read chunks file: " + e.getMessage(), e);
+        }
+    }
+
     public String getWarehouseContent(String caseId) {
         Path caseDirectory = getCaseDirectory(caseId);
         if (!Files.exists(caseDirectory)) {

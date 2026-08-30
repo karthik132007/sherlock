@@ -63,6 +63,12 @@ public class CaseController {
         return ResponseEntity.ok(caseService.getFileContent(caseId, fileName));
     }
 
+    @GetMapping(value = "/cases/{caseId}/chunks", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> getChunks(
+            @PathVariable String caseId) {
+        return ResponseEntity.ok(caseService.getChunksContent(caseId));
+    }
+
     @GetMapping(value = "/cases/{caseId}/warehouse", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getWarehouse(@PathVariable String caseId) {
         return ResponseEntity.ok(caseService.getWarehouseContent(caseId));
