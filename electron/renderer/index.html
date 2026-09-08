@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sherlock — AI Investigation Knowledge Graph</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation / Titlebar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🕵️‍♂️</div>
+        <div class="brand-text">
+          <span class="brand-title">SHERLOCK</span>
+          <span class="brand-badge">AI INVESTIGATION GRAPH</span>
+        </div>
+      </div>
+
+      <div class="case-selector-wrapper">
+        <label for="caseSelect">CASE FILE:</label>
+        <select id="caseSelect" class="case-dropdown">
+          <option value="">Loading cases...</option>
+        </select>
+        <button id="newCaseBtn" class="btn btn-sm btn-outline" title="Create New Case">+ New</button>
+      </div>
+
+      <div class="header-right">
+        <div id="engineStatusBadge" class="status-badge checking">
+          <span class="status-dot"></span>
+          <span class="status-label">Checking Engine...</span>
+        </div>
+        <button id="settingsBtn" class="icon-button" title="LLM & Engine Settings">⚙️</button>
+        <button id="refreshBtn" class="icon-button" title="Refresh Case & System State">🔄</button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar">
+        <div class="nav-section-title">INVESTIGATION</div>
+        <ul class="nav-list">
+          <li class="nav-item active" data-tab="overview">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Case Overview</span>
+          </li>
+          <li class="nav-item" data-tab="evidence">
+            <span class="nav-icon">📁</span>
+            <span class="nav-text">Evidence Vault</span>
+            <span id="evidenceCountBadge" class="count-pill">0</span>
+          </li>
+          <li class="nav-item" data-tab="graph">
+            <span class="nav-icon">🕸️</span>
+            <span class="nav-text">Knowledge Graph</span>
+            <span id="graphCountBadge" class="count-pill">0</span>
+          </li>
+          <li class="nav-item" data-tab="timeline">
+            <span class="nav-icon">⏱️</span>
+            <span class="nav-text">Timeline</span>
+            <span id="timelineCountBadge" class="count-pill">0</span>
+          </li>
+          <li class="nav-item" data-tab="contradictions">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-text">Contradictions</span>
+            <span id="contraCountBadge" class="count-pill alert">0</span>
+          </li>
+          <li class="nav-item" data-tab="opinion">
+            <span class="nav-icon">🧠</span>
+            <span class="nav-text">Sherlock's Opinion</span>
+            <span id="opinionScoreBadge" class="count-pill green">AI</span>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <button id="quickRunPipelineBtn" class="btn btn-primary btn-block mb-3">⚡ Run Pipeline</button>
+          <div class="version-tag">Electron Engine v1.0</div>
+          <div class="provenance-note">Source-bound & Auditable</div>
+        </div>
+      </nav>
+
+      <!-- Main Content Views -->
+      <main class="main-content">
+        <!-- Tab 1: Case Overview -->
+        <section id="tab-overview" class="tab-view active">
+          <div class="view-header">
+            <div>
+              <h1 id="activeCaseTitle" class="view-title">CASE ROSE 001</h1>
+              <p id="activeCaseSubtitle" class="view-description">Active investigation workspace • Unstructured homicide & forensic evidence files</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary" id="openDataFolderBtn">📂 Open Folder</button>
+              <button class="btn btn-secondary" id="buildWarehouseBtn">📦 Rebuild Warehouse</button>
+              <button class="btn btn-secondary" id="bootstrapDataBtn" title="Load Ground Truth Processed Data">✨ Bootstrap Demo</button>
+              <button class="btn btn-primary" id="openPipelineModalBtn">⚡ Launch Pipeline</button>
+            </div>
+          </div>
+
+          <!-- Stats Metric Row -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">📄</span>
+                <span class="metric-label">RAW EVIDENCE</span>
+              </div>
+              <div class="metric-value" id="statEvidenceFiles">-</div>
+              <div class="metric-subtext">FIR, interviews, forensic notes, CCTV</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">📦</span>
+                <span class="metric-label">WAREHOUSE</span>
+              </div>
+              <div class="metric-value" id="statWarehouse">-</div>
+              <div class="metric-subtext">Source-marked boundaries & provenance</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">🧩</span>
+                <span class="metric-label">PROCESSED STATUS</span>
+              </div>
+              <div class="metric-value" id="statProcessed">-</div>
+              <div class="metric-subtext" id="statProcessedDetails">Entities & relationships ready</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="metric-header">
+                <span class="metric-icon">🤖</span>
+                <span class="metric-label">CORE ENGINE</span>
+              </div>
+              <div class="metric-value" id="statPythonVer">Active</div>
+              <div class="metric-subtext" id="statPythonSub">Python Analysis Engine</div>
+            </div>
+          </div>
+
+          <!-- Quick Action & Architecture Cards -->
+          <div class="dashboard-grid">
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3>🚀 Pipeline Flow Architecture</h3>
+                <span class="badge badge-info">Multi-Stage</span>
+              </div>
+              <div class="panel-body">
+                <div class="pipeline-stepper">
+                  <div class="step-item" id="step-warehouse">
+                    <div class="step-circle">1</div>
+                    <div class="step-content">
+                      <div class="step-title">Source Warehouse</div>
+                      <div class="step-desc">Combines raw sources with strict <code>SOURCE_FILE</code> boundaries</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item" id="step-chunks">
+                    <div class="step-circle">2</div>
+                    <div class="step-content">
+                      <div class="step-title">Semantic Chunking</div>
+                      <div class="step-desc">Token-aware windows preserving character offsets & provenance</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item" id="step-extract">
+                    <div class="step-circle">3</div>
+                    <div class="step-content">
+                      <div class="step-title">Entities & Relations</div>
+                      <div class="step-desc">Extracts suspects, alibis, phone records, locations & links</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item" id="step-analysis">
+                    <div class="step-circle">4</div>
+                    <div class="step-content">
+                      <div class="step-title">Timeline & Opinion</div>
+                      <div class="step-desc">Chronological normalization & cross-statement lie detection</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3>📑 Recent Evidence Ingested</h3>
+                <span class="badge badge-secondary" id="evidenceBadge">Files Loaded</span>
+              </div>
+              <div class="panel-body">
+                <div id="quickEvidenceList" class="file-mini-list">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Evidence Files Explorer -->
+        <section id="tab-evidence" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">EVIDENCE VAULT</h1>
+              <p class="view-description">Inspect raw statements, forensic artifacts, phone logs, and rebuild source warehouse.</p>
+            </div>
+            <div class="view-actions">
+              <input type="text" id="evidenceSearchInput" class="search-input" placeholder="Filter evidence files...">
+              <button class="btn btn-secondary" id="addEvidenceBtn">+ Add Evidence File</button>
+              <button class="btn btn-primary" id="buildWarehouseBtn2">📦 Rebuild Warehouse</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="evidence-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Category</th>
+                  <th>Size</th>
+                  <th>Type</th>
+                  <th>Last Modified</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="evidenceTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tab 3: Knowledge Graph -->
+        <section id="tab-graph" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">INVESTIGATION KNOWLEDGE GRAPH</h1>
+              <p class="view-description">Interactive force-directed graph showing verified connections, alibis, and evidence traces.</p>
+            </div>
+            <div class="view-actions">
+              <input type="text" id="graphSearchInput" class="search-input" placeholder="Search entities or relations...">
+              <button class="btn btn-secondary" id="graphFitBtn">🎯 Fit to Screen</button>
+              <button class="btn btn-secondary" id="graphResetBtn">🔄 Reset Simulation</button>
+            </div>
+          </div>
+
+          <div class="graph-viewport-container">
+            <!-- Filter Pills -->
+            <div class="graph-filters">
+              <span class="filter-pill active" data-type="ALL">All Entities</span>
+              <span class="filter-pill" data-type="Person"><span class="legend-dot person"></span> Person</span>
+              <span class="filter-pill" data-type="Location"><span class="legend-dot location"></span> Location</span>
+              <span class="filter-pill" data-type="Document"><span class="legend-dot document"></span> Evidence</span>
+              <span class="filter-pill" data-type="Phone"><span class="legend-dot phone"></span> Phone</span>
+              <span class="filter-pill" data-type="Organization"><span class="legend-dot org"></span> Organization</span>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-wrapper" id="canvasWrapper">
+              <canvas id="graphCanvas"></canvas>
+
+              <!-- Node Inspector Drawer (Slide-out on click) -->
+              <div id="nodeInspector" class="node-inspector hidden">
+                <div class="inspector-header">
+                  <div>
+                    <span id="inspectTypeBadge" class="category-tag person">Person</span>
+                    <h2 id="inspectNodeName">Rose Mathew</h2>
+                  </div>
+                  <button id="closeInspectorBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="inspector-body">
+                  <div class="inspector-section">
+                    <h4>ALIASES & IDENTIFIERS</h4>
+                    <div id="inspectAliases" class="tag-cloud"></div>
+                  </div>
+
+                  <div class="inspector-section">
+                    <h4>ATTRIBUTES & METADATA</h4>
+                    <div id="inspectAttributes" class="attributes-list"></div>
+                  </div>
+
+                  <div class="inspector-section">
+                    <h4>CONNECTED RELATIONSHIPS</h4>
+                    <div id="inspectRelationships" class="relationships-list"></div>
+                  </div>
+
+                  <div class="inspector-section">
+                    <h4>PROVENANCE SOURCES</h4>
+                    <div id="inspectSources" class="sources-list"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Graph Loading/Empty Overlay -->
+              <div id="graphEmptyOverlay" class="graph-empty-overlay hidden">
+                <div class="placeholder-graphic">🕸️</div>
+                <h3>Knowledge Graph Not Materialized</h3>
+                <p>Execute the extraction pipeline or click "Bootstrap Demo" to materialize entities and relationships into the interactive canvas.</p>
+                <button class="btn btn-primary mt-3" id="graphExtractBtn">⚡ Extract Graph Entities</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 4: Timeline -->
+        <section id="tab-timeline" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">CHRONOLOGICAL TIMELINE</h1>
+              <p class="view-description">Chronologically ordered sequence of movements, communications, sightings, and critical events.</p>
+            </div>
+            <div class="view-actions">
+              <input type="text" id="timelineSearchInput" class="search-input" placeholder="Filter timeline events...">
+              <button class="btn btn-primary" id="extractTimelineBtn">⚡ Run Timeline Extraction</button>
+            </div>
+          </div>
+
+          <div class="timeline-container">
+            <div id="timelineList" class="timeline-feed">
+              <!-- Timeline items rendered dynamically -->
+            </div>
+            <div id="timelineEmpty" class="timeline-empty hidden">
+              <div class="placeholder-graphic">⏱️</div>
+              <h3>Timeline Not Extracted</h3>
+              <p>Execute timeline extraction from the pipeline runner to normalize chronological sequence from evidence files.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 5: Contradictions -->
+        <section id="tab-contradictions" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">CONTRADICTION DETECTION MATRIX</h1>
+              <p class="view-description">Cross-references witness statements against forensic truth, CCTV logs, and cellular tower records.</p>
+            </div>
+            <div class="view-actions">
+              <input type="text" id="contraSearchInput" class="search-input" placeholder="Filter contradictions...">
+              <button class="btn btn-primary" id="detectContraBtn">⚡ Run Contradiction Detector</button>
+            </div>
+          </div>
+
+          <div class="contradictions-container">
+            <div id="contraList" class="contradictions-grid">
+              <!-- Dynamically populated -->
+            </div>
+            <div id="contraEmpty" class="contradictions-empty hidden">
+              <div class="placeholder-graphic">⚡</div>
+              <h3>No Contradictions Detected Yet</h3>
+              <p>Run contradiction detection to cross-examine interview statements against physical and digital evidence.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 6: Sherlock's Opinion -->
+        <section id="tab-opinion" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">SHERLOCK'S DEDUCTION & INVESTIGATION CHAT</h1>
+              <p class="view-description">Forensic synthesis, suspect culpability analysis, and interactive natural-language graph query agent.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-primary" id="generateOpinionBtn">🧠 Formulate Deduction</button>
+            </div>
+          </div>
+
+          <div class="opinion-layout">
+            <!-- Left: Deductive Intelligence Cards -->
+            <div class="opinion-left-panel">
+              <!-- Primary Hypothesis Banner -->
+              <div class="hypothesis-card">
+                <div class="hypothesis-header">
+                  <div class="hypothesis-badge">
+                    <span>PRIMARY DEDUCTIVE HYPOTHESIS</span>
+                    <span id="opConfidenceScore" class="confidence-pill high">92% Confidence</span>
+                  </div>
+                </div>
+                <h2 id="opTheoryTitle" class="hypothesis-title">Loading deductive analysis...</h2>
+                <div class="hypothesis-meta">
+                  <div><strong>Culpability:</strong> <span id="opResponsible">-</span></div>
+                  <div><strong>Classification:</strong> <span id="opClassification">-</span></div>
+                </div>
+              </div>
+
+              <!-- Supporting Evidence -->
+              <div class="evidence-points-card">
+                <h3>🔍 Supporting Forensic Anchors & Citations</h3>
+                <div id="opSupportingList" class="bullet-list"></div>
+              </div>
+
+              <!-- Flaws & Counter-Evidence -->
+              <div class="counter-points-card">
+                <h3>⚖️ Counter-Evidence & Misleading Leads Debunked</h3>
+                <div id="opCounterList" class="bullet-list"></div>
+              </div>
+
+              <!-- Actionable Leads -->
+              <div class="leads-card">
+                <h3>🎯 Recommended Immediate Actions</h3>
+                <div id="opLeadsList" class="leads-list"></div>
+              </div>
+            </div>
+
+            <!-- Right: Interactive Investigation Chat -->
+            <div class="opinion-chat-panel">
+              <div class="chat-header">
+                <div class="chat-title">
+                  <span>💬 Sherlock Query Agent</span>
+                  <span class="badge badge-info">Bounded Cypher & Context</span>
+                </div>
+              </div>
+
+              <div id="chatMessages" class="chat-messages">
+                <div class="chat-bubble sherlock">
+                  <div class="bubble-sender">🕵️‍♂️ Sherlock Holmes</div>
+                  <div class="bubble-text">
+                    I have thoroughly analyzed the evidence repository. You may question me regarding suspect alibis, timeline conflicts, cellular pings, or specific relationships extracted in this case.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Prompt Chips -->
+              <div class="prompt-chips">
+                <button class="prompt-chip" data-prompt="What are the contradictions in Arjun's alibi?">Arjun's False Alibi</button>
+                <button class="prompt-chip" data-prompt="Did Meera visit Rose after 10 April?">Meera's Contact</button>
+                <button class="prompt-chip" data-prompt="What is the verified cause of death?">Cause of Death</button>
+                <button class="prompt-chip" data-prompt="Who called Rose on 14 April afternoon?">Last Phone Calls</button>
+              </div>
+
+              <!-- Chat Input -->
+              <form id="chatForm" class="chat-input-form">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask Sherlock about suspects, alibis, evidence..." autocomplete="off">
+                <button type="submit" id="chatSendBtn" class="btn btn-primary">Send</button>
+              </form>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <footer class="status-bar">
+      <div class="status-bar-left">
+        <span class="status-item"><strong id="statusPlatform">Platform: Windows</strong></span>
+        <span class="separator">•</span>
+        <span class="status-item" id="statusActivePath">Active Case: None</span>
+      </div>
+      <div class="status-bar-right">
+        <span class="status-item">Engine: <span id="statusPython" class="text-green">Python 3.x</span></span>
+        <span class="separator">•</span>
+        <span class="status-item">Mode: <strong>Electron Backend (Direct Python Engine)</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- Modals & Overlays -->
+  <!-- ===================================================================== -->
+
+  <!-- Modal 1: Pipeline Execution Runner & Streaming Terminal -->
+  <div id="pipelineModal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>⚡ Sherlock Analysis Pipeline Runner</h3>
+        <button id="closePipelineModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="pipeline-options-grid">
+          <label class="checkbox-option">
+            <input type="checkbox" id="chkChunk" checked disabled>
+            <span>Semantic Chunking (Required)</span>
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" id="chkExtract" checked>
+            <span>Entity & Relationship Extraction</span>
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" id="chkTimeline" checked>
+            <span>Chronological Timeline Normalization</span>
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" id="chkContra" checked>
+            <span>Contradiction Detection</span>
+          </label>
+          <label class="checkbox-option">
+            <input type="checkbox" id="chkOpinion" checked>
+            <span>Sherlock's Opinion & Theory Formulation</span>
+          </label>
+        </div>
+
+        <div class="pipeline-params-row">
+          <div class="param-group">
+            <label for="batchSizeInput">Batch Size (Chunks):</label>
+            <input type="number" id="batchSizeInput" value="20" min="5" max="50">
+          </div>
+          <div class="param-group">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="chkSingleCall">
+              <span>Use Single LLM Call (if warehouse fits context)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Terminal Output Window -->
+        <div class="terminal-container">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="terminal-title">Python Engine Output Console (stdout/stderr)</span>
+            <span id="pipelineStatusTag" class="terminal-status idle">Idle</span>
+          </div>
+          <pre id="terminalOutput" class="terminal-content">[Ready] Select pipeline stages and click "Run Pipeline" to start execution.</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelPipelineBtn" disabled>⏹️ Cancel Process</button>
+        <button class="btn btn-primary" id="startPipelineExecutionBtn">🚀 Start Pipeline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Evidence File Previewer -->
+  <div id="fileViewerModal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="file-modal-title">
+          <span class="file-icon">📄</span>
+          <span id="fileViewerTitle">01_case_summary.txt</span>
+          <span id="fileViewerBadge" class="category-tag police">POLICE REPORT</span>
+        </div>
+        <button id="closeFileViewerBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body file-preview-body">
+        <div class="file-preview-meta">
+          <span id="fileViewerSize">Size: 4.2 KB</span> • 
+          <span id="fileViewerChars">Chars: 5,208</span> • 
+          <span>Encoding: UTF-8</span>
+        </div>
+        <pre id="fileViewerContent" class="file-text-content"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="closeFileViewerBtn2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add Evidence File -->
+  <div id="addEvidenceModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📄 Add Evidence File</h3>
+        <button id="closeAddEvidenceBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newEvidenceFilename">File Name:</label>
+          <input type="text" id="newEvidenceFilename" placeholder="e.g. 21_forensic_ballistics.txt">
+        </div>
+        <div class="form-group">
+          <label for="newEvidenceContent">Evidence Content / Statement / Log:</label>
+          <textarea id="newEvidenceContent" rows="10" placeholder="Paste or type raw evidence text here..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelAddEvidenceBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveEvidenceBtn">Save to Case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: New Case -->
+  <div id="newCaseModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📁 Create New Investigation Case</h3>
+        <button id="closeNewCaseBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newCaseId">Case Identifier:</label>
+          <input type="text" id="newCaseId" placeholder="e.g. case_marina_002">
+          <small class="form-help">Lowercase letters, numbers, and underscores.</small>
+        </div>
+        <div class="form-group">
+          <label for="newCaseName">Case Display Name:</label>
+          <input type="text" id="newCaseName" placeholder="e.g. Operation Marina">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelNewCaseBtn">Cancel</button>
+        <button class="btn btn-primary" id="createCaseBtn">Create Case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: LLM Settings -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ LLM & Engine Configuration</h3>
+        <button id="closeSettingsBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cfgProvider">LLM Provider:</label>
+          <select id="cfgProvider" class="form-control">
+            <option value="openai">OpenAI (GPT-4o, GPT-4o-mini)</option>
+            <option value="openrouter">OpenRouter (Multi-model aggregator)</option>
+            <option value="groq">Groq (Ultra-fast LLaMA 3.3)</option>
+            <option value="deepseek">DeepSeek (deepseek-chat, deepseek-reasoner)</option>
+            <option value="ollama">Ollama (Local models e.g. llama3.1)</option>
+            <option value="custom">Custom OpenAI-Compatible Endpoint</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cfgModel">Model Name:</label>
+          <input type="text" id="cfgModel" placeholder="gpt-4o-mini">
+        </div>
+        <div class="form-group">
+          <label for="cfgApiKey">API Key:</label>
+          <input type="password" id="cfgApiKey" placeholder="sk-...">
+        </div>
+        <div class="form-group">
+          <label for="cfgContextWindow">Context Window (Tokens):</label>
+          <input type="number" id="cfgContextWindow" value="128000">
+        </div>
+        <div class="form-group">
+          <label for="cfgBaseUrl">Custom Base URL (Optional):</label>
+          <input type="text" id="cfgBaseUrl" placeholder="https://api.openai.com/v1 or http://localhost:11434/v1">
+        </div>
+        <div id="cfgFeedback" class="form-feedback hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelSettingsBtn">Close</button>
+        <button class="btn btn-primary" id="saveSettingsBtn">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/renderer.js"></script>
+</body>
+</html>
