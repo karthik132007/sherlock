@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sherlock — AI Investigation Knowledge Graph</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation / Titlebar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🕵️‍♂️</div>
+        <div class="brand-text">
+          <span class="brand-title">SHERLOCK</span>
+          <span class="brand-badge">AI INVESTIGATION GRAPH</span>
+        </div>
+      </div>
+
+      <div class="case-selector-wrapper">
+        <label for="caseSelect">CASE FILE:</label>
+        <select id="caseSelect" class="case-dropdown">
+          <option value="">Loading cases...</option>
+        </select>
+      </div>
+
+      <div class="header-right">
+        <div id="engineStatusBadge" class="status-badge checking">
+          <span class="status-dot"></span>
+          <span class="status-label">Checking Engine...</span>
+        </div>
+        <button id="refreshBtn" class="icon-button" title="Refresh Case & System State">🔄</button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar">
+        <div class="nav-section-title">INVESTIGATION</div>
+        <ul class="nav-list">
+          <li class="nav-item active" data-tab="overview">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Case Overview</span>
+          </li>
+          <li class="nav-item" data-tab="evidence">
+            <span class="nav-icon">📁</span>
+            <span class="nav-text">Evidence Files</span>
+            <span id="evidenceCountBadge" class="count-pill">0</span>
+          </li>
+          <li class="nav-item" data-tab="graph">
+            <span class="nav-icon">🕸️</span>
+            <span class="nav-text">Knowledge Graph</span>
+          </li>
+          <li class="nav-item" data-tab="timeline">
+            <span class="nav-icon">⏱️</span>
+            <span class="nav-text">Timeline</span>
+          </li>
+          <li class="nav-item" data-tab="contradictions">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-text">Contradictions</span>
+          </li>
+          <li class="nav-item" data-tab="opinion">
+            <span class="nav-icon">🧠</span>
+            <span class="nav-text">Sherlock's Opinion</span>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <div class="version-tag">Electron Desktop v1.0</div>
+          <div class="provenance-note">Source-bound & Auditable</div>
+        </div>
+      </nav>
+
+      <!-- Main Content Views -->
+      <main class="main-content">
+        <!-- Tab 1: Case Overview -->
+        <section id="tab-overview" class="tab-view active">
+          <div class="view-header">
+            <div>
+              <h1 id="activeCaseTitle" class="view-title">CASE ROSE 001</h1>
+              <p id="activeCaseSubtitle" class="view-description">Active investigation workspace • Unstructured homicide & forensic evidence files</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary" id="openDataFolderBtn">📂 Open Case Folder</button>
+              <button class="btn btn-primary" id="runPipelineBtn">⚡ Trigger Analysis Pipeline</button>
+            </div>
+          </div>
+
+          <!-- Stats Metric Row -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">📄</span>
+                <span class="metric-label">RAW EVIDENCE</span>
+              </div>
+              <div class="metric-value" id="statEvidenceFiles">-</div>
+              <div class="metric-subtext">FIR, interviews, forensic notes, CCTV</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">📦</span>
+                <span class="metric-label">WAREHOUSE</span>
+              </div>
+              <div class="metric-value" id="statWarehouse">-</div>
+              <div class="metric-subtext">Preserves source boundaries & provenance</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-icon">🧩</span>
+                <span class="metric-label">PROCESSED STATUS</span>
+              </div>
+              <div class="metric-value" id="statProcessed">-</div>
+              <div class="metric-subtext">Entities, relations & graph materialization</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="metric-header">
+                <span class="metric-icon">🤖</span>
+                <span class="metric-label">CORE ENGINE</span>
+              </div>
+              <div class="metric-value" id="statPythonVer">-</div>
+              <div class="metric-subtext" id="statPythonSub">Python Analysis Engine</div>
+            </div>
+          </div>
+
+          <!-- Quick Action & Architecture Cards -->
+          <div class="dashboard-grid">
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3>🚀 Pipeline Flow Architecture</h3>
+                <span class="badge badge-info">Multi-Stage</span>
+              </div>
+              <div class="panel-body">
+                <div class="pipeline-stepper">
+                  <div class="step-item completed">
+                    <div class="step-circle">1</div>
+                    <div class="step-content">
+                      <div class="step-title">Source Warehouse</div>
+                      <div class="step-desc">Combines raw sources with strict <code>SOURCE_FILE</code> boundaries</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item completed">
+                    <div class="step-circle">2</div>
+                    <div class="step-content">
+                      <div class="step-title">Semantic Chunking</div>
+                      <div class="step-desc">Token-aware windows preserving character offsets & provenance</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item active">
+                    <div class="step-circle">3</div>
+                    <div class="step-content">
+                      <div class="step-title">Entity & Relation Extraction</div>
+                      <div class="step-desc">Extracts suspects, alibis, phone records, locations & links</div>
+                    </div>
+                  </div>
+                  <div class="step-arrow">→</div>
+                  <div class="step-item">
+                    <div class="step-circle">4</div>
+                    <div class="step-content">
+                      <div class="step-title">Timeline & Contradictions</div>
+                      <div class="step-desc">Chronological normalization & cross-statement lie detection</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3>📑 Recent Evidence Ingested</h3>
+                <span class="badge badge-secondary" id="evidenceBadge">Files Loaded</span>
+              </div>
+              <div class="panel-body">
+                <div id="quickEvidenceList" class="file-mini-list">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Evidence Files Explorer -->
+        <section id="tab-evidence" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">EVIDENCE VAULT</h1>
+              <p class="view-description">Inspect raw investigation files, statements, reports and forensic artifacts.</p>
+            </div>
+            <div class="view-actions">
+              <input type="text" id="evidenceSearchInput" class="search-input" placeholder="Filter evidence files...">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="evidence-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Category</th>
+                  <th>Size</th>
+                  <th>Type</th>
+                  <th>Last Modified</th>
+                </tr>
+              </thead>
+              <tbody id="evidenceTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tab 3: Knowledge Graph -->
+        <section id="tab-graph" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">INVESTIGATION KNOWLEDGE GRAPH</h1>
+              <p class="view-description">Force-directed entity mapping showing relationships, alibis, and evidence traces.</p>
+            </div>
+            <div class="view-actions">
+              <button class="btn btn-secondary">🔍 Filter Nodes</button>
+              <button class="btn btn-primary">🎯 Fit to Screen</button>
+            </div>
+          </div>
+          <div class="canvas-placeholder">
+            <div class="placeholder-graphic">🕸️</div>
+            <h3>Knowledge Graph Canvas</h3>
+            <p>Run the extraction pipeline on the active case to materialize entities and relationships into the interactive canvas.</p>
+            <div class="mock-legend">
+              <span class="legend-item"><span class="legend-dot person"></span> Person / Suspect</span>
+              <span class="legend-item"><span class="legend-dot location"></span> Location</span>
+              <span class="legend-item"><span class="legend-dot document"></span> Evidence / Report</span>
+              <span class="legend-item"><span class="legend-dot phone"></span> Phone / Communication</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 4: Timeline -->
+        <section id="tab-timeline" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">CHRONOLOGICAL TIMELINE</h1>
+              <p class="view-description">Chronologically ordered sequence of movements, phone calls, and critical incidents.</p>
+            </div>
+          </div>
+          <div class="timeline-container">
+            <div class="timeline-empty">
+              <div class="placeholder-graphic">⏱️</div>
+              <h3>Timeline Extraction</h3>
+              <p>Execute <code>python main.py --timeline</code> or trigger the analysis pipeline to generate normalized chronological events.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 5: Contradictions -->
+        <section id="tab-contradictions" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">CONTRADICTION DETECTION</h1>
+              <p class="view-description">Detects cross-statement inconsistencies, conflicting alibis, and timeline anomalies.</p>
+            </div>
+          </div>
+          <div class="contradictions-container">
+            <div class="contradictions-empty">
+              <div class="placeholder-graphic">⚡</div>
+              <h3>Contradiction Matrix</h3>
+              <p>Cross-references witness statements against call logs and CCTV to identify irreconcilable claims.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 6: Sherlock's Opinion -->
+        <section id="tab-opinion" class="tab-view">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">SHERLOCK'S DEDUCTION & CHAT</h1>
+              <p class="view-description">Chain-of-thought investigative opinion with cited evidence and bounded Cypher reasoning.</p>
+            </div>
+          </div>
+          <div class="opinion-container">
+            <div class="opinion-empty">
+              <div class="placeholder-graphic">🧠</div>
+              <h3>Investigative Reasoning</h3>
+              <p>Sherlock deduces theories, identifies suspect motives, cross-examines leads, and quotes verbatim evidence excerpts.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <footer class="status-bar">
+      <div class="status-bar-left">
+        <span class="status-item"><strong id="statusPlatform">Platform: Windows</strong></span>
+        <span class="separator">•</span>
+        <span class="status-item" id="statusActivePath">Active Case: None</span>
+      </div>
+      <div class="status-bar-right">
+        <span class="status-item">Engine: <span id="statusPython" class="text-green">Python 3.x</span></span>
+        <span class="separator">•</span>
+        <span class="status-item">Mode: <strong>Electron Desktop (File-First)</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="js/renderer.js"></script>
+</body>
+</html>
